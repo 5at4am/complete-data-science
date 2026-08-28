@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 03 Unit 03.5: Correlation & regression basics notebook (Pearson correlation, covariance, simple linear regression, R-squared).
 - Phase 03 Unit 03.6: Bayesian thinking notebook (Bayes' theorem, priors, likelihoods, posteriors, sequential updating).
 - Phase 03 Unit 03.7: Statistics for ML notebook (train/test split, cross-validation, bias-variance, metrics).
+- Phase 03 Unit 03.8: Synthesis notebook (full workflow: explore, infer, model, evaluate).
+- **Phase 03 (Statistics & Probability) COMPLETE** - all 8 units verified and committed.
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

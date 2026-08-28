@@ -94,14 +94,14 @@ Last updated: 2026-08-28
 
 ## Current Checkpoint
 
-**Phase:** 2 — Mathematics for ML (COMPLETE)
-**Unit:** 02.1–02.8 all complete and verified
-**Status:** Phase 02 done. Ready to begin Phase 03 (Statistics & Probability).
+**Phase:** 3 — Statistics & Probability (COMPLETE)
+**Unit:** 03.1–03.8 all complete and verified
+**Status:** Phase 03 done. Ready to begin Phase 04 (Data Analysis).
 
 ---
 
 ## Next Actions
 
-1. Commit Phase 02 completion.
-2. Begin Phase 03 (Statistics & Probability) learning units.
+1. Commit Phase 03 completion.
+2. Begin Phase 04 (Data Analysis) learning units.
 3. Build and verify each unit one at a time.
