@@ -99,7 +99,7 @@ Last updated: 2026-08-28
 | 03.1 | `03_statistics/03_01_descriptive_statistics.ipynb` | ✅ VERIFIED | 2026-08-28 | Descriptive statistics |
 | 03.2 | `03_statistics/03_02_probability_distributions.ipynb` | ✅ VERIFIED | 2026-08-28 | Probability distributions |
 | 03.3 | `03_statistics/03_03_inferential_statistics.ipynb` | ✅ VERIFIED | 2026-08-28 | Inferential statistics & sampling |
-| 03.4 | `03_statistics/03_04_hypothesis_testing.ipynb` | ⏳ IN PROGRESS | — | Hypothesis testing |
+| 03.4 | `03_statistics/03_04_hypothesis_testing.ipynb` | ✅ VERIFIED | 2026-08-28 | Hypothesis testing |
 | 03.5 | `03_statistics/03_05_correlation_regression.ipynb` | ⏳ IN PROGRESS | — | Correlation & regression basics |
 | 03.6 | `03_statistics/03_06_bayesian_thinking.ipynb` | ⏳ IN PROGRESS | — | Bayesian thinking |
 | 03.7 | `03_statistics/03_07_statistics_for_ml.ipynb` | ⏳ IN PROGRESS | — | Statistics for ML |
