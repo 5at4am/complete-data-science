@@ -67,7 +67,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 03.4 Hypothesis testing | ✅ | 3 | Null/alt hypotheses, p-values, t-tests, Type I/II errors |
 | 03.5 Correlation | ✅ | 3 | Pearson correlation, covariance, simple linear regression, R-squared |
 | 03.6 Bayesian thinking | ✅ | 3 | Bayes' theorem, priors, likelihoods, posteriors, sequential updating |
-| 03.7 Stats for ML | ⏳ | — | |
+| 03.7 Stats for ML | ✅ | 3 | Train/test split, cross-validation, bias-variance, metrics |
 | 03.8 Synthesis | ⏳ | — | |
 
 ## Phase 04 — Data Analysis & Preparation
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 27 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.6)
+- **Completed:** 28 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.7)
 - **In progress:** 0
 - **Not started:** ~95
 
