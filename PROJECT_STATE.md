@@ -94,14 +94,14 @@ Last updated: 2026-08-28
 
 ## Current Checkpoint
 
-**Phase:** 0 — Project scaffolding + Phase 00 (Environment)
-**Unit:** 00.1–00.4 complete and verified
-**Status:** Ready to commit initial scaffolding and begin Phase 01
+**Phase:** 1 — Python Foundations (COMPLETE)
+**Unit:** 01.1–01.9 all complete and verified
+**Status:** Phase 01 done. Ready to begin Phase 02 (Mathematics for ML).
 
 ---
 
 ## Next Actions
 
-1. Commit initial scaffolding.
-2. Begin Phase 01 (Python Foundations) learning units.
+1. Commit Phase 01 completion.
+2. Begin Phase 02 (Mathematics for ML) learning units.
 3. Build and verify each unit one at a time.

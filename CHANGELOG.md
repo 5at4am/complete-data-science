@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 01 Unit 01.6: Pandas notebook (DataFrames, Series, filtering, groupby, merging, missing values).
 - Phase 01 Unit 01.7: Matplotlib notebook (line, scatter, bar, histogram, box, subplots, saving).
 - Phase 01 Unit 01.8: File I/O & errors notebook (file handling, with statement, try/except, custom exceptions).
+- Phase 01 Unit 01.9: Synthesis notebook (mini data analysis project tying together all Phase 01 skills).
+- **Phase 01 (Python Foundations) COMPLETE** — all 9 units verified.
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

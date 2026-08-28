@@ -42,7 +42,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 01.6 Pandas | ✅ | 3 | DataFrames, Series, groupby |
 | 01.7 Matplotlib | ✅ | 3 | Line, scatter, bar, hist, subplots |
 | 01.8 File I/O & errors | ✅ | 3 | File I/O, exceptions |
-| 01.9 Synthesis | ⏳ | — | |
+| 01.9 Synthesis | ✅ | 3 | Mini data analysis project |
 
 ## Phase 02 — Mathematics for ML
 
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 12 (00.1–00.4, 01.1–01.8)
+- **Completed:** 13 (00.1–00.4, 01.1–01.9)
 - **In progress:** 0
 - **Not started:** ~95
 
