@@ -69,7 +69,7 @@ Last updated: 2026-08-28
 | 01.2 | `01_python/01_02_data_structures.ipynb` | ✅ VERIFIED | 2026-08-28 | Lists, dicts, sets, tuples |
 | 01.3 | `01_python/01_03_functions_scope.ipynb` | ✅ VERIFIED | 2026-08-28 | Functions, scope, closures |
 | 01.4 | `01_python/01_04_oop.ipynb` | ✅ VERIFIED | 2026-08-28 | Classes, inheritance, dunder |
-| 01.5 | `01_python/01_05_numpy.ipynb` | ⏳ IN PROGRESS | — | NumPy arrays, broadcasting |
+| 01.5 | `01_python/01_05_numpy.ipynb` | ✅ VERIFIED | 2026-08-28 | NumPy arrays, broadcasting |
 | 01.6 | `01_python/01_06_pandas.ipynb` | ⏳ IN PROGRESS | — | DataFrames, Series |
 | 01.7 | `01_python/01_07_matplotlib.ipynb` | ⏳ IN PROGRESS | — | Plotting |
 | 01.8 | `01_python/01_08_file_io_errors.ipynb` | ⏳ IN PROGRESS | — | File I/O, exceptions |

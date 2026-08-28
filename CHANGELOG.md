@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 01 Unit 01.2: Data structures notebook (lists, tuples, sets, dicts, comprehensions).
 - Phase 01 Unit 01.3: Functions & scope notebook (functions, args/kwargs, scope, lambdas, closures).
 - Phase 01 Unit 01.4: OOP notebook (classes, inheritance, dunder methods, encapsulation).
+- Phase 01 Unit 01.5: NumPy notebook (arrays, vectorization, broadcasting, matrix ops, normal equation).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

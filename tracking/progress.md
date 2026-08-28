@@ -38,7 +38,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 01.2 Data structures | ✅ | 3 | Lists, dicts, sets, tuples |
 | 01.3 Functions & scope | ✅ | 3 | Functions, scope, closures |
 | 01.4 OOP | ✅ | 3 | Classes, inheritance, dunder |
-| 01.5 NumPy | ⏳ | — | |
+| 01.5 NumPy | ✅ | 3 | Arrays, broadcasting, matrix ops |
 | 01.6 Pandas | ⏳ | — | |
 | 01.7 Matplotlib | ⏳ | — | |
 | 01.8 File I/O & errors | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 8 (00.1–00.4, 01.1–01.4)
+- **Completed:** 9 (00.1–00.4, 01.1–01.5)
 - **In progress:** 0
 - **Not started:** ~95
 
