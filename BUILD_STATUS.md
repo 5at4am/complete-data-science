@@ -18,7 +18,7 @@ Last updated: 2026-08-28
 | Reference docs | ✅ COMPLETE |
 | Environment verification | ✅ COMPLETE |
 | Phase 00 (Environment) | ✅ COMPLETE |
-| Phase 01 (Python) | ⏳ NOT STARTED |
+| Phase 01 (Python) | ⏳ IN PROGRESS |
 | Phase 02 (Math) | ⏳ NOT STARTED |
 | Phase 03 (Statistics) | ⏳ NOT STARTED |
 | Phase 04 (Data Analysis) | ⏳ NOT STARTED |
@@ -58,6 +58,22 @@ Last updated: 2026-08-28
 | 00.2 | `00_environment/00_02_jupyter_workflow.ipynb` | ✅ VERIFIED | 2026-08-28 | Jupyter cells, kernels, magic |
 | 00.3 | `00_environment/00_03_git_version_control.ipynb` | ✅ VERIFIED | 2026-08-28 | Git basics, branching, recovery |
 | 00.4 | `00_environment/00_04_python_environments.ipynb` | ✅ VERIFIED | 2026-08-28 | venv, uv, packages |
+
+---
+
+### Phase 01 — Python Foundations
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 01.1 | `01_python/01_01_python_basics.ipynb` | ✅ VERIFIED | 2026-08-28 | Variables, types, operators, control flow |
+| 01.2 | `01_python/01_02_data_structures.ipynb` | ⏳ IN PROGRESS | — | Lists, dicts, sets, tuples |
+| 01.3 | `01_python/01_03_functions_scope.ipynb` | ⏳ IN PROGRESS | — | Functions, scope, closures |
+| 01.4 | `01_python/01_04_oop.ipynb` | ⏳ IN PROGRESS | — | Classes, inheritance, dunder |
+| 01.5 | `01_python/01_05_numpy.ipynb` | ⏳ IN PROGRESS | — | NumPy arrays, broadcasting |
+| 01.6 | `01_python/01_06_pandas.ipynb` | ⏳ IN PROGRESS | — | DataFrames, Series |
+| 01.7 | `01_python/01_07_matplotlib.ipynb` | ⏳ IN PROGRESS | — | Plotting |
+| 01.8 | `01_python/01_08_file_io_errors.ipynb` | ⏳ IN PROGRESS | — | File I/O, exceptions |
+| 01.9 | `01_python/01_09_synthesis.ipynb` | ⏳ IN PROGRESS | — | Mini project |
 
 ---
 

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 00 (Environment Setup) notebooks: environment verification, Jupyter workflow, Git & version control, Python environments.
 - Environment verified: all core packages installed and working.
 - `requirements.txt`, `.env.example`, `datasets/README.md`, `src/README.md`, `tests/README.md`.
+- Phase 01 (Python Foundations) Unit 01.1: Python basics notebook (variables, types, operators, control flow).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

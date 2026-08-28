@@ -25,16 +25,16 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 00.1 Environment verification | ⏳ | — | |
-| 00.2 Jupyter workflow | ⏳ | — | |
-| 00.3 Git & version control | ⏳ | — | |
-| 00.4 Python environments | ⏳ | — | |
+| 00.1 Environment verification | ✅ | 3 | All packages verified |
+| 00.2 Jupyter workflow | ✅ | 3 | |
+| 00.3 Git & version control | ✅ | 3 | |
+| 00.4 Python environments | ✅ | 3 | |
 
 ## Phase 01 — Python Foundations
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 01.1 Python basics | ⏳ | — | |
+| 01.1 Python basics | ✅ | 3 | Variables, types, operators, control flow |
 | 01.2 Data structures | ⏳ | — | |
 | 01.3 Functions & scope | ⏳ | — | |
 | 01.4 OOP | ⏳ | — | |
@@ -158,9 +158,9 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 0
+- **Completed:** 5 (00.1–00.4, 01.1)
 - **In progress:** 0
-- **Not started:** ~100
+- **Not started:** ~95
 
 ---
 
