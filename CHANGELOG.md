@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 03 Unit 03.2: Probability distributions notebook (Bernoulli, Binomial, Normal, Uniform, Poisson).
 - Phase 03 Unit 03.3: Inferential statistics notebook (sampling, CLT, standard error, confidence intervals).
 - Phase 03 Unit 03.4: Hypothesis testing notebook (null/alt hypotheses, p-values, t-tests, Type I/II errors).
+- Phase 03 Unit 03.5: Correlation & regression basics notebook (Pearson correlation, covariance, simple linear regression, R-squared).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
