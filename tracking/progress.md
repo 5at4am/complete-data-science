@@ -78,7 +78,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 04.2 Data cleaning | ✅ | 3 | Duplicates, formats, typos, types, consistency |
 | 04.3 Missing values | ✅ | 3 | MCAR/MAR/MNAR, imputation strategies |
 | 04.4 Outliers | ✅ | 3 | IQR, z-score, visualization, keep/cap/remove |
-| 04.5 Scaling & encoding | ⏳ | — | |
+| 04.5 Scaling & encoding | ✅ | 3 | Standardization, normalization, one-hot, label encoding |
 | 04.6 Train/val/test splits | ⏳ | — | |
 | 04.7 Data leakage | ⏳ | — | |
 | 04.8 Synthesis | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 33 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.4)
+- **Completed:** 34 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.5)
 - **In progress:** 0
 - **Not started:** ~95
 
