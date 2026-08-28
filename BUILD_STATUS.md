@@ -114,7 +114,7 @@ Last updated: 2026-08-28
 | 04.3 | `04_data_analysis/04_03_missing_values.ipynb` | ✅ VERIFIED | 2026-08-28 | Missing values |
 | 04.4 | `04_data_analysis/04_04_outliers.ipynb` | ✅ VERIFIED | 2026-08-28 | Outliers |
 | 04.5 | `04_data_analysis/04_05_feature_scaling_encoding.ipynb` | ✅ VERIFIED | 2026-08-28 | Feature scaling & encoding |
-| 04.6 | `04_data_analysis/04_06_train_val_test_splits.ipynb` | ⏳ IN PROGRESS | — | Train/val/test splits |
+| 04.6 | `04_data_analysis/04_06_train_val_test_splits.ipynb` | ✅ VERIFIED | 2026-08-28 | Train/val/test splits |
 | 04.7 | `04_data_analysis/04_07_data_leakage.ipynb` | ⏳ IN PROGRESS | — | Data leakage |
 | 04.8 | `04_data_analysis/04_08_synthesis.ipynb` | ⏳ IN PROGRESS | — | Synthesis |
 
