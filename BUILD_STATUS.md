@@ -85,7 +85,7 @@ Last updated: 2026-08-28
 | 02.2 | `02_math/02_02_matrix_operations.ipynb` | ✅ VERIFIED | 2026-08-28 | Matrix multiplication, inverse |
 | 02.3 | `02_math/02_03_derivatives_gradients.ipynb` | ✅ VERIFIED | 2026-08-28 | Derivatives, gradients |
 | 02.4 | `02_math/02_04_gradient_descent.ipynb` | ✅ VERIFIED | 2026-08-28 | Gradient descent |
-| 02.5 | `02_math/02_05_probability.ipynb` | ⏳ IN PROGRESS | — | Probability |
+| 02.5 | `02_math/02_05_probability.ipynb` | ✅ VERIFIED | 2026-08-28 | Probability |
 | 02.6 | `02_math/02_06_information_theory.ipynb` | ⏳ IN PROGRESS | — | Information theory |
 | 02.7 | `02_math/02_07_eigenvalues.ipynb` | ⏳ IN PROGRESS | — | Eigenvalues |
 | 02.8 | `02_math/02_08_synthesis.ipynb` | ⏳ IN PROGRESS | — | Synthesis |
