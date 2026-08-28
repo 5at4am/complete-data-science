@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 01 Unit 01.4: OOP notebook (classes, inheritance, dunder methods, encapsulation).
 - Phase 01 Unit 01.5: NumPy notebook (arrays, vectorization, broadcasting, matrix ops, normal equation).
 - Phase 01 Unit 01.6: Pandas notebook (DataFrames, Series, filtering, groupby, merging, missing values).
+- Phase 01 Unit 01.7: Matplotlib notebook (line, scatter, bar, histogram, box, subplots, saving).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
