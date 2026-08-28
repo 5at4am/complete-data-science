@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `requirements.txt`, `.env.example`, `datasets/README.md`, `src/README.md`, `tests/README.md`.
 - Phase 01 (Python Foundations) Unit 01.1: Python basics notebook (variables, types, operators, control flow).
 - Phase 01 Unit 01.2: Data structures notebook (lists, tuples, sets, dicts, comprehensions).
+- Phase 01 Unit 01.3: Functions & scope notebook (functions, args/kwargs, scope, lambdas, closures).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

@@ -36,7 +36,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 |------|--------|---------|-------|
 | 01.1 Python basics | ✅ | 3 | Variables, types, operators, control flow |
 | 01.2 Data structures | ✅ | 3 | Lists, dicts, sets, tuples |
-| 01.3 Functions & scope | ⏳ | — | |
+| 01.3 Functions & scope | ✅ | 3 | Functions, scope, closures |
 | 01.4 OOP | ⏳ | — | |
 | 01.5 NumPy | ⏳ | — | |
 | 01.6 Pandas | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 6 (00.1–00.4, 01.1, 01.2)
+- **Completed:** 7 (00.1–00.4, 01.1–01.3)
 - **In progress:** 0
 - **Not started:** ~95
 
