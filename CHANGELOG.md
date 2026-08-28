@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 04 Unit 04.1: Data exploration & EDA notebook (summary stats, distributions, correlations, visualizations).
 - Phase 04 Unit 04.2: Data cleaning notebook (duplicates, formats, typos, types, consistency).
 - Phase 04 Unit 04.3: Missing values notebook (MCAR/MAR/MNAR, imputation strategies).
+- Phase 04 Unit 04.4: Outliers notebook (IQR, z-score, visualization, keep/cap/remove).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
