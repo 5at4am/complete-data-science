@@ -63,7 +63,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 |------|--------|---------|-------|
 | 03.1 Descriptive stats | ✅ | 3 | Mean, median, mode, variance, std, quartiles, skew, outliers |
 | 03.2 Distributions | ✅ | 3 | Bernoulli, Binomial, Normal, Uniform, Poisson |
-| 03.3 Inferential stats | ⏳ | — | |
+| 03.3 Inferential stats | ✅ | 3 | Sampling, CLT, standard error, confidence intervals |
 | 03.4 Hypothesis testing | ⏳ | — | |
 | 03.5 Correlation | ⏳ | — | |
 | 03.6 Bayesian thinking | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 23 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.2)
+- **Completed:** 24 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.3)
 - **In progress:** 0
 - **Not started:** ~95
 
