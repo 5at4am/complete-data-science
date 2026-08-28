@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Phase 01 (Python Foundations) COMPLETE** — all 9 units verified.
 - Phase 02 (Mathematics for ML) Unit 02.1: Vectors & matrices notebook (vectors, matrices, norms, dot product, cosine similarity).
 - Phase 02 Unit 02.2: Matrix operations notebook (matrix multiplication, inverse, linear systems, normal equation).
+- Phase 02 Unit 02.3: Derivatives & gradients notebook (derivatives, partial derivatives, gradients, chain rule, autograd).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

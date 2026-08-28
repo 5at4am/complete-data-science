@@ -50,7 +50,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 |------|--------|---------|-------|
 | 02.1 Vectors & matrices | ✅ | 3 | Vectors, matrices, norms, dot product |
 | 02.2 Matrix operations | ✅ | 3 | Matrix mult, inverse, linear systems |
-| 02.3 Derivatives & gradients | ⏳ | — | |
+| 02.3 Derivatives & gradients | ✅ | 3 | Derivatives, partial derivatives, gradients, chain rule, autograd |
 | 02.4 Gradient descent | ⏳ | — | |
 | 02.5 Probability | ⏳ | — | |
 | 02.6 Information theory | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 15 (00.1–00.4, 01.1–01.9, 02.1–02.2)
+- **Completed:** 16 (00.1–00.4, 01.1–01.9, 02.1–02.3)
 - **In progress:** 0
 - **Not started:** ~95
 
