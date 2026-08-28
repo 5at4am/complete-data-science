@@ -22,7 +22,7 @@ Last updated: 2026-08-28
 | Phase 02 (Math) | ✅ COMPLETE |
 | Phase 03 (Statistics) | ✅ COMPLETE |
 | Phase 04 (Data Analysis) | ✅ COMPLETE |
-| Phase 05 (Machine Learning) | ⏳ NOT STARTED |
+| Phase 05 (Machine Learning) | ⏳ IN PROGRESS |
 | Phase 06 (Deep Learning) | ⏳ NOT STARTED |
 | Phase 07 (NLP) | ⏳ NOT STARTED |
 | Phase 08 (Transformers) | ⏳ NOT STARTED |
@@ -117,6 +117,29 @@ Last updated: 2026-08-28
 | 04.6 | `04_data_analysis/04_06_train_val_test_splits.ipynb` | ✅ VERIFIED | 2026-08-28 | Train/val/test splits |
 | 04.7 | `04_data_analysis/04_07_data_leakage.ipynb` | ✅ VERIFIED | 2026-08-28 | Data leakage |
 | 04.8 | `04_data_analysis/04_08_synthesis.ipynb` | ✅ VERIFIED | 2026-08-28 | Data preparation synthesis |
+
+### Phase 05 — Machine Learning
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 05.1 | `05_machine_learning/05_01_ml_fundamentals.ipynb` | ✅ VERIFIED | 2026-08-28 | ML fundamentals & problem formulation |
+| 05.2 | `05_machine_learning/05_02_linear_regression.ipynb` | ✅ VERIFIED | 2026-08-28 | Linear regression from scratch |
+| 05.3 | `05_machine_learning/05_03_logistic_regression.ipynb` | ✅ VERIFIED | 2026-08-28 | Logistic regression from scratch |
+| 05.4 | `05_machine_learning/05_04_model_evaluation.ipynb` | ✅ VERIFIED | 2026-08-28 | Model evaluation |
+| 05.5 | `05_machine_learning/05_05_decision_trees.ipynb` | ✅ VERIFIED | 2026-08-28 | Decision trees |
+| 05.6 | `05_machine_learning/05_06_random_forests.ipynb` | ✅ VERIFIED | 2026-08-28 | Random forests |
+| 05.7 | `05_machine_learning/05_07_gradient_boosting.ipynb` | ✅ VERIFIED | 2026-08-28 | Gradient boosting (XGBoost, LightGBM) |
+| 05.8 | `05_machine_learning/05_08_knn.ipynb` | ⏳ IN PROGRESS | — | k-Nearest Neighbors |
+| 05.9 | `05_machine_learning/05_09_naive_bayes.ipynb` | ⏳ IN PROGRESS | — | Naive Bayes |
+| 05.10 | `05_machine_learning/05_10_svm.ipynb` | ⏳ IN PROGRESS | — | Support Vector Machines |
+| 05.11 | `05_machine_learning/05_11_clustering.ipynb` | ⏳ IN PROGRESS | — | Clustering |
+| 05.12 | `05_machine_learning/05_12_pca.ipynb` | ⏳ IN PROGRESS | — | Dimensionality Reduction (PCA) |
+| 05.13 | `05_machine_learning/05_13_feature_engineering.ipynb` | ⏳ IN PROGRESS | — | Feature Engineering |
+| 05.14 | `05_machine_learning/05_14_imbalanced_learning.ipynb` | ⏳ IN PROGRESS | — | Imbalanced Learning |
+| 05.15 | `05_machine_learning/05_15_cv_hyperparameter_tuning.ipynb` | ⏳ IN PROGRESS | — | Cross-Validation & Tuning |
+| 05.16 | `05_machine_learning/05_16_model_interpretation.ipynb` | ⏳ IN PROGRESS | — | Model Interpretation |
+| 05.17 | `05_machine_learning/05_17_ensembling.ipynb` | ⏳ IN PROGRESS | — | Ensembling |
+| 05.18 | `05_machine_learning/05_18_synthesis.ipynb` | ⏳ IN PROGRESS | — | ML Synthesis & Review |
 
 ---
 

@@ -87,13 +87,13 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 05.1 ML fundamentals | ⏳ | — | |
-| 05.2 Linear regression | ⏳ | — | |
-| 05.3 Logistic regression | ⏳ | — | |
-| 05.4 Model evaluation | ⏳ | — | |
-| 05.5 Decision trees | ⏳ | — | |
-| 05.6 Random forests | ⏳ | — | |
-| 05.7 Gradient boosting | ⏳ | — | |
+| 05.1 ML fundamentals | ✅ | 3 | Types of learning, ML pipeline, problem formulation |
+| 05.2 Linear regression | ✅ | 3 | From-scratch gradient descent, metrics, learning rate |
+| 05.3 Logistic regression | ✅ | 3 | From-scratch sigmoid/log loss, precision/recall/F1/ROC-AUC |
+| 05.4 Model evaluation | ✅ | 3 | Confusion matrix, metrics, choosing the right metric |
+| 05.5 Decision trees | ✅ | 3 | Entropy/Gini, from-scratch tree, overfitting |
+| 05.6 Random forests | ✅ | 3 | Bagging, feature importance, OOB score |
+| 05.7 Gradient boosting | ✅ | 3 | XGBoost, LightGBM, learning rate, early stopping |
 | 05.8 kNN | ⏳ | — | |
 | 05.9 Naive Bayes | ⏳ | — | |
 | 05.10 SVM | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 37 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.8)
+- **Completed:** 44 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.8, 05.1–05.7)
 - **In progress:** 0
 - **Not started:** ~95
 

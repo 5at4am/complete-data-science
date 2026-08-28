@@ -54,6 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 04 Unit 04.7: Data leakage notebook (preprocessing, target, temporal leakage; pipelines).
 - Phase 04 Unit 04.8: Data preparation synthesis notebook (full pipeline: clean, outliers, split, ColumnTransformer, CV).
 - **Phase 04 (Data Analysis & Preparation) COMPLETE** — all 8 units verified and committed.
+- Phase 05 Unit 05.1: ML fundamentals & problem formulation notebook.
+- Phase 05 Unit 05.2: Linear regression from scratch notebook (gradient descent, metrics, learning rate).
+- Phase 05 Unit 05.3: Logistic regression from scratch notebook (sigmoid, log loss, precision/recall/F1/ROC-AUC).
+- Phase 05 Unit 05.4: Model evaluation notebook (confusion matrix, classification & regression metrics).
+- Phase 05 Unit 05.5: Decision trees notebook (entropy/Gini, from-scratch tree, overfitting).
+- Phase 05 Unit 05.6: Random forests notebook (bagging, feature importance, OOB score).
+- Phase 05 Unit 05.7: Gradient boosting notebook (XGBoost, LightGBM, learning rate, early stopping).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
