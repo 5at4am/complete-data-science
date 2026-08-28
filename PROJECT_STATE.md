@@ -94,14 +94,14 @@ Last updated: 2026-08-28
 
 ## Current Checkpoint
 
-**Phase:** 1 — Python Foundations (COMPLETE)
-**Unit:** 01.1–01.9 all complete and verified
-**Status:** Phase 01 done. Ready to begin Phase 02 (Mathematics for ML).
+**Phase:** 2 — Mathematics for ML (COMPLETE)
+**Unit:** 02.1–02.8 all complete and verified
+**Status:** Phase 02 done. Ready to begin Phase 03 (Statistics & Probability).
 
 ---
 
 ## Next Actions
 
-1. Commit Phase 01 completion.
-2. Begin Phase 02 (Mathematics for ML) learning units.
+1. Commit Phase 02 completion.
+2. Begin Phase 03 (Statistics & Probability) learning units.
 3. Build and verify each unit one at a time.

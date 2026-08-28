@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 02 Unit 02.5: Probability notebook (conditional probability, Bayes' theorem, independence, distributions, CLT).
 - Phase 02 Unit 02.6: Information theory notebook (entropy, cross-entropy, KL divergence).
 - Phase 02 Unit 02.7: Eigenvalues notebook (eigenvalues, eigenvectors, eigendecomposition, PCA).
+- Phase 02 Unit 02.8: Synthesis notebook (full pipeline: data, model, train, evaluate, PCA).
+- **Phase 02 (Mathematics for ML) COMPLETE** — all 8 units verified.
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
