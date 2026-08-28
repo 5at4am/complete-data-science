@@ -20,7 +20,7 @@ Last updated: 2026-08-28
 | Phase 00 (Environment) | ✅ COMPLETE |
 | Phase 01 (Python) | ✅ COMPLETE |
 | Phase 02 (Math) | ✅ COMPLETE |
-| Phase 03 (Statistics) | ⏳ NOT STARTED |
+| Phase 03 (Statistics) | ⏳ IN PROGRESS |
 | Phase 04 (Data Analysis) | ⏳ NOT STARTED |
 | Phase 05 (Machine Learning) | ⏳ NOT STARTED |
 | Phase 06 (Deep Learning) | ⏳ NOT STARTED |
@@ -89,6 +89,21 @@ Last updated: 2026-08-28
 | 02.6 | `02_math/02_06_information_theory.ipynb` | ✅ VERIFIED | 2026-08-28 | Information theory |
 | 02.7 | `02_math/02_07_eigenvalues.ipynb` | ✅ VERIFIED | 2026-08-28 | Eigenvalues |
 | 02.8 | `02_math/02_08_synthesis.ipynb` | ✅ VERIFIED | 2026-08-28 | Synthesis |
+
+---
+
+### Phase 03 — Statistics & Probability
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 03.1 | `03_statistics/03_01_descriptive_statistics.ipynb` | ✅ VERIFIED | 2026-08-28 | Descriptive statistics |
+| 03.2 | `03_statistics/03_02_probability_distributions.ipynb` | ⏳ IN PROGRESS | — | Probability distributions |
+| 03.3 | `03_statistics/03_03_inferential_statistics.ipynb` | ⏳ IN PROGRESS | — | Inferential statistics & sampling |
+| 03.4 | `03_statistics/03_04_hypothesis_testing.ipynb` | ⏳ IN PROGRESS | — | Hypothesis testing |
+| 03.5 | `03_statistics/03_05_correlation_regression.ipynb` | ⏳ IN PROGRESS | — | Correlation & regression basics |
+| 03.6 | `03_statistics/03_06_bayesian_thinking.ipynb` | ⏳ IN PROGRESS | — | Bayesian thinking |
+| 03.7 | `03_statistics/03_07_statistics_for_ml.ipynb` | ⏳ IN PROGRESS | — | Statistics for ML |
+| 03.8 | `03_statistics/03_08_synthesis.ipynb` | ⏳ IN PROGRESS | — | Synthesis |
 
 ---
 

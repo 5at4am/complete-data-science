@@ -61,7 +61,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 03.1 Descriptive stats | ⏳ | — | |
+| 03.1 Descriptive stats | ✅ | 3 | Mean, median, mode, variance, std, quartiles, skew, outliers |
 | 03.2 Distributions | ⏳ | — | |
 | 03.3 Inferential stats | ⏳ | — | |
 | 03.4 Hypothesis testing | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 21 (00.1–00.4, 01.1–01.9, 02.1–02.8)
+- **Completed:** 22 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1)
 - **In progress:** 0
 - **Not started:** ~95
 

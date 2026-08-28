@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 02 Unit 02.7: Eigenvalues notebook (eigenvalues, eigenvectors, eigendecomposition, PCA).
 - Phase 02 Unit 02.8: Synthesis notebook (full pipeline: data, model, train, evaluate, PCA).
 - **Phase 02 (Mathematics for ML) COMPLETE** — all 8 units verified.
+- Phase 03 (Statistics & Probability) Unit 03.1: Descriptive statistics notebook (mean, median, mode, variance, std, quartiles, skew, outliers).
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
