@@ -72,7 +72,7 @@ Last updated: 2026-08-28
 | 01.5 | `01_python/01_05_numpy.ipynb` | ✅ VERIFIED | 2026-08-28 | NumPy arrays, broadcasting |
 | 01.6 | `01_python/01_06_pandas.ipynb` | ✅ VERIFIED | 2026-08-28 | DataFrames, Series |
 | 01.7 | `01_python/01_07_matplotlib.ipynb` | ✅ VERIFIED | 2026-08-28 | Plotting |
-| 01.8 | `01_python/01_08_file_io_errors.ipynb` | ⏳ IN PROGRESS | — | File I/O, exceptions |
+| 01.8 | `01_python/01_08_file_io_errors.ipynb` | ✅ VERIFIED | 2026-08-28 | File I/O, exceptions |
 | 01.9 | `01_python/01_09_synthesis.ipynb` | ⏳ IN PROGRESS | — | Mini project |
 
 ---
