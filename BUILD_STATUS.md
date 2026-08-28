@@ -66,7 +66,7 @@ Last updated: 2026-08-28
 | Unit | Notebook | Status | Last Verified | Notes |
 |------|----------|--------|---------------|-------|
 | 01.1 | `01_python/01_01_python_basics.ipynb` | ✅ VERIFIED | 2026-08-28 | Variables, types, operators, control flow |
-| 01.2 | `01_python/01_02_data_structures.ipynb` | ⏳ IN PROGRESS | — | Lists, dicts, sets, tuples |
+| 01.2 | `01_python/01_02_data_structures.ipynb` | ✅ VERIFIED | 2026-08-28 | Lists, dicts, sets, tuples |
 | 01.3 | `01_python/01_03_functions_scope.ipynb` | ⏳ IN PROGRESS | — | Functions, scope, closures |
 | 01.4 | `01_python/01_04_oop.ipynb` | ⏳ IN PROGRESS | — | Classes, inheritance, dunder |
 | 01.5 | `01_python/01_05_numpy.ipynb` | ⏳ IN PROGRESS | — | NumPy arrays, broadcasting |
