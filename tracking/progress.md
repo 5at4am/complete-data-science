@@ -54,7 +54,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 02.4 Gradient descent | ✅ | 3 | Update rule, learning rate, batch/SGD/mini-batch, divergence |
 | 02.5 Probability | ✅ | 3 | Conditional prob, Bayes, independence, distributions, CLT |
 | 02.6 Information theory | ✅ | 3 | Entropy, cross-entropy, KL divergence |
-| 02.7 Eigenvalues | ⏳ | — | |
+| 02.7 Eigenvalues | ✅ | 3 | Eigenvalues, eigenvectors, eigendecomposition, PCA |
 | 02.8 Synthesis | ⏳ | — | |
 
 ## Phase 03 — Statistics & Probability
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 19 (00.1–00.4, 01.1–01.9, 02.1–02.6)
+- **Completed:** 20 (00.1–00.4, 01.1–01.9, 02.1–02.7)
 - **In progress:** 0
 - **Not started:** ~95
 
