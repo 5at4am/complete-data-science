@@ -94,14 +94,14 @@ Last updated: 2026-08-28
 
 ## Current Checkpoint
 
-**Phase:** 3 — Statistics & Probability (COMPLETE)
-**Unit:** 03.1–03.8 all complete and verified
-**Status:** Phase 03 done. Ready to begin Phase 04 (Data Analysis).
+**Phase:** 4 — Data Analysis & Preparation (COMPLETE)
+**Unit:** 04.1–04.8 all complete and verified
+**Status:** Phase 04 done. Ready to begin Phase 05 (Machine Learning).
 
 ---
 
 ## Next Actions
 
-1. Commit Phase 03 completion.
-2. Begin Phase 04 (Data Analysis) learning units.
+1. Commit Phase 04 completion.
+2. Begin Phase 05 (Machine Learning) learning units.
 3. Build and verify each unit one at a time.

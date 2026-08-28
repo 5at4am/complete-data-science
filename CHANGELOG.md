@@ -52,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 04 Unit 04.5: Feature scaling & encoding notebook (standardization, normalization, one-hot, label encoding).
 - Phase 04 Unit 04.6: Train/val/test splits notebook (three-way split, stratified, time-based).
 - Phase 04 Unit 04.7: Data leakage notebook (preprocessing, target, temporal leakage; pipelines).
+- Phase 04 Unit 04.8: Data preparation synthesis notebook (full pipeline: clean, outliers, split, ColumnTransformer, CV).
+- **Phase 04 (Data Analysis & Preparation) COMPLETE** — all 8 units verified and committed.
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
