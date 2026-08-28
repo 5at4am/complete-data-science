@@ -19,7 +19,7 @@ Last updated: 2026-08-28
 | Environment verification | ✅ COMPLETE |
 | Phase 00 (Environment) | ✅ COMPLETE |
 | Phase 01 (Python) | ✅ COMPLETE |
-| Phase 02 (Math) | ⏳ NOT STARTED |
+| Phase 02 (Math) | ⏳ IN PROGRESS |
 | Phase 03 (Statistics) | ⏳ NOT STARTED |
 | Phase 04 (Data Analysis) | ⏳ NOT STARTED |
 | Phase 05 (Machine Learning) | ⏳ NOT STARTED |
@@ -74,6 +74,21 @@ Last updated: 2026-08-28
 | 01.7 | `01_python/01_07_matplotlib.ipynb` | ✅ VERIFIED | 2026-08-28 | Plotting |
 | 01.8 | `01_python/01_08_file_io_errors.ipynb` | ✅ VERIFIED | 2026-08-28 | File I/O, exceptions |
 | 01.9 | `01_python/01_09_synthesis.ipynb` | ✅ VERIFIED | 2026-08-28 | Mini project |
+
+---
+
+### Phase 02 — Mathematics for ML
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 02.1 | `02_math/02_01_vectors_matrices.ipynb` | ✅ VERIFIED | 2026-08-28 | Vectors, matrices, norms, dot product |
+| 02.2 | `02_math/02_02_matrix_operations.ipynb` | ⏳ IN PROGRESS | — | Matrix multiplication, inverse |
+| 02.3 | `02_math/02_03_derivatives_gradients.ipynb` | ⏳ IN PROGRESS | — | Derivatives, gradients |
+| 02.4 | `02_math/02_04_gradient_descent.ipynb` | ⏳ IN PROGRESS | — | Gradient descent |
+| 02.5 | `02_math/02_05_probability.ipynb` | ⏳ IN PROGRESS | — | Probability |
+| 02.6 | `02_math/02_06_information_theory.ipynb` | ⏳ IN PROGRESS | — | Information theory |
+| 02.7 | `02_math/02_07_eigenvalues.ipynb` | ⏳ IN PROGRESS | — | Eigenvalues |
+| 02.8 | `02_math/02_08_synthesis.ipynb` | ⏳ IN PROGRESS | — | Synthesis |
 
 ---
 

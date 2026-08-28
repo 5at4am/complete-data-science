@@ -48,7 +48,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 02.1 Vectors & matrices | ⏳ | — | |
+| 02.1 Vectors & matrices | ✅ | 3 | Vectors, matrices, norms, dot product |
 | 02.2 Matrix operations | ⏳ | — | |
 | 02.3 Derivatives & gradients | ⏳ | — | |
 | 02.4 Gradient descent | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 13 (00.1–00.4, 01.1–01.9)
+- **Completed:** 14 (00.1–00.4, 01.1–01.9, 02.1)
 - **In progress:** 0
 - **Not started:** ~95
 
