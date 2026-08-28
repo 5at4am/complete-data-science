@@ -111,7 +111,7 @@ Last updated: 2026-08-28
 |------|----------|--------|---------------|-------|
 | 04.1 | `04_data_analysis/04_01_eda.ipynb` | ✅ VERIFIED | 2026-08-28 | Data exploration & EDA |
 | 04.2 | `04_data_analysis/04_02_data_cleaning.ipynb` | ✅ VERIFIED | 2026-08-28 | Data cleaning |
-| 04.3 | `04_data_analysis/04_03_missing_values.ipynb` | ⏳ IN PROGRESS | — | Missing values |
+| 04.3 | `04_data_analysis/04_03_missing_values.ipynb` | ✅ VERIFIED | 2026-08-28 | Missing values |
 | 04.4 | `04_data_analysis/04_04_outliers.ipynb` | ⏳ IN PROGRESS | — | Outliers |
 | 04.5 | `04_data_analysis/04_05_feature_scaling_encoding.ipynb` | ⏳ IN PROGRESS | — | Feature scaling & encoding |
 | 04.6 | `04_data_analysis/04_06_train_val_test_splits.ipynb` | ⏳ IN PROGRESS | — | Train/val/test splits |
