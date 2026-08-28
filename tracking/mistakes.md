@@ -29,7 +29,19 @@ For every meaningful mistake, add an entry with the following structure:
 
 ## Mistakes
 
-<!-- Add new mistakes below this line -->
+### Mistake #1
+
+- **Date:** 2026-08-28
+- **Unit:** 01.4 OOP
+- **Mistake:** In the `SimpleLinearModel.fit` method, I wrote `pred = self.slope * X + self.intercept` and `error * X` assuming list arithmetic works like NumPy arrays.
+- **What I expected:** Element-wise multiplication and addition on Python lists.
+- **What actually happened:** `TypeError: can't multiply sequence by non-int of type 'float'` — Python lists don't support element-wise arithmetic.
+- **Root cause:** Confusing Python lists with NumPy arrays. Lists only support `*` with an integer (repetition), not element-wise operations.
+- **Correct understanding:** Python lists are not vectorized. Use list comprehensions (or NumPy arrays) for element-wise math.
+- **How I detected it:** Notebook execution failed with a TypeError during verification.
+- **How to prevent it:** Remember lists ≠ arrays. For element-wise math, use list comprehensions or NumPy.
+- **Related concept:** Data structures, NumPy vectorization.
+- **Review date:** 2026-09-04
 
 ---
 
