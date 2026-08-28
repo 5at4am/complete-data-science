@@ -74,7 +74,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 04.1 EDA | ⏳ | — | |
+| 04.1 EDA | ✅ | 3 | Summary stats, distributions, correlations, visualizations |
 | 04.2 Data cleaning | ⏳ | — | |
 | 04.3 Missing values | ⏳ | — | |
 | 04.4 Outliers | ⏳ | — | |
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 29 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8)
+- **Completed:** 30 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1)
 - **In progress:** 0
 - **Not started:** ~95
 
