@@ -82,7 +82,7 @@ Last updated: 2026-08-28
 | Unit | Notebook | Status | Last Verified | Notes |
 |------|----------|--------|---------------|-------|
 | 02.1 | `02_math/02_01_vectors_matrices.ipynb` | ✅ VERIFIED | 2026-08-28 | Vectors, matrices, norms, dot product |
-| 02.2 | `02_math/02_02_matrix_operations.ipynb` | ⏳ IN PROGRESS | — | Matrix multiplication, inverse |
+| 02.2 | `02_math/02_02_matrix_operations.ipynb` | ✅ VERIFIED | 2026-08-28 | Matrix multiplication, inverse |
 | 02.3 | `02_math/02_03_derivatives_gradients.ipynb` | ⏳ IN PROGRESS | — | Derivatives, gradients |
 | 02.4 | `02_math/02_04_gradient_descent.ipynb` | ⏳ IN PROGRESS | — | Gradient descent |
 | 02.5 | `02_math/02_05_probability.ipynb` | ⏳ IN PROGRESS | — | Probability |
