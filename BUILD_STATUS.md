@@ -97,7 +97,7 @@ Last updated: 2026-08-28
 | Unit | Notebook | Status | Last Verified | Notes |
 |------|----------|--------|---------------|-------|
 | 03.1 | `03_statistics/03_01_descriptive_statistics.ipynb` | ✅ VERIFIED | 2026-08-28 | Descriptive statistics |
-| 03.2 | `03_statistics/03_02_probability_distributions.ipynb` | ⏳ IN PROGRESS | — | Probability distributions |
+| 03.2 | `03_statistics/03_02_probability_distributions.ipynb` | ✅ VERIFIED | 2026-08-28 | Probability distributions |
 | 03.3 | `03_statistics/03_03_inferential_statistics.ipynb` | ⏳ IN PROGRESS | — | Inferential statistics & sampling |
 | 03.4 | `03_statistics/03_04_hypothesis_testing.ipynb` | ⏳ IN PROGRESS | — | Hypothesis testing |
 | 03.5 | `03_statistics/03_05_correlation_regression.ipynb` | ⏳ IN PROGRESS | — | Correlation & regression basics |
