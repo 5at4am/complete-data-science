@@ -80,7 +80,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 04.4 Outliers | ✅ | 3 | IQR, z-score, visualization, keep/cap/remove |
 | 04.5 Scaling & encoding | ✅ | 3 | Standardization, normalization, one-hot, label encoding |
 | 04.6 Train/val/test splits | ✅ | 3 | Three-way split, stratified, time-based |
-| 04.7 Data leakage | ⏳ | — | |
+| 04.7 Data leakage | ✅ | 3 | Preprocessing, target, temporal leakage; pipelines |
 | 04.8 Synthesis | ⏳ | — | |
 
 ## Phase 05 — Machine Learning
@@ -158,7 +158,7 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 ## Summary
 
 - **Total units:** ~100
-- **Completed:** 35 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.6)
+- **Completed:** 36 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.7)
 - **In progress:** 0
 - **Not started:** ~95
 
