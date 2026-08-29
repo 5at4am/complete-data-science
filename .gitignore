@@ -53,6 +53,7 @@ Thumbs.db
 # Temporary
 tmp/
 temp/
+*.bak
 
 # Notebook-execution artifacts (temp plots, figures)
 notebooks/**/_tmp_*.png
