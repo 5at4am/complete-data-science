@@ -225,3 +225,13 @@ At the end of this phase, you should be able to:
 5. Tune hyperparameters properly.
 6. Interpret model predictions.
 7. Build an end-to-end ML pipeline.
+
+## Exit Criteria
+
+Move to Phase 06 only when you can independently:
+- Formulate an ML problem from a dataset
+- Create a proper train/validation/test split without leakage
+- Train and evaluate at least 3 model families
+- Choose metrics based on problem cost and class balance
+- Perform error analysis and explain model decisions
+- Build a reproducible ML pipeline with documentation
