@@ -1,0 +1,17 @@
+[
+  { "id": "o01", "query": "What is the weather in Delhi today?", "category": "weather" },
+  { "id": "o02", "query": "Tell me a funny joke", "category": "joke" },
+  { "id": "o03", "query": "Who won the last cricket world cup?", "category": "sports" },
+  { "id": "o04", "query": "Write a poem about the moon", "category": "creative" },
+  { "id": "o05", "query": "What is the capital of France?", "category": "general_knowledge" },
+  { "id": "o06", "query": "Explain the plot of the movie Oppenheimer", "category": "entertainment" },
+  { "id": "o07", "query": "Can you recommend a good pasta recipe?", "category": "food" },
+  { "id": "o08", "query": "Compare ClearTax with TaxKraft", "category": "competitor" },
+  { "id": "o09", "query": "How do I file taxes in the United States?", "category": "other_jurisdiction" },
+  { "id": "o10", "query": "Should I invest in bitcoin right now?", "category": "investment_advice" },
+  { "id": "o11", "query": "Recommend a gaming laptop under 1000 dollars", "category": "shopping" },
+  { "id": "o12", "query": "What is the meaning of life?", "category": "philosophy" },
+  { "id": "o13", "query": "Who is the prime minister of the UK?", "category": "general_knowledge" },
+  { "id": "o14", "query": "How do I fix a leaking tap?", "category": "diy" },
+  { "id": "o15", "query": "Is Tally a better software than what TaxKraft uses?", "category": "competitor" }
+]

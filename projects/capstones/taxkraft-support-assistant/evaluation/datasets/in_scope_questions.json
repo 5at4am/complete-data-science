@@ -1,0 +1,22 @@
+[
+  { "id": "s01", "query": "Who is TaxKraft and what do they do?", "answer_hint": "CA-led firm, GST/ITR/company registration/compliance across India." },
+  { "id": "s02", "query": "Where is the TaxKraft office located?", "answer_hint": "Noida, Sector-63, Uttar Pradesh." },
+  { "id": "s03", "query": "How can I contact TaxKraft?", "answer_hint": "Phone +91-8608601620, email info@taxkraft.com." },
+  { "id": "s04", "query": "Does TaxKraft offer GST registration services?", "answer_hint": "Yes — GST registration and filing." },
+  { "id": "s05", "query": "Which GST returns does TaxKraft file?", "answer_hint": "Monthly, quarterly, annual, e-commerce." },
+  { "id": "s06", "query": "Can TaxKraft help with a GST notice?", "answer_hint": "Yes — notices and litigation support." },
+  { "id": "s07", "query": "Does TaxKraft file income tax returns?", "answer_hint": "Yes — ITR-1..7 categories, TDS returns." },
+  { "id": "s08", "query": "What is ITR-1 Sahaj at TaxKraft?", "answer_hint": "Simplest ITR form for salaried individuals." },
+  { "id": "s09", "query": "Which company types can TaxKraft register?", "answer_hint": "Pvt Ltd, Public Ltd, LLP, OPC, Partnership, Section 8, Sole Proprietorship, Startup India." },
+  { "id": "s10", "query": "Can TaxKraft register my LLP?", "answer_hint": "Yes — LLP incorporation." },
+  { "id": "s11", "query": "Does TaxKraft provide annual compliance for Pvt Ltd companies?", "answer_hint": "Yes — private limited annual compliance and ROC." },
+  { "id": "s12", "query": "Does TaxKraft offer trademark registration?", "answer_hint": "Yes — trademark registration." },
+  { "id": "s13", "query": "Can TaxKraft help with MSME or Udyam registration?", "answer_hint": "Yes — MSME and Udyam registration." },
+  { "id": "s14", "query": "Does TaxKraft provide CFO services?", "answer_hint": "Yes — CFO services for financial management." },
+  { "id": "s15", "query": "Does TaxKraft help with business loans?", "answer_hint": "Yes — business, working capital, term, retail loans." },
+  { "id": "s16", "query": "What is involved in TaxKraft's process?", "answer_hint": "Reach out, share documents, experts complete the filing/registration, reminders." },
+  { "id": "s17", "query": "Is there a TaxKraft partner program?", "answer_hint": "Yes — become-partner page exists." },
+  { "id": "s18", "query": "Is TaxKraft available in Hindi?", "answer_hint": "Yes — English and Hindi." },
+  { "id": "s19", "query": "Does TaxKraft handle TDS return filing?", "answer_hint": "Yes — TDS return filing and corrections." },
+  { "id": "s20", "query": "Can TaxKraft prepare a project report for my loan?", "answer_hint": "Yes — project reports / detailed project reports." }
+]

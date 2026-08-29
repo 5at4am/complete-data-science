@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TaxKraft Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #FF4713;
+      --primary-dark: #d93a0f;
+      --ink: #1a1a1a;
+      --muted: #6b7280;
+      --line: #ececec;
+      --bg: #faf9f7;
+      --card: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Inter", system-ui, sans-serif; background: var(--bg); color: var(--ink); height: 100vh; display: flex; flex-direction: column; }
+    header { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--card); border-bottom: 1px solid var(--line); }
+    header .dot { width: 12px; height: 12px; border-radius: 50%; background: #22c55e; }
+    header h1 { font-family: "Plus Jakarta Sans", sans-serif; font-size: 18px; font-weight: 800; }
+    header span.tag { font-size: 12px; color: var(--muted); }
+    #thread { flex: 1; overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 12px; max-width: 860px; width: 100%; margin: 0 auto; }
+    .msg { max-width: 76%; padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 14.5px; white-space: pre-wrap; }
+    .msg.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+    .msg.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+    .msg.refused { border-left: 4px solid var(--primary); }
+    .cites { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .cites a { color: var(--primary-dark); text-decoration: none; }
+    .guard { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: ui-monospace, monospace; }
+    form { display: flex; gap: 10px; padding: 16px 22px; background: var(--card); border-top: 1px solid var(--line); max-width: 920px; width: 100%; margin: 0 auto; }
+    input { flex: 1; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; font-size: 14.5px; font-family: inherit; outline: none; }
+    input:focus { border-color: var(--primary); }
+    button { padding: 12px 20px; border: 0; background: var(--primary); color: #fff; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 14.5px; }
+    button:hover { background: var(--primary-dark); }
+    button:disabled { opacity: .5; cursor: default; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="dot"></div>
+    <h1>TaxKraft Assistant</h1>
+    <span class="tag">company-scoped · guardrailed · grounded</span>
+  </header>
+  <main id="thread"></main>
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="Ask about TaxKraft services, GST, ITR, company registration…" />
+    <button type="submit" id="send">Send</button>
+  </form>
+  <script src="/static/app.js"></script>
+</body>
+</html>

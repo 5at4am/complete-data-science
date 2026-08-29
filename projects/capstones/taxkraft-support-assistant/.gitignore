@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+vectors/
+evaluation/reports/*.json
+crawler/raw/
+*.log
