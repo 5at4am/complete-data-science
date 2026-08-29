@@ -110,77 +110,143 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 06.1 Perceptron | ✅ | 3 | Perceptron & activation functions |
-| 06.2 Loss functions | ✅ | 3 | Loss functions |
-| 06.3 Backpropagation | ✅ | 3 | Gradient descent & backprop from scratch |
-| 06.4 MLP PyTorch | ✅ | 3 | MLP with PyTorch |
-| 06.5 Regularization | ✅ | 3 | Regularization |
-| 06.6 Optimizers | ✅ | 3 | Optimizers & LR schedules |
-| 06.7 Datasets/DataLoaders | ✅ | 3 | PyTorch Datasets & DataLoaders |
-| 06.8 Training loops | ✅ | 3 | Training loops & validation |
-| 06.9 Checkpointing | ✅ | 3 | Checkpointing & transfer learning |
-| 06.10 CNNs | ✅ | 3 | CNNs for computer vision |
-| 06.11 RNN/LSTM | ✅ | 3 | RNNs, LSTMs, GRUs |
-| 06.12 Attention | ✅ | 3 | Attention mechanism |
-| 06.13 Synthesis | ✅ | 3 | Deep learning synthesis & review |
+| 06.1 Perceptron | ⏳ | — | |
+| 06.2 Loss functions | ⏳ | — | |
+| 06.3 Backpropagation | ⏳ | — | |
+| 06.4 MLP PyTorch | ⏳ | — | |
+| 06.5 Regularization | ⏳ | — | |
+| 06.6 Optimizers | ⏳ | — | |
+| 06.7 Datasets/DataLoaders | ⏳ | — | |
+| 06.8 Training loops | ⏳ | — | |
+| 06.9 Checkpointing | ⏳ | — | |
+| 06.10 CNNs | ⏳ | — | |
+| 06.11 RNN/LSTM | ⏳ | — | |
+| 06.12 Attention | ⏳ | — | |
+| 06.13 Synthesis | ⏳ | — | |
 
 ## Phase 07 — NLP
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 07.1 Preprocessing | ✅ | 3 | Text preprocessing & tokenization |
-| 07.2 BoW/TF-IDF | ✅ | 3 | Bag of words & TF-IDF |
-| 07.3 N-grams | ✅ | 3 | N-grams |
-| 07.4 Text classification | ✅ | 3 | Text classification |
-| 07.5 Word embeddings | ✅ | 3 | Word embeddings (Word2Vec concepts) |
-| 07.6 Sequence models | ✅ | 3 | Sequence models for NLP |
-| 07.7 Attention | ✅ | 3 | Attention for NLP |
-| 07.8 Evaluation | ✅ | 3 | NLP evaluation |
-| 07.9 Synthesis | ✅ | 3 | NLP synthesis & review |
+| 07.1 Preprocessing | ⏳ | — | |
+| 07.2 BoW/TF-IDF | ⏳ | — | |
+| 07.3 N-grams | ⏳ | — | |
+| 07.4 Text classification | ⏳ | — | |
+| 07.5 Word embeddings | ⏳ | — | |
+| 07.6 Sequence models | ⏳ | — | |
+| 07.7 Attention | ⏳ | — | |
+| 07.8 Evaluation | ⏳ | — | |
+| 07.9 Synthesis | ⏳ | — | |
+
+## Phase 06 — Deep Learning
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 06.1 Perceptron | ✅ | 3 | Perceptron, activations |
+| 06.2 Loss functions | ✅ | 3 | MSE, Cross-Entropy |
+| 06.3 Backpropagation | ✅ | 3 | Chain rule, autodiff |
+| 06.4 MLP PyTorch | ✅ | 3 | Tensors, autograd, PyTorch MLP |
+| 06.5 Regularization | ✅ | 3 | Dropout, weight decay |
+| 06.6 Optimizers | ✅ | 3 | SGD, Adam, schedules |
+| 06.7 Datasets/DataLoaders | ✅ | 3 | Dataset, DataLoader |
+| 06.8 Training loops | ✅ | 3 | Train/val loops |
+| 06.9 Checkpointing | ✅ | 3 | Saving, loading, transfer learning |
+| 06.10 CNNs | ✅ | 3 | Convolutions, pooling |
+| 06.11 RNN/LSTM | ✅ | 3 | RNN, LSTM, GRU |
+| 06.12 Attention | ✅ | 3 | Seq2Seq attention |
+| 06.13 Synthesis | ✅ | 3 | DL pipeline |
+
+## Phase 07 — NLP
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 07.1 Preprocessing | ✅ | 3 | Tokenization, cleaning |
+| 07.2 BoW/TF-IDF | ✅ | 3 | CountVectorizer, TF-IDF |
+| 07.3 N-grams | ✅ | 3 | N-gram models |
+| 07.4 Text classification | ✅ | 3 | Naive Bayes / Logistic regression NLP |
+| 07.5 Word embeddings | ✅ | 3 | Word2Vec, GloVe |
+| 07.6 Sequence models | ✅ | 3 | RNN text classification |
+| 07.7 Attention | ✅ | 3 | Attention mechanisms |
+| 07.8 Evaluation | ✅ | 3 | BLEU, ROUGE |
+| 07.9 Synthesis | ✅ | 3 | NLP project pipeline |
 
 ## Phase 08 — Transformers
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 08.1 Architecture | ✅ | 3 | Transformer architecture from scratch |
-| 08.2 Self-attention | ✅ | 3 | Self-attention deep dive |
-| 08.3 Positional encoding | ✅ | 3 | Positional encoding |
-| 08.4 Encoder-decoder | ✅ | 3 | Encoder-decoder architecture |
-| 08.5 BERT | ✅ | 3 | BERT-style models |
-| 08.6 GPT-style | ✅ | 3 | Causal language models (GPT-style) |
-| 08.7 Tokenizers | ✅ | 3 | Tokenizers (BPE, WordPiece) |
-| 08.8 Hugging Face | ✅ | 3 | Hugging Face ecosystem |
-| 08.9 Fine-tuning | ✅ | 3 | Fine-tuning transformers |
-| 08.10 Synthesis | ✅ | 3 | Transformers synthesis & review |
+| 08.1 Architecture | ✅ | 3 | Attention Is All You Need |
+| 08.2 Self-attention | ✅ | 3 | Query, Key, Value math |
+| 08.3 Positional encoding | ✅ | 3 | Sinusoidal, learned embeddings |
+| 08.4 Encoder-decoder | ✅ | 3 | BERT vs GPT structure |
+| 08.5 BERT | ✅ | 3 | Masked LM, encoder |
+| 08.6 GPT-style | ✅ | 3 | Causal LM, autoregressive |
+| 08.7 Tokenizers | ✅ | 3 | BPE, WordPiece |
+| 08.8 Hugging Face | ✅ | 3 | transformers & datasets lib |
+| 08.9 Fine-tuning | ✅ | 3 | Sequence classification fine-tuning |
+| 08.10 Synthesis | ✅ | 3 | Transformer architecture synthesis |
 
 ## Phase 09 — Generative AI
 
 | Unit | Status | Mastery | Notes |
 |------|--------|---------|-------|
-| 09.1 What is an LLM | ✅ | 3 | What is a language model |
-| 09.2 Tokens & tokenization | ✅ | 3 | Tokens & tokenization |
-| 09.3 Embeddings | ✅ | 3 | Embeddings |
-| 09.4 Attention recap | ✅ | 3 | Attention & transformer recap |
-| 09.5 Pretraining | ✅ | 3 | Pretraining |
-| 09.6 Inference & decoding | ✅ | 3 | Inference & decoding |
-| 09.7 Temperature & sampling | ✅ | 3 | Temperature & sampling |
-| 09.8 Instruction & alignment | ✅ | 3 | Instruction following & alignment |
-| 09.9 LLM APIs | ✅ | 3 | LLM APIs |
-| 09.10 Prompt engineering | ✅ | 3 | Prompt engineering |
-| 09.11 Structured output | ✅ | 3 | Structured output |
-| 09.12 Function/tool calling | ✅ | 3 | Function/tool calling |
-| 09.13 Streaming/caching/retries | ✅ | 3 | Streaming, caching, retries |
-| 09.14 Multimodal overview | ✅ | 3 | Multimodal generative AI overview |
-| 09.15 Synthesis | ✅ | 3 | Generative AI synthesis & review |
+| 09.1–09.15 GenAI Stack | ✅ | 3 | Anatomy, tokenization, embeddings, pretraining, decoding, prompting, tool calling |
+
+## Phase 10 — Applied LLM Engineering
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 10.1–10.8 LLM Engineering | ✅ | 3 | Landscape, context windows, fine-tuning, RAG vs FT vs LC, cost/latency, security, evaluation, synthesis |
+
+## Phase 11 — RAG Systems
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 11.1–11.12 RAG stack | ✅ | 3 | TF-IDF/BM25, embeddings, ChromaDB, FAISS, chunking, retrieval, reranking, evaluation |
+
+## Phase 12 — LangChain / Framework Abstractions
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 12.1–12.8 LangChain | ✅ | 3 | LCEL chains, prompts, output parsers, memory, tools, RAG |
+
+## Phase 13 — LangGraph / Stateful Workflows
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 13.1–13.8 LangGraph | ✅ | 3 | StateGraph, conditional routing, loops, memory, human approval, failure handling |
+
+## Phase 14 — AI Agents
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 14.1–14.13 Agents | ✅ | 3 | Tool calling, planning, execution, reflection, memory, multi-agent, failure modes, security, evaluation, synthesis |
+
+## Phase 15 — Evaluation & Experimentation
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 15.1–15.8 Evaluation | ✅ | 3 | ML/LLM/RAG/agent evaluation, experiment tracking |
+
+## Phase 16 — Deployment & MLOps
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 16.1–16.8 MLOps | ✅ | 3 | API design, model serving, Docker, CI/CD, monitoring |
+
+## Phase 17 — Capstone Engineering
+
+| Unit | Status | Mastery | Notes |
+|------|--------|---------|-------|
+| 17.1–17.7 Capstones | ✅ | 3 | Taxkraft RAG support assistant capstone verified |
 
 ---
 
 ## Summary
 
-- **Total units:** ~100
-- **Completed:** 91 (00.1–00.4, 01.1–01.9, 02.1–02.8, 03.1–03.8, 04.1–04.8, 05.1–05.7, 06.1–06.13, 07.1–07.9, 08.1–08.10, 09.1–09.15)
-- **In progress:** 0
-- **Not started:** ~9 (05.8–05.18 pending user verification)
+- **Total units:** ~177 across 18 phases
+- **Completed Phases:** 00–04, 06–09, 11–17 ✅
+- **In Progress:** Phase 05, Phase 14 ⏳
+- **Not Started:** Phase 10 ⏳
 
 ---
 

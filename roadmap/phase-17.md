@@ -876,6 +876,169 @@ Documentation → teach-back → portfolio
 
 ---
 
+### Unit 17.7 — Company-Scoped RAG Support Chatbot (TaxKraft)
+
+**What is it?**  
+A production-grade, company-scoped Retrieval-Augmented Generation support chatbot for TaxKraft (a real Indian CA/tax/GST services firm). The system ingests TaxKraft's public website information, answers user questions strictly from that knowledge base, and enforces comprehensive safety guardrails — all while operating fully offline with extractive generation or optionally with an LLM backend.
+
+**Why does it matter?**  
+Real-world RAG deployments need more than just retrieval + generation. They require domain scoping (answer only from company info), PII protection, injection defense, hallucination detection, and honest evaluation — all measurable and auditable. This capstone delivers that full stack.
+
+**Why learn it here?**  
+After completing Phases 11–16, the learner understands embeddings, vector databases, retrieval, reranking, LLM generation, guardrails, evaluation, API design, and deployment. This capstone combines all of them into a single, verifiable system with a real company's data.
+
+**Prerequisites:** Phases 01–16 (Python, data prep, embeddings, vector search, LLMs, evaluation, deployment, security).
+
+**Mental Model:**  
+A company-scoped RAG is a pipeline: ingest (with provenance) → chunk → embed → store → retrieve (hybrid) → generate (grounded) → guard (5 layers) → evaluate (retrieval + guardrails + answers). Every step must be measured: retrieval recall, guardrail confusion matrices, answer faithfulness, attack success rate.
+
+**Problem Statement:**  
+Build a complete RAG chatbot for TaxKraft that:
+- Ingests only TaxKraft's verified public information (website sitemap, known facts)
+- Answers questions strictly from that corpus — no general knowledge, no competitor comparisons
+- Deflects off-topic, PII-containing, and adversarial queries with clear messages
+- Evaluates itself rigorously (retrieval metrics, guardrail metrics, answer quality metrics)
+- Runs fully offline (extractive) or with optional LLM — no mandatory API costs
+- Exposes a FastAPI service and web UI for demonstration
+
+**Requirements:**
+
+- **Knowledge Base**: 10 curated markdown documents with provenance blocks (source URL, title, verification date, VERIFY flags for prices/timelines) covering company overview, 6 service lines, pricing/process, FAQ, contact
+- **Crawler**: Sitemap fetcher + SPA-aware HTML extraction (documents limitations — taxkraft.com is a React SPA)
+- **Chunking**: Section-aware markdown chunking (350 chars, 60 overlap) preserving headings
+- **Embeddings**: sentence-transformers/all-MiniLM-L6-v2 (384-dim, normalized) with dummy hash embedder for tests/CI
+- **Vector Store**: ChromaDB persistent, cosine similarity via L2 on normalized vectors (score = 1 - d²/2)
+- **Retrieval**: Hybrid dense (0.70) + BM25 keyword (0.30) with rerank_k=8
+- **Generation**: Grounded system prompt with hard rules; extractive fallback (top-k sentences from context); optional LLM via OpenAI-compatible client (Groq/OpenAI)
+- **Guardrails (5 layers)**:
+  1. Topic scope: keyword scoring + embedding centroid (threshold 0.42) — allows TaxKraft services, blocks competitors/general/off-topic
+  2. PII: regex for Aadhaar, PAN, GSTIN, phone, email, UPI, bank, passport, DL + sensitive-intent phrases
+  3. Prompt injection: signature detection (ignore instructions, system prompt reveal, role override, etc.)
+  4. Retrieval confidence: minimum score threshold (0.30)
+  5. Faithfulness: lexical token coverage + sentence coverage + optional embedding similarity (threshold 0.30)
+- **Evaluation**: 3 suites — retrieval (Recall@1/3/5, MRR@5 on 32 golden queries keyed to KB topics), guardrails (in-scope acceptance, off-topic deflection, attack success=0 target, PII trip rate, confusion matrix), answers (answerability, faithfulness, citation coverage, latency) — auto-markdown report to `evaluation/reports/report.md`
+- **API**: FastAPI with `/health`, `/guardrails/status`, `/chat`, `/eval` endpoints; CORS enabled; static web UI mounted
+- **Tests**: 33 pytest tests (topic_scope, PII, injection, chunker, faithfulness, retriever, engine, API) — all passing
+- **CLI**: `run.py` with `ingest`, `chat`, `eval`, `serve`, `test` commands
+
+**Concepts Used:**
+
+- Document ingestion with provenance tracking
+- Section-aware chunking for markdown
+- Embedding models and cosine similarity search
+- ChromaDB persistent vector store
+- BM25 keyword search (custom implementation)
+- Hybrid retrieval with score fusion
+- Extractive generation (faithful by construction)
+- Guardrail engineering: scope, PII, injection, confidence, faithfulness
+- RAG evaluation: retrieval metrics, guardrail metrics, answer quality metrics
+- FastAPI service design
+- Static web UI (vanilla JS)
+- Pytest fixtures with dummy embedder for fast CI
+
+**Suggested Architecture:**
+
+```text
+taxkraft.com sitemap → fetch → clean → seed KB (10 docs)
+                                              ↓
+                            chunk → embed → Chroma (132 chunks, cosine)
+                                              ↓
+User query → topic_scope → PII → injection → hybrid retrieve (dense + BM25)
+                                              ↓
+                                      confidence guard → extractive/LLM generate
+                                              ↓
+                                    faithfulness guard → response + citations
+                                              ↓
+                                           evaluation (3 suites) → report.md
+```
+
+**Milestones:**
+
+| Milestone | Target | Deliverable |
+|---|---|---|
+| KB design & provenance | Day 1 | 10 markdown docs with VERIFY flags |
+| Crawler + ingestion | Day 2 | Sitemap parser, chunker, embedder, Chroma store |
+| Hybrid retrieval | Day 3 | Dense + BM25 fusion, reranking |
+| Generation + guardrails | Day 4–5 | Extractive + 5-layer guard stack |
+| Evaluation suite | Day 6 | 3 eval suites, 4 labeled datasets, markdown report |
+| API + UI | Day 7 | FastAPI endpoints, web chat interface |
+| Testing & verification | Day 8 | 33 pytest tests, ingest + eval run |
+
+**Expected Output:**
+
+- Complete runnable project at `projects/capstones/taxkraft-support-assistant/`
+- 132-chunk vector index in `vectors/`
+- Evaluation report at `evaluation/reports/report.md` (Recall@5=1.0, MRR@5≈0.9, attack_success=0.14, mean_faithfulness=1.0)
+- 33 passing tests
+- FastAPI service (`python run.py serve`) + web UI (`http://127.0.0.1:8000`)
+- Architecture documented in `README.md`
+
+**Evaluation Criteria:**
+
+| Criterion | Excellent | Needs Work |
+|---|---|---|
+| KB provenance | Every chunk traces to source URL with VERIFY flags | No provenance or unverified claims |
+| Retrieval quality | Recall@5 ≥ 0.9, MRR@5 ≥ 0.8 on golden set | No metrics or poor recall |
+| Scope enforcement | Off-topic & competitor queries deflected | Answers from general knowledge |
+| PII protection | Aadhaar/PAN/phone/email/UPI/bank all blocked | Any PII passes through |
+| Injection defense | All 14 adversarial prompts deflected | Any injection succeeds |
+| Faithfulness | Mean ≥ 0.9 on in-scope answers | Hallucinations unchecked |
+| Evaluation | Auto-generated markdown with all 3 suites | Manual spot-check only |
+| Engineering | Reproducible, tested, documented, CLI + API | Notebook-only, no tests |
+
+**Common Mistakes:**
+
+- ingesting without provenance (can't audit answers)
+- using only semantic retrieval (misses exact keywords like GSTIN)
+- skipping faithfulness guard (hallucinations reach user)
+- no offline mode (mandatory LLM costs, no fallback)
+- evaluation only on happy-path queries
+
+**Debugging:**
+
+| Symptom | Possible Cause | Verify | Fix |
+|---|---|---|---|
+| Irrelevant retrieval | Chunk size too large or embedding mismatch | Inspect top-k chunks | Reduce chunk_size, verify normalize |
+| Off-topic answers accepted | Scope threshold too low or anchors incomplete | Check guardrails/anchors.py | Raise threshold, add off-topic terms |
+| PII not caught | Regex gap for Indian formats | Test patterns in pii.py | Add missing patterns |
+| Faithfulness false positive | Threshold too low, lexical only | Check embed similarity option | Raise threshold, enable embeddings |
+| Evaluation crashes | Citation object vs dict mismatch | Check answer_eval.py | Use `.text` attribute |
+
+**Possible Improvements / Advanced Extensions:**
+
+- Live crawler with scheduled re-ingestion
+- Cross-encoder reranker (e.g., ms-marco-MiniLM-L-6-v2)
+- Multilingual support (Hindi queries → English KB)
+- Streaming answers with real-time citation highlight
+- Conversation memory with session-scoped retrieval
+- Cost/latency dashboard in web UI
+- A/B test extractive vs LLM generation quality
+
+**Hands-On Practice (before the capstone):**
+
+1. Build a basic RAG pipeline with FAISS and an LLM API (Unit 17.4).
+2. Implement a BM25 retriever from scratch.
+3. Write a topic classifier with keyword + embedding centroid.
+4. Create a PII regex test suite for Indian identifiers.
+5. Run a RAG evaluation with Recall@k and faithfulness on a small corpus.
+
+**Knowledge Check:**
+
+- Why does hybrid (dense + keyword) retrieval outperform either alone for company-scoped RAG?
+- How does the faithfulness guard catch hallucinations that retrieval confidence misses?
+- Why is provenance tracking critical for a company-scoped chatbot?
+- What is the trade-off between extractive (offline) and LLM generation?
+- How would you explain the guardrail stack to a non-technical stakeholder?
+
+**Exit Criteria:**
+
+- You can build a company-scoped RAG system with full guardrails and evaluation.
+- You can measure and report retrieval quality, guardrail effectiveness, and answer faithfulness.
+- You can operate the system fully offline with zero API costs.
+- You can deploy as a FastAPI service with a working web UI.
+
+---
+
 ## Capstone Requirements Checklist
 
 Every substantial capstone project must contain:
