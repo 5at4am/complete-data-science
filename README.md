@@ -12,9 +12,9 @@ production ML/AI engineering.
 | | |
 |---|---|
 | **Width** | 18 phases × ~177 units across the full AI/ML stack |
-| **Depth** | ~55 implementation-first Jupyter notebooks (growing) |
+| **Depth** | ~166 implementation-first Jupyter notebooks (growing) |
 | **Style** | Understand → Build → Debug → Compare → Explain → Solve independently |
-| **Currently** | Phases 00–04 ✅ complete · Phase 05 (Machine Learning) ⏳ in progress |
+| **Currently** | Phases 00–09, 11–13, 15–17 ✅ complete · Phase 05 ⏳ in progress · Phase 10 ⏳ next up |
 
 ---
 
@@ -90,10 +90,18 @@ Phase 08  Transformers                      Phase 17  Capstone Engineering
 | 03 | Statistics & Probability | ✅ Complete | distributions, inference, hypothesis testing, correlation, Bayesian thinking |
 | 04 | Data Analysis & Preparation | ✅ Complete | EDA, cleaning, missing values, outliers, scaling/encoding, splits, leakage |
 | 05 | Machine Learning | ⏳ In progress (18 units) | linear/logistic regression, trees, forests, boosting, KNN, naive Bayes, SVM, clustering, PCA, interpretability |
-| 06–08 | Deep Learning · NLP · Transformers | ⏳ Not started | — |
-| 09–11 | GenAI · LLMs · RAG | ⏳ Not started | — |
-| 12–14 | LangChain · LangGraph · Agents | ⏳ Not started | — |
-| 15–17 | Evaluation · Deployment · Capstone | ⏳ Not started | — |
+| 06 | Deep Learning | ✅ Complete | perceptron, loss functions, backprop, MLP in PyTorch, regularization, optimizers, dataloaders, training loops, CNNs, RNN/LSTM/GRU, attention |
+| 07 | NLP | ✅ Complete | preprocessing, BoW/TF-IDF, n-grams, text classification, word embeddings, sequence models, attention, evaluation |
+| 08 | Transformers | ✅ Complete | transformer architecture, self-attention, positional encoding, encoder-decoder, BERT-style, GPT-style |
+| 09 | Generative AI | ✅ Complete | LLM anatomy, tokenization, embeddings, pretraining, decoding, sampling, instruction alignment, LLM APIs, prompting, structured output, tool calling |
+| 10 | Applied LLM Engineering | ⏳ Not started | — |
+| 11 | RAG Systems | ✅ Complete | TF-IDF/BM25 from scratch, embeddings, vector similarity, ChromaDB/FAISS, ingestion, chunking, retrieval, reranking, grounding, evaluation, naive/advanced/agentic RAG |
+| 12 | LangChain / Framework Abstractions | ✅ Complete | raw LLM pipeline, prompts, output parsers, LCEL chains, memory, tools, RAG with LangChain, framework-vs-manual |
+| 13 | LangGraph / Stateful Workflows | ✅ Complete | manual state machines, StateGraph, conditional routing, loops, memory, human approval, failure handling |
+| 14 | AI Agents | ⏳ In progress (13 units) | tool calling, planning, execution, reflection, memory, multi-agent, failure modes, security, evaluation |
+| 15 | Evaluation & Experimentation | ✅ Complete | ML/LLM/RAG/agent evaluation, evaluation datasets, experiment tracking |
+| 16 | Deployment & MLOps | ✅ Complete | API design, model serving, Docker, CI/CD, monitoring, LLMOps, security |
+| 17 | Capstone Engineering | ✅ Complete | ML, DL, NLP, RAG, and agent capstones + final portfolio capstone |
 
 Full per-unit status lives in [`BUILD_STATUS.md`](BUILD_STATUS.md). All notebooks live in
 `notebooks/NN_phase/`, one folder per phase.
