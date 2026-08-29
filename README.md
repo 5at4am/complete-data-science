@@ -33,8 +33,8 @@ production ML/AI engineering.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/5at4am/complete-data-science.git
+cd complete-data-science
 
 # 2. Set up the environment (uv recommended)
 uv sync
