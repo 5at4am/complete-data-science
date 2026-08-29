@@ -61,6 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 05 Unit 05.5: Decision trees notebook (entropy/Gini, from-scratch tree, overfitting).
 - Phase 05 Unit 05.6: Random forests notebook (bagging, feature importance, OOB score).
 - Phase 05 Unit 05.7: Gradient boosting notebook (XGBoost, LightGBM, learning rate, early stopping).
+- Phase 06 (Deep Learning) Units 06.1–06.13: perceptron & activation, loss functions, backprop from scratch, MLP with PyTorch, regularization, optimizers & LR schedules, Datasets/DataLoaders, training loops & validation, checkpointing & transfer learning, CNNs, RNN/LSTM/GRU, attention, synthesis.
+- **Phase 06 (Deep Learning) COMPLETE** — all 13 units verified and committed.
+- Phase 07 (NLP) Units 07.1–07.9: text preprocessing & tokenization, BoW/TF-IDF, n-grams, text classification, word embeddings, sequence models, attention for NLP, NLP evaluation, synthesis.
+- **Phase 07 (NLP) COMPLETE** — all 9 units verified and committed.
+- Phase 08 (Transformers) Units 08.1–08.10: transformer architecture from scratch, self-attention, positional encoding, encoder-decoder, BERT-style, GPT-style, tokenizers (BPE/WordPiece), Hugging Face ecosystem, fine-tuning, synthesis.
+- **Phase 08 (Transformers) COMPLETE** — all 10 units verified and committed.
+- Phase 09 (Generative AI) Units 09.1–09.15: what is an LLM, tokens & tokenization, embeddings, attention recap, pretraining, inference & decoding, temperature & sampling, instruction & alignment, LLM APIs, prompt engineering, structured output, function/tool calling, streaming/caching/retries, multimodal overview, synthesis.
+- **Phase 09 (Generative AI) COMPLETE** — all 15 units verified and committed.
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.

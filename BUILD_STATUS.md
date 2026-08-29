@@ -141,6 +141,73 @@ Last updated: 2026-08-29
 | 05.17 | `05_machine_learning/05_17_ensembling.ipynb` | ⏳ IN PROGRESS | — | Ensembling |
 | 05.18 | `05_machine_learning/05_18_synthesis.ipynb` | ⏳ IN PROGRESS | — | ML Synthesis & Review |
 
+### Phase 06 — Deep Learning
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 06.1 | `06_deep_learning/06_01_perceptron_activation.ipynb` | ✅ VERIFIED | 2026-08-29 | Perceptron & activation functions |
+| 06.2 | `06_deep_learning/06_02_loss_functions.ipynb` | ✅ VERIFIED | 2026-08-29 | Loss functions |
+| 06.3 | `06_deep_learning/06_03_backpropagation.ipynb` | ✅ VERIFIED | 2026-08-29 | Gradient descent & backprop from scratch |
+| 06.4 | `06_deep_learning/06_04_mlp_pytorch.ipynb` | ✅ VERIFIED | 2026-08-29 | MLP with PyTorch |
+| 06.5 | `06_deep_learning/06_05_regularization.ipynb` | ✅ VERIFIED | 2026-08-29 | Regularization |
+| 06.6 | `06_deep_learning/06_06_optimizers_lr_schedules.ipynb` | ✅ VERIFIED | 2026-08-29 | Optimizers & LR schedules |
+| 06.7 | `06_deep_learning/06_07_datasets_dataloaders.ipynb` | ✅ VERIFIED | 2026-08-29 | PyTorch Datasets & DataLoaders |
+| 06.8 | `06_deep_learning/06_08_training_loops_validation.ipynb` | ✅ VERIFIED | 2026-08-29 | Training loops & validation |
+| 06.9 | `06_deep_learning/06_09_checkpointing_transfer_learning.ipynb` | ✅ VERIFIED | 2026-08-29 | Checkpointing & transfer learning |
+| 06.10 | `06_deep_learning/06_10_cnns.ipynb` | ✅ VERIFIED | 2026-08-29 | CNNs for computer vision |
+| 06.11 | `06_deep_learning/06_11_rnn_lstm_gru.ipynb` | ✅ VERIFIED | 2026-08-29 | RNNs, LSTMs, GRUs |
+| 06.12 | `06_deep_learning/06_12_attention.ipynb` | ✅ VERIFIED | 2026-08-29 | Attention mechanism |
+| 06.13 | `06_deep_learning/06_13_synthesis.ipynb` | ✅ VERIFIED | 2026-08-29 | Deep learning synthesis & review |
+
+### Phase 07 — NLP
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 07.1 | `07_nlp/07_01_text_preprocessing.ipynb` | ✅ VERIFIED | 2026-08-29 | Text preprocessing & tokenization |
+| 07.2 | `07_nlp/07_02_bow_tfidf.ipynb` | ✅ VERIFIED | 2026-08-29 | Bag of words & TF-IDF |
+| 07.3 | `07_nlp/07_03_ngrams.ipynb` | ✅ VERIFIED | 2026-08-29 | N-grams |
+| 07.4 | `07_nlp/07_04_text_classification.ipynb` | ✅ VERIFIED | 2026-08-29 | Text classification |
+| 07.5 | `07_nlp/07_05_word_embeddings.ipynb` | ✅ VERIFIED | 2026-08-29 | Word embeddings (Word2Vec concepts) |
+| 07.6 | `07_nlp/07_06_sequence_models.ipynb` | ✅ VERIFIED | 2026-08-29 | Sequence models for NLP |
+| 07.7 | `07_nlp/07_07_attention_nlp.ipynb` | ✅ VERIFIED | 2026-08-29 | Attention for NLP |
+| 07.8 | `07_nlp/07_08_nlp_evaluation.ipynb` | ✅ VERIFIED | 2026-08-29 | NLP evaluation |
+| 07.9 | `07_nlp/07_09_synthesis.ipynb` | ✅ VERIFIED | 2026-08-29 | NLP synthesis & review |
+
+### Phase 08 — Transformers
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 08.1 | `08_transformers/08_01_transformer_architecture.ipynb` | ✅ VERIFIED | 2026-08-29 | Transformer architecture from scratch |
+| 08.2 | `08_transformers/08_02_self_attention.ipynb` | ✅ VERIFIED | 2026-08-29 | Self-attention deep dive |
+| 08.3 | `08_transformers/08_03_positional_encoding.ipynb` | ✅ VERIFIED | 2026-08-29 | Positional encoding |
+| 08.4 | `08_transformers/08_04_encoder_decoder.ipynb` | ✅ VERIFIED | 2026-08-29 | Encoder-decoder architecture |
+| 08.5 | `08_transformers/08_05_bert_style.ipynb` | ✅ VERIFIED | 2026-08-29 | BERT-style models |
+| 08.6 | `08_transformers/08_06_gpt_style.ipynb` | ✅ VERIFIED | 2026-08-29 | Causal language models (GPT-style) |
+| 08.7 | `08_transformers/08_07_tokenizers.ipynb` | ✅ VERIFIED | 2026-08-29 | Tokenizers (BPE, WordPiece) |
+| 08.8 | `08_transformers/08_08_huggingface_ecosystem.ipynb` | ✅ VERIFIED | 2026-08-29 | Hugging Face ecosystem |
+| 08.9 | `08_transformers/08_09_finetuning_transformers.ipynb` | ✅ VERIFIED | 2026-08-29 | Fine-tuning transformers |
+| 08.10 | `08_transformers/08_10_synthesis.ipynb` | ✅ VERIFIED | 2026-08-29 | Transformers synthesis & review |
+
+### Phase 09 — Generative AI
+
+| Unit | Notebook | Status | Last Verified | Notes |
+|------|----------|--------|---------------|-------|
+| 09.1 | `09_generative_ai/09_01_what_is_llm.ipynb` | ✅ VERIFIED | 2026-08-29 | What is a language model |
+| 09.2 | `09_generative_ai/09_02_tokens_tokenization.ipynb` | ✅ VERIFIED | 2026-08-29 | Tokens & tokenization |
+| 09.3 | `09_generative_ai/09_03_embeddings.ipynb` | ✅ VERIFIED | 2026-08-29 | Embeddings |
+| 09.4 | `09_generative_ai/09_04_attention_transformer_recap.ipynb` | ✅ VERIFIED | 2026-08-29 | Attention & transformer recap |
+| 09.5 | `09_generative_ai/09_05_pretraining.ipynb` | ✅ VERIFIED | 2026-08-29 | Pretraining |
+| 09.6 | `09_generative_ai/09_06_inference_decoding.ipynb` | ✅ VERIFIED | 2026-08-29 | Inference & decoding |
+| 09.7 | `09_generative_ai/09_07_temperature_sampling.ipynb` | ✅ VERIFIED | 2026-08-29 | Temperature & sampling |
+| 09.8 | `09_generative_ai/09_08_instruction_alignment.ipynb` | ✅ VERIFIED | 2026-08-29 | Instruction following & alignment |
+| 09.9 | `09_generative_ai/09_09_llm_apis.ipynb` | ✅ VERIFIED | 2026-08-29 | LLM APIs |
+| 09.10 | `09_generative_ai/09_10_prompt_engineering.ipynb` | ✅ VERIFIED | 2026-08-29 | Prompt engineering |
+| 09.11 | `09_generative_ai/09_11_structured_output.ipynb` | ✅ VERIFIED | 2026-08-29 | Structured output |
+| 09.12 | `09_generative_ai/09_12_function_tool_calling.ipynb` | ✅ VERIFIED | 2026-08-29 | Function/tool calling |
+| 09.13 | `09_generative_ai/09_13_streaming_caching_retries.ipynb` | ✅ VERIFIED | 2026-08-29 | Streaming, caching, retries |
+| 09.14 | `09_generative_ai/09_14_multimodal_overview.ipynb` | ✅ VERIFIED | 2026-08-29 | Multimodal generative AI overview |
+| 09.15 | `09_generative_ai/09_15_synthesis.ipynb` | ✅ VERIFIED | 2026-08-29 | Generative AI synthesis & review |
+
 ---
 
 ## Environment Snapshot

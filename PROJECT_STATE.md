@@ -4,7 +4,7 @@
 > This file is updated at every major checkpoint so that progress is never lost,
 > even if the working session is interrupted or files are deleted.
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 ---
 
@@ -94,14 +94,14 @@ Last updated: 2026-08-28
 
 ## Current Checkpoint
 
-**Phase:** 4 — Data Analysis & Preparation (COMPLETE)
-**Unit:** 04.1–04.8 all complete and verified
-**Status:** Phase 04 done. Ready to begin Phase 05 (Machine Learning).
+**Phase:** 9 — Generative AI (COMPLETE)
+**Unit:** 06.1–06.13, 07.1–07.9, 08.1–08.10, 09.1–09.15 all complete and verified
+**Status:** Phases 06–09 done (Deep Learning, NLP, Transformers, Generative AI). Ready to begin Phase 10 (LLMs).
 
 ---
 
 ## Next Actions
 
-1. Commit Phase 04 completion.
-2. Begin Phase 05 (Machine Learning) learning units.
+1. Commit Phase 06–09 completion (tracking files).
+2. Begin Phase 10 (LLMs) learning units.
 3. Build and verify each unit one at a time.
