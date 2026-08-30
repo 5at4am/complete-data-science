@@ -58,3 +58,5 @@ temp/
 # Notebook-execution artifacts (temp plots, figures)
 notebooks/**/_tmp_*.png
 notebooks/**/*.png
+
+gate-da/
