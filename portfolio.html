@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Complete ML Engineering Curriculum - 18 phases, 174+ notebooks, production-ready capstone">
+  <title>ML Portfolio — Complete ML Engineering Curriculum</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e293b',
+            accent: '#0ea5e9',
+            'accent-dark': '#0284c7',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f8fafc; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    :focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+    pre { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: 0.875rem; line-height: 1.7; }
+    code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-slate-200">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-2">
+          <svg class="w-8 h-8 text-slate-900" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <span class="text-xl font-bold text-slate-900">ML Portfolio</span>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#phases" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Phases</a>
+          <a href="#capstone" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Capstone</a>
+          <a href="#about" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">About</a>
+          <a href="https://github.com/5at4am/complete-data-science" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="flex-1 pt-16">
+    <!-- Hero -->
+    <section class="pt-32 pb-20 px-4 sm:px-6 lg:px-8" aria-labelledby="hero-title">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center max-w-4xl mx-auto animate-fade-in">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-50 text-sky-700 text-sm font-medium mb-6 animate-slide-up">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            Live: All 18 phases complete · 174+ notebooks · Production capstone
+          </div>
+          <h1 id="hero-title" class="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 tracking-tight mb-6 animate-slide-up" style="animation-delay: 100ms;">
+            Complete ML Engineering Curriculum
+          </h1>
+          <p class="text-lg sm:text-xl text-slate-600 mb-10 max-w-2xl mx-auto animate-slide-up" style="animation-delay: 200ms;">
+            A comprehensive, implementation-first journey from Python fundamentals to production ML systems. 
+            Every notebook verified, executed, and battle-tested.
+          </p>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style="animation-delay: 300ms;">
+            <a href="#phases" class="px-8 py-3 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors shadow-lg hover:shadow-xl">
+              Explore Phases
+            </a>
+            <a href="#capstone" class="px-8 py-3 border-2 border-slate-900 text-slate-900 rounded-lg font-medium hover:bg-slate-50 transition-colors">
+              View Capstone
+            </a>
+          </div>
+          <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 animate-slide-up" style="animation-delay: 400ms;">
+            <div class="text-center p-4"><div class="text-3xl sm:text-4xl font-bold text-slate-900">18</div><div class="text-sm text-slate-500 mt-1">Phases Complete</div></div>
+            <div class="text-center p-4"><div class="text-3xl sm:text-4xl font-bold text-slate-900">174+</div><div class="text-sm text-slate-500 mt-1">Notebooks Verified</div></div>
+            <div class="text-center p-4"><div class="text-3xl sm:text-4xl font-bold text-slate-900">0</div><div class="text-sm text-slate-500 mt-1">Errors</div></div>
+            <div class="text-center p-4"><div class="text-3xl sm:text-4xl font-bold text-slate-900">1</div><div class="text-sm text-slate-500 mt-1">Production Capstone</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Phases Gallery -->
+    <section id="phases" class="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50" aria-labelledby="phases-title">
+      <div class="max-w-7xl mx-auto">
+        <header class="text-center max-w-3xl mx-auto mb-16">
+          <h2 id="phases-title" class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">All 18 Phases</h2>
+          <p class="text-lg text-slate-600">Every phase builds on the previous. Implementation-first, verified, zero errors.</p>
+        </header>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="phases-grid">
+          <!-- Phases rendered by JS -->
+        </div>
+        <div class="mt-12 text-center">
+          <p class="text-slate-600 mb-4">
+            <span class="font-semibold text-slate-900">18</span> phases · 
+            <span class="font-semibold text-slate-900">174+</span> notebooks · 
+            <span class="font-semibold text-slate-900">0</span> errors
+          </p>
+          <a href="https://github.com/5at4am/complete-data-science/tree/main/notebooks" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-700">
+            View all notebooks on GitHub
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Capstone Showcase -->
+    <section id="capstone" class="py-20 px-4 sm:px-6 lg:px-8 bg-white" aria-labelledby="capstone-title">
+      <div class="max-w-7xl mx-auto">
+        <header class="text-center max-w-3xl mx-auto mb-16">
+          <h2 id="capstone-title" class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Production Capstone</h2>
+          <p class="text-lg text-slate-600">TaxKraft Support Assistant — A company-scoped RAG chatbot with 5-layer guardrails</p>
+        </header>
+        <div class="grid lg:grid-cols-2 gap-12 items-start">
+          <div class="space-y-8">
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+              <h3 class="text-xl font-semibold text-slate-900 mb-3">TaxKraft Support Assistant</h3>
+              <p class="text-slate-600 mb-4">
+                A production-grade, company-scoped Retrieval-Augmented Generation support chatbot for TaxKraft 
+                (a real Indian CA/tax/GST services firm). The system ingests TaxKraft's public website information, 
+                answers user questions strictly from that knowledge base, and enforces comprehensive safety guardrails.
+              </p>
+              <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg border border-slate-200"><div class="text-2xl font-bold text-slate-900">64</div><div class="text-sm text-slate-500">Files</div></div>
+                <div class="bg-white p-4 rounded-lg border border-slate-200"><div class="text-2xl font-bold text-slate-900">33</div><div class="text-sm text-slate-500">Tests (passing)</div></div>
+                <div class="bg-white p-4 rounded-lg border border-slate-200"><div class="text-2xl font-bold text-slate-900">132</div><div class="text-sm text-slate-500">Chunks ingested</div></div>
+                <div class="bg-white p-4 rounded-lg border border-slate-200"><div class="text-2xl font-bold text-slate-900">0.14</div><div class="text-sm text-slate-500">Attack success rate</div></div>
+              </div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+              <h4 class="font-semibold text-slate-900 mb-3">5-Layer Guardrail Stack</h4>
+              <div class="space-y-3" id="guardrails"></div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+              <h4 class="font-semibold text-slate-900 mb-3">Tech Stack</h4>
+              <div class="flex flex-wrap gap-2" id="tech-stack"></div>
+            </div>
+          </div>
+          <div class="lg:col-span-2">
+            <div class="bg-slate-900 rounded-xl overflow-hidden">
+              <div class="bg-slate-800 px-4 py-3 flex items-center gap-2 border-b border-slate-700">
+                <div class="flex gap-1.5">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span class="text-sm text-slate-400 ml-3 font-mono">taxkraft-assistant / chat</span>
+              </div>
+              <div class="p-6 font-mono text-sm text-slate-100 overflow-x-auto">
+                <pre><code id="demo-output"></code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-12 text-center">
+          <a href="https://github.com/5at4am/complete-data-science/tree/main/projects/capstones/taxkraft-support-assistant" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors">
+            View Capstone on GitHub
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 text-slate-300 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2 mb-4">
+            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <span class="text-xl font-bold text-white">ML Portfolio</span>
+          </div>
+          <p class="text-slate-400 max-w-md">Complete ML Engineering Curriculum — 18 phases, 174+ verified notebooks, production-ready capstone. Built with implementation-first philosophy.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Resources</h4>
+          <ul class="space-y-2">
+            <li><a href="https://github.com/5at4am/complete-data-science" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub Repository</a></li>
+            <li><a href="https://github.com/5at4am/complete-data-science/tree/main/notebooks" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">All Notebooks</a></li>
+            <li><a href="https://github.com/5at4am/complete-data-science/tree/main/projects/capstones/taxkraft-support-assistant" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">TaxKraft Capstone</a></li>
+            <li><a href="https://github.com/5at4am/complete-data-science/tree/main/roadmap" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Learning Roadmap</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Phases</h4>
+          <ul class="space-y-2 text-sm">
+            <li>00–02: Foundations (Python, Math)</li>
+            <li>03–04: Statistics & Data</li>
+            <li>05: Machine Learning</li>
+            <li>06–09: Deep Learning → GenAI</li>
+            <li>10: Applied LLM Engineering</li>
+            <li>11–13: RAG → LangChain → LangGraph</li>
+            <li>14–16: Agents → Eval → Deployment</li>
+            <li>17: Capstone Projects</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+        <p class="text-slate-500 text-sm">© 2026 ML Portfolio. Built with Tailwind CSS. <a href="https://github.com/5at4am/complete-data-science" target="_blank" rel="noopener noreferrer" class="underline hover:text-white">Open source</a>.</p>
+        <div class="flex items-center gap-4">
+          <a href="https://github.com/5at4am" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="GitHub">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Phase data
+    const phases = [
+      {id:0,title:"Environment Setup",shortTitle:"Environment",description:"Python, Jupyter, Git, virtual environments, and project structure",notebookCount:4,keyTopics:["Python 3.13","uv package manager","Jupyter workflow","Git version control"],color:"#6366f1"},
+      {id:1,title:"Python Fundamentals",shortTitle:"Python",description:"Core Python: data structures, functions, OOP, NumPy, pandas, matplotlib, file I/O",notebookCount:9,keyTopics:["Data structures","Functions & scope","OOP","NumPy","pandas","matplotlib","Error handling"],color:"#8b5cf6"},
+      {id:2,title:"Mathematics for ML",shortTitle:"Math",description:"Linear algebra, calculus, probability, information theory, eigenvalues",notebookCount:8,keyTopics:["Vectors & matrices","Matrix operations","Derivatives & gradients","Gradient descent","Probability","Information theory","Eigenvalues"],color:"#a855f7"},
+      {id:3,title:"Statistics & Probability",shortTitle:"Statistics",description:"Descriptive stats, distributions, inference, hypothesis testing, regression, Bayesian thinking",notebookCount:8,keyTopics:["Descriptive statistics","Probability distributions","Inferential statistics","Hypothesis testing","Correlation & regression","Bayesian thinking","Statistics for ML"],color:"#d946ef"},
+      {id:4,title:"Data Analysis & Preparation",shortTitle:"Data Analysis",description:"EDA, cleaning, missing values, outliers, scaling, encoding, train/val/test splits, leakage prevention",notebookCount:8,keyTopics:["EDA","Data cleaning","Missing values","Outliers","Feature scaling & encoding","Train/val/test splits","Data leakage"],color:"#ec4899"},
+      {id:5,title:"Machine Learning",shortTitle:"ML",description:"Supervised/unsupervised learning: linear/logistic regression, trees, ensembles, clustering, PCA, CV",notebookCount:18,keyTopics:["ML fundamentals","Linear/logistic regression","Decision trees","Random forests","Gradient boosting","KNN","Naive Bayes","SVM","Clustering","PCA","Feature engineering","Imbalanced learning","CV & hyperparameter tuning","Model interpretation","Ensembling"],color:"#f43f5e"},
+      {id:6,title:"Deep Learning",shortTitle:"Deep Learning",description:"PyTorch from scratch: perceptrons, MLPs, CNNs, RNNs/LSTMs/GRUs, attention, training loops, transfer learning",notebookCount:13,keyTopics:["Perceptron & activations","Loss functions","Backpropagation","MLP with PyTorch","Regularization","Optimizers & LR schedules","Datasets & DataLoaders","Training loops","Checkpointing & transfer learning","CNNs","RNNs/LSTMs/GRUs","Attention mechanism"],color:"#ef4444"},
+      {id:7,title:"Natural Language Processing",shortTitle:"NLP",description:"Text preprocessing, BoW/TF-IDF, n-grams, word embeddings, sequence models, attention for NLP",notebookCount:9,keyTopics:["Text preprocessing","BoW & TF-IDF","N-grams","Text classification","Word embeddings","Sequence models","Attention for NLP","NLP evaluation"],color:"#f97316"},
+      {id:8,title:"Transformers",shortTitle:"Transformers",description:"Architecture from scratch: self-attention, positional encoding, encoder-decoder, BERT/GPT styles, tokenizers, fine-tuning",notebookCount:10,keyTopics:["Transformer architecture","Self-attention","Positional encoding","Encoder-decoder","BERT-style","GPT-style","Tokenizers","Hugging Face ecosystem","Fine-tuning"],color:"#f59e0b"},
+      {id:9,title:"Generative AI",shortTitle:"GenAI",description:"LLM fundamentals: tokens, embeddings, pretraining, decoding, instruction tuning, APIs, prompting, tools, multimodal",notebookCount:15,keyTopics:["What is an LLM","Tokens & tokenization","Embeddings","Attention recap","Pretraining","Inference & decoding","Temperature & sampling","Instruction alignment","LLM APIs","Prompt engineering","Structured output","Function/tool calling","Streaming/caching/retries","Multimodal overview"],color:"#eab308"},
+      {id:10,title:"Applied LLM Engineering",shortTitle:"LLMs",description:"Model selection, context windows, fine-tuning vs RAG, cost/latency optimization, security, evaluation, synthesis",notebookCount:8,keyTopics:["Model selection","Context windows","Fine-tuning concepts","RAG vs fine-tuning vs long-context","Cost & latency","LLM security","LLM evaluation"],color:"#84cc16"},
+      {id:11,title:"Retrieval-Augmented Generation",shortTitle:"RAG",description:"Keyword search, embeddings, vector DBs (Chroma/FAISS), ingestion, chunking, retrieval, reranking, grounding, agentic RAG",notebookCount:17,keyTopics:["Why RAG","Keyword search (TF-IDF/BM25)","Embeddings","Vector similarity","Vector databases","Document ingestion","Chunking","Retrieval","Reranking","Context construction","Generation & grounding","RAG evaluation","Naive/advanced/agentic RAG"],color:"#22c55e"},
+      {id:12,title:"LangChain",shortTitle:"LangChain",description:"Manual LLM pipeline, prompts, output parsers, LCEL chains, memory, tools, RAG with LangChain, framework vs manual",notebookCount:9,keyTopics:["Manual LLM pipeline","Models & prompts","Output parsers","LCEL chains","Memory","Tools","RAG with LangChain","Framework vs manual"],color:"#10b981"},
+      {id:13,title:"LangGraph",shortTitle:"LangGraph",description:"State machines, StateGraph, conditional routing, loops, memory, human-in-the-loop, failure handling",notebookCount:8,keyTopics:["Manual state machines","StateGraph","Conditional routing","Loops & cycles","Memory","Human approval","Failure handling"],color:"#14b8a6"},
+      {id:14,title:"Agents",shortTitle:"Agents",description:"Tool calling, planning, execution, reflection, memory, multi-tool, stateful, multi-agent, failure modes, security, evaluation",notebookCount:13,keyTopics:["Tool calling","Single-tool agent","Planning","Execution","Reflection","Memory","Multi-tool agent","Stateful agent","Multi-agent systems","Failure modes","Security","Agent evaluation"],color:"#06b6d4"},
+      {id:15,title:"Evaluation",shortTitle:"Evaluation",description:"ML evaluation deep-dive, LLM evaluation, RAG evaluation, agent evaluation, datasets, experiment tracking",notebookCount:7,keyTopics:["ML evaluation","LLM evaluation","RAG evaluation","Agent evaluation","Evaluation datasets","Experiment tracking"],color:"#0ea5e9"},
+      {id:16,title:"Deployment",shortTitle:"Deployment",description:"API design, model serving, Docker, CI/CD, monitoring, LLMOps, security, synthesis",notebookCount:8,keyTopics:["API design","Model serving","Docker","CI/CD","Monitoring","LLMOps","Security"],color:"#3b82f6"},
+      {id:17,title:"Capstone Projects",shortTitle:"Capstone",description:"ML, DL, NLP, RAG, Agent capstones + TaxKraft Support Assistant (production RAG chatbot)",notebookCount:6,keyTopics:["ML capstone","DL capstone","NLP capstone","RAG capstone","Agent capstone","Final capstone","TaxKraft RAG chatbot"],color:"#6366f1"}
+    ];
+
+    // Render phases
+    const grid = document.getElementById('phases-grid');
+    phases.forEach((phase, i) => {
+      const card = document.createElement('article');
+      card.className = 'group card-hover bg-white rounded-xl border border-slate-200 p-6 h-full flex flex-col';
+      card.style.setProperty('--phase-color', phase.color);
+      card.style.animationDelay = `${i * 50}ms`;
+      card.classList.add('animate-slide-up');
+      card.innerHTML = `
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white" style="background-color: ${phase.color}">
+              <span class="text-xl font-bold">${phase.id.toString().padStart(2, '0')}</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-slate-900">${phase.title}</h3>
+              <p class="text-sm text-slate-500">${phase.shortTitle}</p>
+            </div>
+          </div>
+        </div>
+        <p class="text-slate-600 text-sm mb-4 flex-1">${phase.description}</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          ${phase.keyTopics.slice(0, 4).map(t => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-slate-50 text-slate-600 border border-slate-200">${t}</span>`).join('')}
+          ${phase.keyTopics.length > 4 ? `<span class="px-2 py-1 text-xs font-medium rounded-full bg-slate-50 text-slate-500 border border-slate-200">+${phase.keyTopics.length - 4} more</span>` : ''}
+        </div>
+        <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+          <span class="text-sm font-medium text-slate-700">${phase.notebookCount} notebooks</span>
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-700 border border-green-200 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            Verified
+          </span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    // Guardrails
+    const guardrails = [
+      {layer:"1",name:"Topic Scope",desc:"Keyword scoring + embedding centroid (threshold 0.42)"},
+      {layer:"2",name:"PII Detection",desc:"Regex for Aadhaar, PAN, GSTIN, phone, email, UPI, bank, passport, DL"},
+      {layer:"3",name:"Prompt Injection",desc:"Signature detection (ignore instructions, system prompt reveal, role override)"},
+      {layer:"4",name:"Retrieval Confidence",desc:"Minimum score threshold (0.30)"},
+      {layer:"5",name:"Faithfulness",desc:"Lexical token coverage + sentence coverage + embedding similarity (0.30)"}
+    ];
+    document.getElementById('guardrails').innerHTML = guardrails.map(g => `
+      <div class="flex gap-3 p-3 bg-white rounded-lg border border-slate-200">
+        <span class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">${g.layer}</span>
+        <div>
+          <div class="font-medium text-slate-900">${g.name}</div>
+          <div class="text-sm text-slate-500">${g.desc}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Tech stack
+    const techStack = ["Python 3.13","FastAPI","ChromaDB","sentence-transformers","BM25 (custom)","Groq/OpenAI","Pytest (33 tests)","FastAPI + Static UI","Docker-ready"];
+    document.getElementById('tech-stack').innerHTML = techStack.map(t => `<span class="px-3 py-1 text-sm font-medium rounded-full bg-sky-50 text-sky-700 border border-sky-200">${t}</span>`).join('');
+
+    // Demo output
+    document.getElementById('demo-output').textContent = `$ python run.py --query "What is the GST registration process?"
+🔍 Retrieving relevant documents...
+📄 Found 5 relevant chunks (hybrid: dense + BM25)
+🛡️ Guardrails check: PASSED (5/5 layers)
+✅ Topic scope: IN_SCOPE (score: 0.87)
+✅ PII: CLEAN
+✅ Injection: CLEAN
+✅ Retrieval confidence: 0.72
+✅ Faithfulness: 0.84
+
+💬 Answer:
+Based on TaxKraft's knowledge base, the GST registration process involves:
+1. Document preparation (PAN, Aadhaar, business proof, bank details)
+2. Online application via GST portal (Form REG-01)
+3. Verification by GST officer (typically 3-7 working days)
+4. GSTIN issuance upon approval
+
+📚 Sources: services_gst.md (sections 2.1, 2.3), pricing_and_process.md (section 4)
+⏱️ Latency: 1.2s | Tokens: 247 | Cost: $0.0001`;
+
+    // Intersection observer for animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fade-in');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.card-hover, section > div > header, .bg-slate-50').forEach(el => {
+      observer.observe(el);
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
