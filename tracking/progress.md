@@ -3,7 +3,7 @@
 > **Track your progress through the curriculum.**
 > Mark units complete as you finish them. Update mastery levels as you improve.
 
-Last updated: 2026-08-28
+Last updated: 2026-08-31
 
 ---
 
@@ -94,17 +94,32 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 05.5 Decision trees | ✅ | 3 | Entropy/Gini, from-scratch tree, overfitting |
 | 05.6 Random forests | ✅ | 3 | Bagging, feature importance, OOB score |
 | 05.7 Gradient boosting | ✅ | 3 | XGBoost, LightGBM, learning rate, early stopping |
-| 05.8 kNN | ⏳ | — | |
-| 05.9 Naive Bayes | ⏳ | — | |
-| 05.10 SVM | ⏳ | — | |
-| 05.11 Clustering | ⏳ | — | |
-| 05.12 PCA | ⏳ | — | |
-| 05.13 Feature engineering | ⏳ | — | |
-| 05.14 Imbalanced learning | ⏳ | — | |
-| 05.15 CV & tuning | ⏳ | — | |
-| 05.16 Interpretation | ⏳ | — | |
-| 05.17 Ensembling | ⏳ | — | |
-| 05.18 Synthesis | ⏳ | — | |
+| 05.8 kNN | ✅ | 3 | From-scratch + sklearn, k effect |
+| 05.9 Naive Bayes | ✅ | 3 | Gaussian/Multinomial/Bernoulli |
+| 05.10 SVM | ✅ | 3 | Margin, kernels, C, from-scratch |
+| 05.11 Clustering | ✅ | 3 | K-Means, Hierarchical, DBSCAN |
+| 05.12 PCA | ✅ | 3 | From-scratch PCA, explained variance |
+| 05.13 Feature engineering | ✅ | 3 | Encoding, scaling, selection |
+| 05.14 Imbalanced learning | ✅ | 3 | Resampling, class weights, SMOTE |
+| 05.15 CV & tuning | ✅ | 3 | K-fold, Grid/Random search |
+| 05.16 Interpretation | ✅ | 3 | Permutation importance, PDP |
+| 05.17 Ensembling | ✅ | 3 | Voting, stacking, blending |
+| 05.18 Synthesis | ✅ | 3 | ML synthesis & review |
+| 05.19 Pipelines | ✅ | 3 | ColumnTransformer, pipelines |
+| 05.20 Multiclass | ✅ | 3 | OvR, OvO, softmax |
+| 05.21 Regression trees/boosting | ✅ | 3 | Tree-based regression |
+| 05.22 Time series | ✅ | 3 | Temporal splits, walk-forward |
+| 05.23 Model saving | ✅ | 3 | Joblib/pickle, deployment basics |
+| 05.24 Optuna | ⏳ | — | Bayesian optimization — NOT EXECUTED |
+| 05.25 Neural networks | ✅ | 3 | NN from scratch |
+| 05.26 MLPClassifier | ⏳ | — | sklearn neural nets — NOT EXECUTED |
+| 05.27 SHAP | ⏳ | — | Advanced interpretation — NOT EXECUTED |
+| 05.28 Advanced ensembling | ✅ | 3 | Stacking deep dive |
+| 05.29 Data leakage | ⏳ | — | Anti-patterns — NOT EXECUTED |
+| 05.30 Learning curves | ✅ | 3 | Bias/variance diagnostics |
+| 05.31 Model selection | ⏳ | — | Comparison framework — NOT EXECUTED |
+| 05.32 End-to-end classification | ✅ | 3 | Titanic pipeline |
+| 05.33 Capstone synthesis | ⏳ | — | ML synthesis — NOT EXECUTED |
 
 ## Phase 06 — Deep Learning
 
@@ -245,8 +260,19 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 - **Total units:** ~177 across 18 phases
 - **Completed Phases:** 00–04, 06–09, 11–17 ✅
-- **In Progress:** Phase 05, Phase 14 ⏳
+- **In Progress:** Phase 05 ⏳ (28/33 notebooks executed & verified; 6 pending execution)
 - **Not Started:** Phase 10 ⏳
+
+### Phase 05 Execution State (as of 2026-08-31)
+
+- **Executed & verified (0 errors):** 05.01–05.23, 05.25, 05.28, 05.30, 05.32 (28 notebooks)
+- **NOT executed (content complete, need execution + verification):**
+  - 05.24 Optuna (Bayesian Optimization)
+  - 05.26 MLPClassifier (sklearn Neural Nets)
+  - 05.27 SHAP (Advanced Interpretation)
+  - 05.29 Data Leakage (Anti-Patterns)
+  - 05.31 Model Selection (Comparison Framework)
+  - 05.33 Capstone Synthesis (ML Synthesis & Concept Map)
 
 ---
 

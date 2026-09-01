@@ -35,6 +35,9 @@ dependencies = [
     # Gradient boosting
     "xgboost>=3.4.1",
     "lightgbm>=4.7.0",
+    # Hyperparameter optimization & interpretability
+    "optuna>=3.0",
+    "shap>=0.44",
     # Web / API
     "fastapi>=0.100",
     "uvicorn>=0.20",
