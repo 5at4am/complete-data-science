@@ -31,10 +31,14 @@ def load_sklearn(name: str) -> tuple[pd.DataFrame, pd.Series]:
         __import__("sklearn.datasets", fromlist=[_SKLEARN_DATA[name]]),
         _SKLEARN_DATA[name],
     )()
-    return pd.DataFrame(data.data, columns=data.feature_names), pd.Series(data.target, name="target")
+    return pd.DataFrame(data.data, columns=data.feature_names), pd.Series(
+        data.target, name="target"
+    )
 
 
-def load_csv(path: str | Path, target_col: str | None = None) -> pd.DataFrame | tuple[pd.DataFrame, pd.Series]:
+def load_csv(
+    path: str | Path, target_col: str | None = None
+) -> pd.DataFrame | tuple[pd.DataFrame, pd.Series]:
     """Read a CSV into a DataFrame, optionally splitting off a target column."""
     df = pd.read_csv(path)
     if target_col is None:

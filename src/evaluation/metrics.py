@@ -6,7 +6,10 @@ import numpy as np
 
 
 def evaluate_classification(
-    y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None = None, labels: list[str] | None = None
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    y_proba: np.ndarray | None = None,
+    labels: list[str] | None = None,
 ) -> dict:
     """Return a dict of standard classification metrics (accuracy, F1, etc.).
 
@@ -55,9 +58,13 @@ def evaluate_regression(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     }
 
 
-def cross_val_scores(model, X: np.ndarray, y: np.ndarray, cv: int = 5, scoring: str = "accuracy", **fit_params):
+def cross_val_scores(
+    model, X: np.ndarray, y: np.ndarray, cv: int = 5, scoring: str = "accuracy", **fit_params
+):
     """Shortcut over sklearn's cross_val_score with a plain mean/std summary."""
     from sklearn.model_selection import cross_validate
 
-    result = cross_validate(model, X, y, cv=cv, scoring=scoring, return_train_score=False, **fit_params)
+    result = cross_validate(
+        model, X, y, cv=cv, scoring=scoring, return_train_score=False, **fit_params
+    )
     return result["test_score"]

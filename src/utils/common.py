@@ -9,8 +9,9 @@ from __future__ import annotations
 import contextlib
 import os
 import time
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -44,7 +45,6 @@ def timing(name: str = "task") -> Iterator[Callable[[], float]]:
         print(f"took {elapsed()}s")
     """
     start = time.perf_counter()
-    values = {}
 
     def _elapsed() -> float:
         return round(time.perf_counter() - start, 3)

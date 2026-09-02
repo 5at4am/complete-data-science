@@ -18,7 +18,7 @@ class TfidfRetriever:
         self._matrix = None
         self._chunks: list[str] = []
 
-    def index(self, chunks: list[str]) -> "TfidfRetriever":
+    def index(self, chunks: list[str]) -> TfidfRetriever:
         from sklearn.feature_extraction.text import TfidfVectorizer
 
         self._vectorizer = TfidfVectorizer(stop_words=self.stop_words)
@@ -54,8 +54,10 @@ class EmbeddingRetriever:
             self._model = SentenceTransformer(self.model_name)
         return self._model
 
-    def index(self, chunks: list[str], batch_size: int = 32) -> "EmbeddingRetriever":
-        self._embeddings = self._get_model().encode(chunks, batch_size=batch_size, show_progress_bar=False)
+    def index(self, chunks: list[str], batch_size: int = 32) -> EmbeddingRetriever:
+        self._embeddings = self._get_model().encode(
+            chunks, batch_size=batch_size, show_progress_bar=False
+        )
         self._chunks = list(chunks)
         return self
 

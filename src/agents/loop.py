@@ -7,7 +7,8 @@ Only standard-library ``json`` is needed for the loop itself; an OpenAI client
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from src.agents.tool import execute_tool_call
 

@@ -1,5 +1,7 @@
 """Tests for src.rag.chunker, src.rag.retriever, and src.agents.tool."""
 
+import pytest
+
 from src.agents.tool import execute_tool_call, tool_schema
 from src.rag.chunker import chunk_documents, chunk_text
 from src.rag.retriever import TfidfRetriever
@@ -29,11 +31,8 @@ def test_chunk_text_overlap_carries_context():
 
 
 def test_chunk_text_invalid_args():
-    try:
+    with pytest.raises(ValueError):
         chunk_text("abc", chunk_size=100, overlap=200)
-        assert False, "should have raised"
-    except ValueError:
-        pass
 
 
 def test_chunk_documents_flat():
@@ -55,7 +54,9 @@ def test_tfidf_retriever_returns_relevant_chunk():
 
 def test_tool_schema_builds_openai_shape():
     schema = tool_schema(
-        "add", "Adds two numbers", {"a": {"type": int, "description": "first"}, "b": {"type": int, "description": "second"}}
+        "add",
+        "Adds two numbers",
+        {"a": {"type": int, "description": "first"}, "b": {"type": int, "description": "second"}},
     )
     assert schema["type"] == "function"
     assert schema["function"]["name"] == "add"

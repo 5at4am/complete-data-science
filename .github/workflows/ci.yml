@@ -22,5 +22,13 @@ jobs:
       - name: Sync dependencies (locked)
         run: uv sync --no-progress
 
+      - name: Lint and format check
+        run: |
+          uv run ruff check src tests scripts conftest.py
+          uv run ruff format --check src tests scripts conftest.py
+
+      - name: Verify no notebook has error outputs
+        run: uv run python scripts/verify_notebooks.py
+
       - name: Run tests
         run: uv run pytest -q

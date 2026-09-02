@@ -4,7 +4,11 @@ import numpy as np
 from sklearn.datasets import load_iris, make_regression
 
 from src.evaluation.metrics import evaluate_classification, evaluate_regression
-from src.models.linear import LinearRegressionGD, linear_regression_closed_form, LogisticRegressionGD
+from src.models.linear import (
+    LinearRegressionGD,
+    LogisticRegressionGD,
+    linear_regression_closed_form,
+)
 
 
 def test_linear_regression_gd_converges(maker=make_regression):

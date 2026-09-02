@@ -12,9 +12,9 @@ def test_project_root_points_at_repo():
 
 
 def test_set_seed_runs_and_is_reproducible():
-    from src.utils.common import set_seed
-
     import numpy as np
+
+    from src.utils.common import set_seed
 
     set_seed(42)
     a = np.random.rand(5)

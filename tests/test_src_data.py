@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.data.loader import load_sklearn, train_validate_test_split
-from src.features.engineering import add_interaction, select_top_correlated, select_low_variance
+from src.features.engineering import add_interaction, select_low_variance, select_top_correlated
 
 
 def test_load_sklearn_wine_shapes():
@@ -32,7 +32,7 @@ def test_three_way_split_is_stratified_and_ordered():
 
 def test_select_top_correlated():
     rng = np.random.default_rng(7)
-    a = rng.normal(size=50)          # noise, independent of target
+    a = rng.normal(size=50)  # noise, independent of target
     b = rng.normal(size=50) * 2 + 3
     target = pd.Series(b * 1.5 + rng.normal(scale=0.2, size=50))
     df = pd.DataFrame({"a": a, "b": b})
