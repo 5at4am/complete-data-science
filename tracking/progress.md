@@ -3,7 +3,7 @@
 > **Track your progress through the curriculum.**
 > Mark units complete as you finish them. Update mastery levels as you improve.
 
-Last updated: 2026-08-31
+Last updated: 2026-09-02
 
 ---
 
@@ -110,48 +110,16 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 | 05.21 Regression trees/boosting | ✅ | 3 | Tree-based regression |
 | 05.22 Time series | ✅ | 3 | Temporal splits, walk-forward |
 | 05.23 Model saving | ✅ | 3 | Joblib/pickle, deployment basics |
-| 05.24 Optuna | ⏳ | — | Bayesian optimization — NOT EXECUTED |
+| 05.24 Optuna | ✅ | 3 | Bayesian optimization — executed 2026-09-02 |
 | 05.25 Neural networks | ✅ | 3 | NN from scratch |
-| 05.26 MLPClassifier | ⏳ | — | sklearn neural nets — NOT EXECUTED |
-| 05.27 SHAP | ⏳ | — | Advanced interpretation — NOT EXECUTED |
+| 05.26 MLPClassifier | ✅ | 3 | sklearn neural nets — re-verified 2026-09-02 |
+| 05.27 SHAP | ✅ | 3 | Advanced interpretation — fixed for SHAP 0.52, executed 2026-09-02 |
 | 05.28 Advanced ensembling | ✅ | 3 | Stacking deep dive |
-| 05.29 Data leakage | ⏳ | — | Anti-patterns — NOT EXECUTED |
+| 05.29 Data leakage | ✅ | 3 | Anti-patterns — re-verified 2026-09-02 |
 | 05.30 Learning curves | ✅ | 3 | Bias/variance diagnostics |
-| 05.31 Model selection | ⏳ | — | Comparison framework — NOT EXECUTED |
+| 05.31 Model selection | ✅ | 3 | Comparison framework — re-verified 2026-09-02 |
 | 05.32 End-to-end classification | ✅ | 3 | Titanic pipeline |
-| 05.33 Capstone synthesis | ⏳ | — | ML synthesis — NOT EXECUTED |
-
-## Phase 06 — Deep Learning
-
-| Unit | Status | Mastery | Notes |
-|------|--------|---------|-------|
-| 06.1 Perceptron | ⏳ | — | |
-| 06.2 Loss functions | ⏳ | — | |
-| 06.3 Backpropagation | ⏳ | — | |
-| 06.4 MLP PyTorch | ⏳ | — | |
-| 06.5 Regularization | ⏳ | — | |
-| 06.6 Optimizers | ⏳ | — | |
-| 06.7 Datasets/DataLoaders | ⏳ | — | |
-| 06.8 Training loops | ⏳ | — | |
-| 06.9 Checkpointing | ⏳ | — | |
-| 06.10 CNNs | ⏳ | — | |
-| 06.11 RNN/LSTM | ⏳ | — | |
-| 06.12 Attention | ⏳ | — | |
-| 06.13 Synthesis | ⏳ | — | |
-
-## Phase 07 — NLP
-
-| Unit | Status | Mastery | Notes |
-|------|--------|---------|-------|
-| 07.1 Preprocessing | ⏳ | — | |
-| 07.2 BoW/TF-IDF | ⏳ | — | |
-| 07.3 N-grams | ⏳ | — | |
-| 07.4 Text classification | ⏳ | — | |
-| 07.5 Word embeddings | ⏳ | — | |
-| 07.6 Sequence models | ⏳ | — | |
-| 07.7 Attention | ⏳ | — | |
-| 07.8 Evaluation | ⏳ | — | |
-| 07.9 Synthesis | ⏳ | — | |
+| 05.33 Capstone synthesis | ✅ | 3 | ML synthesis — fixed GridSearch OOM, executed 2026-09-02 |
 
 ## Phase 06 — Deep Learning
 
@@ -258,21 +226,14 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 ## Summary
 
-- **Total units:** ~177 across 18 phases
-- **Completed Phases:** 00–04, 06–09, 11–17 ✅
-- **In Progress:** Phase 05 ⏳ (28/33 notebooks executed & verified; 6 pending execution)
-- **Not Started:** Phase 10 ⏳
+- **Total units:** 204 across 18 phases
+- **Completed Phases:** 00–17 ✅ (all 18)
+- **In Progress:** None
 
-### Phase 05 Execution State (as of 2026-08-31)
+### Phase 05 Execution State (as of 2026-09-02)
 
-- **Executed & verified (0 errors):** 05.01–05.23, 05.25, 05.28, 05.30, 05.32 (28 notebooks)
-- **NOT executed (content complete, need execution + verification):**
-  - 05.24 Optuna (Bayesian Optimization)
-  - 05.26 MLPClassifier (sklearn Neural Nets)
-  - 05.27 SHAP (Advanced Interpretation)
-  - 05.29 Data Leakage (Anti-Patterns)
-  - 05.31 Model Selection (Comparison Framework)
-  - 05.33 Capstone Synthesis (ML Synthesis & Concept Map)
+- **All 33 notebooks executed & verified (0 error cells).**
+- Freshly executed today (fixed two latent bugs): 05.24 Optuna, 05.27 SHAP (SHAP 0.52 output-format fix), 05.33 Capstone Synthesis (GridSearch OOM fix).
 
 ---
 

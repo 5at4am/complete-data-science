@@ -11,10 +11,10 @@ production ML/AI engineering.
 
 | | |
 |---|---|
-| **Width** | 18 phases × ~177 units across the full AI/ML stack |
-| **Depth** | ~166 implementation-first Jupyter notebooks (growing) |
+| **Width** | 18 phases × 204 units across the full AI/ML stack |
+| **Depth** | 204 implementation-first Jupyter notebooks — all executed, 0 error cells |
 | **Style** | Understand → Build → Debug → Compare → Explain → Solve independently |
-| **Currently** | Phases 00–09, 11–13, 15–17 ✅ complete · Phase 05 ⏳ in progress · Phase 10 ⏳ next up |
+| **Currently** | All 18 phases ✅ complete — every notebook executed & verified from a clean kernel |
 
 ---
 
@@ -30,6 +30,13 @@ production ML/AI engineering.
 - **Retention is engineered** — review notebooks, mastery levels, and a tracking system.
 
 ## Quick Start
+
+> **Completely new to programming?** Please start with
+> [`docs/getting-started.md`](docs/getting-started.md) — a plain-language,
+> step-by-step guide for complete beginners (first session, troubleshooting, first week).
+> Then read [`docs/prerequisites.md`](docs/prerequisites.md) and
+> [`docs/glossary.md`](docs/glossary.md).
+> **Returning learners** can follow the commands below directly.
 
 ```bash
 # 1. Clone the repository
@@ -50,6 +57,8 @@ jupyter lab
 # 5. Run the sanity tests
 pytest
 ```
+
+Stuck? See [`docs/troubleshooting.md`](docs/troubleshooting.md) (written for beginners).
 
 Requires **Python 3.13+**. `requirements.txt` and `pyproject.toml` (`uv.lock`) pin the stack:
 NumPy, pandas, SciPy, scikit-learn, matplotlib, seaborn, PyTorch, Hugging Face
@@ -82,26 +91,29 @@ Phase 08  Transformers                      Phase 17  Capstone Engineering
 
 ### Phase Status
 
-| Phase | Topic | Status | Building Blocks |
-|---|---|---|---|
-| 00 | Environment Setup | ✅ Complete | Jupyter, Git, uv/venv, package verification |
-| 01 | Python Foundations | ✅ Complete | syntax, data structures, functions, OOP, NumPy, pandas, matplotlib |
-| 02 | Mathematics for ML | ✅ Complete | linear algebra, calculus, gradient descent, probability, information theory, eigenvalues |
-| 03 | Statistics & Probability | ✅ Complete | distributions, inference, hypothesis testing, correlation, Bayesian thinking |
-| 04 | Data Analysis & Preparation | ✅ Complete | EDA, cleaning, missing values, outliers, scaling/encoding, splits, leakage |
-| 05 | Machine Learning | ⏳ In progress (18 units) | linear/logistic regression, trees, forests, boosting, KNN, naive Bayes, SVM, clustering, PCA, interpretability |
-| 06 | Deep Learning | ✅ Complete | perceptron, loss functions, backprop, MLP in PyTorch, regularization, optimizers, dataloaders, training loops, CNNs, RNN/LSTM/GRU, attention |
-| 07 | NLP | ✅ Complete | preprocessing, BoW/TF-IDF, n-grams, text classification, word embeddings, sequence models, attention, evaluation |
-| 08 | Transformers | ✅ Complete | transformer architecture, self-attention, positional encoding, encoder-decoder, BERT-style, GPT-style |
-| 09 | Generative AI | ✅ Complete | LLM anatomy, tokenization, embeddings, pretraining, decoding, sampling, instruction alignment, LLM APIs, prompting, structured output, tool calling |
-| 10 | Applied LLM Engineering | ⏳ Not started | — |
-| 11 | RAG Systems | ✅ Complete | TF-IDF/BM25 from scratch, embeddings, vector similarity, ChromaDB/FAISS, ingestion, chunking, retrieval, reranking, grounding, evaluation, naive/advanced/agentic RAG |
-| 12 | LangChain / Framework Abstractions | ✅ Complete | raw LLM pipeline, prompts, output parsers, LCEL chains, memory, tools, RAG with LangChain, framework-vs-manual |
-| 13 | LangGraph / Stateful Workflows | ✅ Complete | manual state machines, StateGraph, conditional routing, loops, memory, human approval, failure handling |
-| 14 | AI Agents | ⏳ In progress (13 units) | tool calling, planning, execution, reflection, memory, multi-agent, failure modes, security, evaluation |
-| 15 | Evaluation & Experimentation | ✅ Complete | ML/LLM/RAG/agent evaluation, evaluation datasets, experiment tracking |
-| 16 | Deployment & MLOps | ✅ Complete | API design, model serving, Docker, CI/CD, monitoring, LLMOps, security |
-| 17 | Capstone Engineering | ✅ Complete | ML, DL, NLP, RAG, and agent capstones + final portfolio capstone |
+| Phase | Topic | Status | Est. Time | Building Blocks |
+|---|---|---|---|---|
+| 00 | Environment Setup | ✅ Complete | 2 h | Jupyter, Git, uv/venv, package verification |
+| 01 | Python Foundations | ✅ Complete | 20 h | syntax, data structures, functions, OOP, NumPy, pandas, matplotlib |
+| 02 | Mathematics for ML | ✅ Complete | 25 h | linear algebra, calculus, gradient descent, probability, information theory, eigenvalues |
+| 03 | Statistics & Probability | ✅ Complete | 20 h | distributions, inference, hypothesis testing, correlation, Bayesian thinking |
+| 04 | Data Analysis & Preparation | ✅ Complete | 15 h | EDA, cleaning, missing values, outliers, scaling/encoding, splits, leakage |
+| 05 | Machine Learning | ✅ Complete (33 units) | 45 h | linear/logistic regression, trees, forests, boosting, KNN, naive Bayes, SVM, clustering, PCA, feature engineering, imbalanced learning, tuning (Optuna), interpretability (SHAP), ensembling, capstone synthesis |
+| 06 | Deep Learning | ✅ Complete | 30 h | perceptron, loss functions, backprop, MLP in PyTorch, regularization, optimizers, dataloaders, training loops, CNNs, RNN/LSTM/GRU, attention |
+| 07 | NLP | ✅ Complete | 15 h | preprocessing, BoW/TF-IDF, n-grams, text classification, word embeddings, sequence models, attention, evaluation |
+| 08 | Transformers | ✅ Complete | 15 h | transformer architecture, self-attention, positional encoding, encoder-decoder, BERT-style, GPT-style |
+| 09 | Generative AI | ✅ Complete | 20 h | LLM anatomy, tokenization, embeddings, pretraining, decoding, sampling, instruction alignment, LLM APIs, prompting, structured output, tool calling |
+| 10 | Applied LLM Engineering | ✅ Complete (8 units) | 15 h | model landscape & selection, context windows, fine-tuning concepts, RAG vs fine-tuning vs long context, cost/latency, LLM security, LLM evaluation, synthesis |
+| 11 | RAG Systems | ✅ Complete | 20 h | TF-IDF/BM25 from scratch, embeddings, vector similarity, ChromaDB/FAISS, ingestion, chunking, retrieval, reranking, grounding, evaluation, naive/advanced/agentic RAG |
+| 12 | LangChain / Framework Abstractions | ✅ Complete | 10 h | raw LLM pipeline, prompts, output parsers, LCEL chains, memory, tools, RAG with LangChain, framework-vs-manual |
+| 13 | LangGraph / Stateful Workflows | ✅ Complete | 10 h | manual state machines, StateGraph, conditional routing, loops, memory, human approval, failure handling |
+| 14 | AI Agents | ✅ Complete (13 units) | 15 h | tool calling, planning, execution, reflection, memory, multi-agent, failure modes, security, evaluation |
+| 15 | Evaluation & Experimentation | ✅ Complete | 10 h | ML/LLM/RAG/agent evaluation, evaluation datasets, experiment tracking |
+| 16 | Deployment & MLOps | ✅ Complete | 15 h | API design, model serving, Docker, CI/CD, monitoring, LLMOps, security |
+| 17 | Capstone Engineering | ✅ Complete | 25 h | ML, DL, NLP, RAG, and agent capstones + final portfolio capstone |
+
+> **Total:** ~325 hours of guided work across 204 notebooks (rough rule of thumb: 1.5–2 h per notebook,
+> more for the capstone phases). Actual pace depends on how deep you go on the exercises.
 
 Full per-unit status lives in [`BUILD_STATUS.md`](BUILD_STATUS.md). All notebooks live in
 `notebooks/NN_phase/`, one folder per phase.
@@ -171,6 +183,9 @@ LEVEL 6 — Teaching        I can explain it clearly to another person.
 
 | Document | Purpose |
 |---|---|
+| [docs/getting-started.md](docs/getting-started.md) | **Start here if you're new** — plain-language setup, first session, first week |
+| [docs/glossary.md](docs/glossary.md) | Plain-English dictionary of every term used in the course |
+| [docs/prerequisites.md](docs/prerequisites.md) | What you need before starting (and what you don't) |
 | [ROADMAP.md](ROADMAP.md) | The complete learning progression |
 | [LEARNING_SYSTEM.md](LEARNING_SYSTEM.md) | How the learning system works |
 | [BUILD_STATUS.md](BUILD_STATUS.md) | What is built & verified |
@@ -187,4 +202,5 @@ This is an educational project. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for gui
 
 ## License
 
-Educational use. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Released under the [MIT License](LICENSE). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for
+contribution guidelines.

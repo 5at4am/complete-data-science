@@ -4,7 +4,7 @@
 > This file is updated at every major checkpoint so that progress is never lost,
 > even if the working session is interrupted or files are deleted.
 
-Last updated: 2026-08-29
+Last updated: 2026-09-02
 
 ---
 
@@ -51,16 +51,16 @@ Last updated: 2026-08-29
 | 02 | Mathematics for ML | ✅ Complete |
 | 03 | Statistics & Probability | ✅ Complete |
 | 04 | Data Analysis & Preparation | ✅ Complete |
-| 05 | Machine Learning | ⏳ In Progress |
+| 05 | Machine Learning | ✅ Complete |
 | 06 | Deep Learning | ✅ Complete |
 | 07 | NLP | ✅ Complete |
 | 08 | Transformers | ✅ Complete |
 | 09 | Generative AI | ✅ Complete |
-| 10 | Applied LLM Engineering | ⏳ Not Started |
+| 10 | Applied LLM Engineering | ✅ Complete |
 | 11 | RAG Systems | ✅ Complete |
 | 12 | LangChain / Framework Abstractions | ✅ Complete |
 | 13 | LangGraph / Stateful Workflows | ✅ Complete |
-| 14 | AI Agents | ⏳ In Progress |
+| 14 | AI Agents | ✅ Complete |
 | 15 | Evaluation & Experimentation | ✅ Complete |
 | 16 | Deployment & MLOps | ✅ Complete |
 | 17 | Capstone Engineering | ✅ Complete |
@@ -83,6 +83,6 @@ Last updated: 2026-08-29
 
 ## Current Checkpoint
 
-**Completed Phases:** 00–04, 06–09, 11–17 (including Taxkraft RAG capstone).
-**In Progress:** Phase 05 (Machine Learning) and Phase 14 (AI Agents).
-**Next Up:** Phase 10 (Applied LLM Engineering).
+**Completed Phases:** 00–17 (all 18 phases). Every notebook executed & verified from a clean kernel, 0 error cells.
+**In Progress:** None — all content, notebooks, docs, and the Taxkraft RAG capstone are verified.
+**Next Up:** Learner-facing polish (onboarding docs shipped), reusable `src/` modules, LICENSE, and CI.

@@ -75,6 +75,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `opendatasets` blocked on Python 3.13 (removed `cgi` module). Use `kagglehub` instead.
+- Notebook 05.27 (SHAP): `explainer.shap_values()` returned the new
+  `(n_samples, n_features, n_classes)` format (SHAP 0.45+) instead of the legacy list of
+  per-class arrays — normalized to per-class format with an explanatory note. Freshly
+  executed from a clean kernel, 0 error cells.
+- Notebook 05.33 (Capstone synthesis): `GridSearchCV(n_jobs=-1)` silently OOM-killed the
+  kernel on 8 GB machines — switched to `n_jobs=1` (identical results, fixed seed) with a
+  teaching note. Freshly executed from a clean kernel, 0 error cells.
+
+### Added
+- `Role/` — 37 research-backed career/role guides (Data Science, ML, AI, leadership & infra)
+  plus a role comparison README.
+- `docs/getting-started.md` — plain-language onboarding guide for complete beginners
+  (first session, troubleshooting table, first-week plan).
+- `docs/glossary.md` — plain-English dictionary (~50 terms).
+- Reusable `src/` modules with tests (24 passing total): dataset loaders, feature selection,
+  from-scratch linear/logistic regression, metric bundles, pipeline builders, RAG chunking
+  & retrieval, agent tool helpers, and utils (seeds/timing/joblib).
+- `LICENSE` (MIT) and `.github/workflows/ci.yml` (pytest on Python 3.13 via uv).
+- `conftest.py` — makes `src.*` importable for any pytest invocation.
+
+### Changed
+- README: corrected depth counts (204 notebooks, all executed with 0 error cells), added a
+  full phase map with estimated times (≈325 h), marked all 18 phases complete.
+- `BUILD_STATUS.md` / `PROJECT_STATE.md` / `tracking/progress.md`: Phase 05 detail expanded
+  from 18 → 33 units, all verified; Phase 05/10/14 marked complete; removed duplicate
+  Phase 06/07 tables and stale NOT EXECUTED flags; dates updated.
 
 ---
 

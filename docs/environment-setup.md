@@ -1,12 +1,20 @@
 # Environment Setup
 
 > **How to set up the environment for this learning system.**
+> Total beginner? Read [`getting-started.md`](getting-started.md) *before* this page —
+> it walks you through the same steps with no jargon and pre-empts the common first-hour errors.
 
 ---
 
 ## Recommended: uv (used in this project)
 
 This project uses **uv** for environment management.
+
+> **Which is right for you?**
+> - **You downloaded this repo** → skip to step 2 and run `uv sync` (installs exactly
+>   what the project needs from `pyproject.toml`/`uv.lock`). `uv init` / `uv add`
+>   (below) are only for **creating a brand-new project**, not for using this one.
+> - **Creating your own new project** → `uv init` then `uv add <packages>`.
 
 ### 1. Install uv
 
@@ -17,12 +25,11 @@ pip install uv
 winget install astral-sh.uv
 ```
 
-### 2. Create the project environment
+### 2. Set up the environment
 
 ```bash
-# From the project root
-uv init
-uv add <packages>
+# In this repository (after git clone + cd into the folder):
+uv sync
 ```
 
 ### 3. Activate the environment

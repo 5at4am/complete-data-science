@@ -2,7 +2,7 @@
 
 > **This file is the single source of truth for what has been built, verified, and what remains.**
 
-Last updated: 2026-08-29
+Last updated: 2026-09-02
 
 ---
 
@@ -22,7 +22,7 @@ Last updated: 2026-08-29
 | Phase 02 (Math) | ✅ COMPLETE |
 | Phase 03 (Statistics) | ✅ COMPLETE |
 | Phase 04 (Data Analysis) | ✅ COMPLETE |
-| Phase 05 (Machine Learning) | ⏳ IN PROGRESS |
+| Phase 05 (Machine Learning) | ✅ COMPLETE |
 | Phase 06 (Deep Learning) | ✅ COMPLETE |
 | Phase 07 (NLP) | ✅ COMPLETE |
 | Phase 08 (Transformers) | ✅ COMPLETE |
@@ -129,17 +129,32 @@ Last updated: 2026-08-29
 | 05.5 | `05_machine_learning/05_05_decision_trees.ipynb` | ✅ VERIFIED | 2026-08-28 | Decision trees |
 | 05.6 | `05_machine_learning/05_06_random_forests.ipynb` | ✅ VERIFIED | 2026-08-28 | Random forests |
 | 05.7 | `05_machine_learning/05_07_gradient_boosting.ipynb` | ✅ VERIFIED | 2026-08-28 | Gradient boosting (XGBoost, LightGBM) |
-| 05.8 | `05_machine_learning/05_08_knn.ipynb` | ⏳ IN PROGRESS | — | k-Nearest Neighbors |
-| 05.9 | `05_machine_learning/05_09_naive_bayes.ipynb` | ⏳ IN PROGRESS | — | Naive Bayes |
-| 05.10 | `05_machine_learning/05_10_svm.ipynb` | ⏳ IN PROGRESS | — | Support Vector Machines |
-| 05.11 | `05_machine_learning/05_11_clustering.ipynb` | ⏳ IN PROGRESS | — | Clustering |
-| 05.12 | `05_machine_learning/05_12_pca.ipynb` | ⏳ IN PROGRESS | — | Dimensionality Reduction (PCA) |
-| 05.13 | `05_machine_learning/05_13_feature_engineering.ipynb` | ⏳ IN PROGRESS | — | Feature Engineering |
-| 05.14 | `05_machine_learning/05_14_imbalanced_learning.ipynb` | ⏳ IN PROGRESS | — | Imbalanced Learning |
-| 05.15 | `05_machine_learning/05_15_cv_hyperparameter_tuning.ipynb` | ⏳ IN PROGRESS | — | Cross-Validation & Tuning |
-| 05.16 | `05_machine_learning/05_16_model_interpretation.ipynb` | ⏳ IN PROGRESS | — | Model Interpretation |
-| 05.17 | `05_machine_learning/05_17_ensembling.ipynb` | ⏳ IN PROGRESS | — | Ensembling |
-| 05.18 | `05_machine_learning/05_18_synthesis.ipynb` | ⏳ IN PROGRESS | — | ML Synthesis & Review |
+| 05.8 | `05_machine_learning/05_08_knn.ipynb` | ✅ VERIFIED | 2026-08-31 | k-Nearest Neighbors |
+| 05.9 | `05_machine_learning/05_09_naive_bayes.ipynb` | ✅ VERIFIED | 2026-08-31 | Naive Bayes |
+| 05.10 | `05_machine_learning/05_10_svm.ipynb` | ✅ VERIFIED | 2026-08-31 | Support Vector Machines |
+| 05.11 | `05_machine_learning/05_11_clustering.ipynb` | ✅ VERIFIED | 2026-08-31 | Clustering |
+| 05.12 | `05_machine_learning/05_12_pca.ipynb` | ✅ VERIFIED | 2026-08-31 | Dimensionality Reduction (PCA) |
+| 05.13 | `05_machine_learning/05_13_feature_engineering.ipynb` | ✅ VERIFIED | 2026-08-31 | Feature Engineering |
+| 05.14 | `05_machine_learning/05_14_imbalanced_learning.ipynb` | ✅ VERIFIED | 2026-08-31 | Imbalanced Learning |
+| 05.15 | `05_machine_learning/05_15_cv_hyperparameter_tuning.ipynb` | ✅ VERIFIED | 2026-08-31 | Cross-Validation & Tuning |
+| 05.16 | `05_machine_learning/05_16_model_interpretation.ipynb` | ✅ VERIFIED | 2026-08-31 | Model Interpretation |
+| 05.17 | `05_machine_learning/05_17_ensembling.ipynb` | ✅ VERIFIED | 2026-08-31 | Ensembling |
+| 05.18 | `05_machine_learning/05_18_synthesis.ipynb` | ✅ VERIFIED | 2026-08-31 | ML Synthesis & Review |
+| 05.19 | `05_machine_learning/05_19_pipelines.ipynb` | ✅ VERIFIED | 2026-08-31 | Pipelines (ColumnTransformer) |
+| 05.20 | `05_machine_learning/05_20_multiclass.ipynb` | ✅ VERIFIED | 2026-08-31 | Multiclass (OvR, OvO, softmax) |
+| 05.21 | `05_machine_learning/05_21_regression_trees_boosting.ipynb` | ✅ VERIFIED | 2026-08-31 | Tree-based regression |
+| 05.22 | `05_machine_learning/05_22_time_series.ipynb` | ✅ VERIFIED | 2026-08-31 | Time series (temporal splits, walk-forward) |
+| 05.23 | `05_machine_learning/05_23_model_saving.ipynb` | ✅ VERIFIED | 2026-08-31 | Model saving (joblib/pickle) |
+| 05.24 | `05_machine_learning/05_24_optuna.ipynb` | ✅ VERIFIED | 2026-09-02 | Bayesian optimization (Optuna) — freshly executed from clean kernel |
+| 05.25 | `05_machine_learning/05_25_neural_networks.ipynb` | ✅ VERIFIED | 2026-08-31 | NN from scratch |
+| 05.26 | `05_machine_learning/05_26_mlp_classifier.ipynb` | ✅ VERIFIED | 2026-09-02 | sklearn neural nets — re-verified, 0 error cells |
+| 05.27 | `05_machine_learning/05_27_shap.ipynb` | ✅ VERIFIED | 2026-09-02 | SHAP interpretation — fixed for SHAP 0.52 output format, freshly executed |
+| 05.28 | `05_machine_learning/05_28_advanced_ensembling.ipynb` | ✅ VERIFIED | 2026-08-31 | Stacking deep dive |
+| 05.29 | `05_machine_learning/05_29_data_leakage.ipynb` | ✅ VERIFIED | 2026-09-02 | Leakage anti-patterns — re-verified, 0 error cells |
+| 05.30 | `05_machine_learning/05_30_learning_curves.ipynb` | ✅ VERIFIED | 2026-08-31 | Bias/variance diagnostics |
+| 05.31 | `05_machine_learning/05_31_model_selection.ipynb` | ✅ VERIFIED | 2026-09-02 | Model comparison framework — re-verified, 0 error cells |
+| 05.32 | `05_machine_learning/05_32_end_to_end_classification.ipynb` | ✅ VERIFIED | 2026-08-31 | Titanic pipeline |
+| 05.33 | `05_machine_learning/05_33_capstone_synthesis.ipynb` | ✅ VERIFIED | 2026-09-02 | Capstone synthesis — fixed GridSearch OOM, freshly executed |
 
 ---
 
@@ -192,7 +207,7 @@ Last updated: 2026-08-29
 |-----------|---------|--------|
 | Python | 3.13.9 (uv venv) | ✅ |
 | uv | 0.9.9 | ✅ |
-| Git | initialized (no commits yet) | ✅ |
+| Git | initialized (remote: `5at4am/complete-data-science`) | ✅ |
 | GPU | None (CPU-only) | ⚠️ CPU-only |
 | Internet | Available | ✅ |
 | Jupyter | 4.6.3 (jupyterlab) | ✅ |
@@ -231,3 +246,5 @@ Last updated: 2026-08-29
 | 2026-08-28 | Use uv-managed virtual environment | User's chosen environment manager |
 | 2026-08-28 | CPU-only PyTorch | No GPU detected on this machine |
 | 2026-08-28 | Build docs/architecture/roadmap first, notebooks after | Per master build instruction §51 |
+| 2026-09-02 | Normalize SHAP multiclass `shap_values` to per-class arrays in 05.27 | SHAP 0.45+ changed output to `(n_samples, n_features, n_classes)`; keeps notebook compatible and teaching-clear |
+| 2026-09-02 | Use `n_jobs=1` for GridSearchCV in 05.33 | `n_jobs=-1` silently OOM-killed the kernel on an 8 GB laptop; results identical (fixed `random_state`) |
