@@ -1,1117 +1,959 @@
 # 02. K-Nearest Neighbors (KNN)
 
+<!-- [STORY] -->
 > Difficulty: ⭐⭐☆☆☆ | Importance: ⭐⭐⭐⭐☆
 > Math Required: ⭐⭐☆☆☆ | Coding Required: ⭐⭐☆☆☆
-> GATE Relevance: ⭐⭐⭐⭐☆ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+> GATE: ⭐⭐⭐⭐☆ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+>
+> Journey: **story → guess → distance → vote → k choice → scaling → curse → code → break → when to use → deep dive.**
+> Level 1 = sections 01–18. Level 2 = 19–26. Level 3 = 27–34.
 
 ---
 
-## 01. Algorithm Overview
+## 01. Start Here
 
-| Property | Value |
-|---|---|
-| Algorithm Name | K-Nearest Neighbors (KNN) |
-| Category | Supervised Learning |
-| Type | Classification (also Regression with KNN-Regression) |
-| Parametric / Non-parametric | Non-parametric |
-| Generative / Discriminative | Discriminative (instance-based) |
-| Main Objective | Classify a new point by majority vote of its K closest training points |
-| Input | Feature matrix X (n × d), labels y, integer K |
-| Output | Class label (majority vote among K nearest neighbors) |
-| Core Idea | "You are the company you keep" — nearby points likely share the same class |
-| Typical Use Cases | Recommendation systems, pattern recognition, anomaly detection, missing data imputation |
+KNN is the **lazy learner** — it does almost no "learning" at all, yet can be surprisingly powerful on the right data.
 
----
+By the end you will be able to:
 
-## 02. One-Line Definition
+- predict a class by **distance + majority vote**,
+- compute Euclidean distance by hand,
+- understand why K is the single most important dial,
+- know why **feature scaling is non-negotiable** here,
+- code KNN from scratch and with sklearn,
+- break it deliberately and fix it,
+- and defend when to use — and not use — it.
 
-### Beginner Definition
-KNN finds the K most similar data points to a new point and lets them vote on the class.
-
-### Technical Definition
-KNN is a non-parametric, instance-based (lazy) learner that classifies a query point by assigning it the majority class label among its K nearest neighbors in the training data, as measured by a distance metric.
+> Everything is "ask your neighbours." Let's find out why.
 
 ---
 
-## 03. Intuition
+## 02. The Problem
 
-Imagine you walk into a new city and want to know if a neighborhood is "safe" or "dangerous." You don't have a model or rules — you just look at the K closest houses and ask their residents. If most of the K neighbors say "safe," you conclude the neighborhood is safe.
+Arjun just moved to a new city. He wants to know whether a neighbourhood he's eyeing is **safe** or **not**, but he has no crime statistics and no rules.
 
-That's exactly KNN: no training phase, no model building. At prediction time, you look at the K closest training examples and let them vote.
+What would you do in his place?
 
-The key insight: **similarity in feature space implies similarity in label.** Points that are close together in the feature space likely belong to the same class.
+He decides the sensible move: walk around, find the **closest few houses**, and ask their residents. If most say "safe," he trusts the local crowd.
 
----
+Now bring it to data. Neha, a real-estate agent, shows you past data on 5 localities:
 
-## 04. Problem It Solves
-
-**Problem:** Given a labeled dataset, classify new unseen points based on their similarity to known points.
-
-**Example:** You have photos of animals labeled as "cat" or "dog." A new photo comes in. You extract features (ear length, snout length, etc.) and find the K most similar labeled photos. Majority vote decides.
-
-**Why useful:**
-- No training phase needed — works immediately.
-- Naturally handles multi-class problems.
-- Captures complex, non-linear decision boundaries.
-- Intuitive and easy to understand.
-
----
-
-## 05. Where It Fits in Machine Learning
-
-```
-Machine Learning
-├── Supervised Learning
-│   ├── Classification
-│   │   ├── Instance-Based (Lazy Learners)
-│   │   │   ├── K-Nearest Neighbors  ◄── YOU ARE HERE
-│   │   │   └── Radius-Based Neighbors
-│   │   ├── Model-Based (Eager Learners)
-│   │   │   ├── Logistic Regression
-│   │   │   ├── Naive Bayes
-│   │   │   ├── SVM
-│   │   │   └── Decision Tree / Ensemble Methods
-│   │   └── Neural Networks
-│   └── Regression
-└── Unsupervised Learning
-    └── K-Means (uses distance too, but unsupervised)
-```
-
-KNN is unique because it's a **lazy learner** — it doesn't build an explicit model during training. All work is deferred to prediction time.
-
----
-
-## 06. Important Terminology
-
-| Term | Simple Meaning | Technical Meaning |
+| Area (sq. ft) | House price (₹ lakh) | Safe? |
 |---|---|---|
-| Lazy Learner | No training phase | The algorithm stores training data and defers all computation to prediction time |
-| Instance-Based | Uses raw data points | Classification is based on similarity to individual training instances |
-| K | Number of neighbors | A hyperparameter specifying how many nearest neighbors to consider |
-| Distance Metric | How "close" is measured | Euclidean, Manhattan, Minkowski, Cosine, etc. |
-| Euclidean Distance | Straight-line distance | √(Σ(xᵢ - yᵢ)²) — the L2 norm of the difference vector |
-| Manhattan Distance | City-block distance | Σ|xᵢ - yᵢ| — the L1 norm of the difference vector |
-| Majority Vote | Most common class | The predicted class is the one that appears most among the K neighbors |
-| Weighted Voting | Vote by distance | Closer neighbors get more weight in the vote |
-| Curse of Dimensionality | Distance breaks down | In high dimensions, all points become equidistant, reducing KNN effectiveness |
+| 700 | 25 | No |
+| 800 | 32 | No |
+| 900 | 40 | Yes |
+| 1000 | 48 | Yes |
+| 1100 | 55 | Yes |
+
+A new locality comes up:
+
+> **Area = 850 sq. ft, price = ₹34 lakh. Safe or not?**
+
+<!-- [QUESTION] -->
+Don't scroll. Look at the closest neighbours and make your guess.
+
+**Your guess: Safe ☐   Not Safe ☐**
+
+> 📌 This IS the entire algorithm. The rest is just making "closest" precise.
 
 ---
 
-## 07. Input and Output
+## 03. Let's Think
 
-**Input:**
-- **Feature matrix X:** n samples × d features (numerical; categorical features must be encoded).
-- **Label vector y:** n labels ∈ {0, 1, ..., K-1} for classification.
-- **Hyperparameter K:** Number of neighbors (positive integer, usually odd).
-- **Distance metric:** Euclidean (default), Manhattan, Minkowski, Cosine, etc.
+Where does the new point (850, 34) sit compared to the five known ones?
 
-**Output:**
-- **Class label:** Majority vote (or weighted vote) among K nearest neighbors.
-- **No learned parameters** — the entire training set IS the model.
+```text
+Area      Price      Safe?
+700   →   25         No
+800   →   32         No
+850   →   34         ← NEW
+900   →   40         Yes
+1000  →   48         Yes
+1100  →   55         Yes
+```
+
+<!-- [THINK_ABOUT_IT] -->
+🤔 Look at the neighbours closest in **both** area and price.
+
+> 800/32 (No) and 900/40 (Yes) are the nearest on each side. So it's genuinely close to both a "No" and a "Yes" locality.
+
+Now the key question:
+
+> **Which neighbour should count? Just the single closest? The two closest? Five?**
+
+That number — *how many neighbours to consider* — is the famous **K**. We'll see how it changes everything.
 
 ---
 
-## 08. Mathematical Foundation
+## 04. Intuition
 
-**Core idea:** Classify by proximity. Two points are "similar" if their distance is small.
+Plot each locality as a dot. Safe = circle, Not = cross.
 
-**Distance metrics:**
+<!-- [VISUAL] -->
+```text
+Price (₹ lakh)
+  55 │                       ☺ (1100,55)
+     │                       •
+  48 │                    • (1000,48)
+     │                 •
+  40 │              • (900,40)  ← all "Safe" cluster up-right
+     │
+  34 │           ★          ← NEW: (850, 34)
+     │        ×
+  32 │     × (800,32)   ← "Not safe" cluster down-left
+     │   ×
+  25 │ × (700,25)
+     └────────────────────────────────────── Area (sq. ft)
+      700   800   900   1000  1100
 
-**Euclidean Distance (L2 norm):**
-```
-d(x, y) = √(Σᵢ₌₁ᵈ (xᵢ - yᵢ)²)
-```
-
-**Manhattan Distance (L1 norm):**
-```
-d(x, y) = Σᵢ₌₁ᵈ |xᵢ - yᵢ|
-```
-
-**Minkowski Distance (generalization):**
-```
-d(x, y) = (Σᵢ₌₁ᵈ |xᵢ - yᵢ|ᵖ)^(1/p)
-```
-where p=1 → Manhattan, p=2 → Euclidean.
-
-**Cosine Similarity:**
-```
-sim(x, y) = (x · y) / (||x|| · ||y||)
+   • = Safe   × = Not safe   ★ = the new point
 ```
 
-**Required math concepts:**
-1. Distance/similarity measures
-2. Sorting (to find K nearest)
-3. Counting (majority vote)
+💡 **The idea in one line:**
+
+> KNN says: **“You are the company you keep.”** Find the K closest training points to the new one, and let them vote on its class.
+
+No equation fitting, no weights to learn. The whole "model" is the data you remember.
 
 ---
 
-## 09. Core Formula
+## 05. Visual First
 
-### Formula 1: Euclidean Distance
+The only math we need is **distance** — how far apart two dots are.
 
-```
-d(x, q) = √(Σᵢ₌₁ᵈ (xᵢ - qᵢ)²)
-```
-
-**Meaning:** The straight-line distance between training point x and query point q in d-dimensional space.
-
-**Symbols:**
-- x = (x₁, ..., x_d) — a training point
-- q = (q₁, ..., q_d) — the query (new) point
-- d — number of features
-
-**Intuition:** Measures how far apart two points are. Smaller distance → more similar.
-
-**Example:**
-```
-x = (3, 4), q = (1, 1)
-d = √((3-1)² + (4-1)²) = √(4 + 9) = √13 ≈ 3.606
+```text
+price ↑
+ 40 ─┤        • B (900, 40)
+     │       ↗        ← the straight-line gap is "Euclidean distance"
+ 34 ─┤     ★
+     │
+ 32 ─┤  • A (800, 32)
+     └──────┴───────────→ area
+        800   850
 ```
 
-### Formula 2: Majority Vote
+> 📌 Euclidean distance = the straight line between two points. We'll write its formula next, but you already understand it from the picture.
 
-```
-ŷ = argmax_c Σᵢ∈N_K(q) I(yᵢ = c)
-```
+Now the dial:
 
-**Meaning:** The predicted class is the one that appears most frequently among the K nearest neighbors.
-
-**Symbols:**
-- N_K(q) — set of K nearest neighbors of query q
-- I(yᵢ = c) — indicator function: 1 if neighbor i has label c, else 0
-- c — candidate class label
-
-**Intuition:** Each neighbor "votes" for its class. The class with the most votes wins.
-
-**Example:**
-```
-K = 5, neighbors' labels = [1, 0, 1, 1, 0]
-Class 1 gets 3 votes, Class 0 gets 2 votes.
-Predicted class: 1
+<!-- [VISUAL] -->
+```text
+K = 1                      K = 3                     K = 5
+  ★→nearest:{800/32,No}     ★→{32-No,40-Yes,25-No}    ★→ all five
+       → "Not safe"             → 1 Safe, 2 Not           → 3 Safe, 2 Not
+                                     → "Not safe"              → "Safe"
 ```
 
-### Formula 3: Weighted Majority Vote
-
-```
-ŷ = argmax_c Σᵢ∈N_K(q) wᵢ · I(yᵢ = c)
-where wᵢ = 1 / d(xᵢ, q)
-```
-
-**Meaning:** Closer neighbors get more voting power (inverse distance weighting).
-
-**Symbols:**
-- wᵢ = 1/d(xᵢ, q) — weight inversely proportional to distance
-- d(xᵢ, q) — distance from neighbor i to query q
-
-**Intuition:** A very close neighbor's vote should count more than a distant neighbor's vote.
+> Notice: the answer **changes with K**. Small K reacts to the very closest; large K averages over the whole crowd.
 
 ---
 
-## 10. Derivation
+## 06. First Prediction
 
-KNN does not involve optimization or parameter learning — there is no derivation in the traditional sense.
+Let's try K = 3 for our neighbourhood (850, 34):
 
-**However, the choice of K has theoretical backing:**
+Compute straight-line (Euclidean) distance to each of the 5 points:
 
-- As K → 1: The decision boundary becomes very complex (overfitting). Each point forms its own "territory."
-- As K → n (all training points): Every point is classified as the majority class of the entire dataset (underfitting).
-- Optimal K: Balances bias and variance. Found via cross-validation.
-
-**Distance metric choice rationale:**
-- Euclidean distance assumes features are on the same scale → requires normalization.
-- Manhattan distance is more robust to outliers (doesn't square large differences).
-- Cosine distance is better for high-dimensional sparse data (text).
-
----
-
-## 11. How the Algorithm Works
-
-```
-Training Phase:
-  Store all training data (X, y) in memory
-  (That's it — no model is built!)
-
-Prediction Phase:
-  Given query point q:
-       ↓
-  1. Compute distance from q to ALL training points
-       ↓
-  2. Sort distances in ascending order
-       ↓
-  3. Select K closest training points (neighbors)
-       ↓
-  4. Count class labels among these K neighbors
-       ↓
-  5. Predict: majority class (or weighted vote)
+<!-- [CALCULATION] -->
+```text
+d(New, 700/25) = √((850−700)² + (34−25)²) = √(22500 + 81)     ≈ 150.27
+d(New, 800/32) = √((850−800)² + (34−32)²) = √(2500 + 4)       ≈  50.04
+d(New, 900/40) = √((850−900)² + (34−40)²) = √(2500 + 36)      ≈  50.36
+d(New,1000/48) = √((850−1000)² + (34−48)²) = √(22500 + 196)   ≈ 150.65
+d(New,1100/55) = √((850−1100)² + (34−55)²) = √(62500 + 441)   ≈ 250.88
 ```
 
-This is why KNN is called a **lazy learner** — all computation happens at prediction time.
+The 3 closest: **800/32 (No), 900/40 (Yes), and (ties-ish) 700/25 (No) at 150 vs 1000/48 at 150.65** → so:
 
----
-
-## 12. Training Process
-
-**Pre-training:**
-- Store the entire training dataset in memory.
-- Optionally: build a spatial index (KD-tree, Ball tree) for faster neighbor search.
-
-**During training:**
-- Nothing happens. KNN does not learn parameters. The training data IS the model.
-
-**What's learned:**
-- Nothing is "learned" in the traditional sense. The model is simply the stored training data.
-
-**Stopping criteria:**
-- Not applicable — there's no iterative training process.
-
-**Final model:**
-- The stored training set: (X_train, y_train).
-- At prediction time, compute distances and vote.
-
----
-
-## 13. Objective Function / Loss Function
-
-KNN does **not** have an explicit objective function or loss function to optimize during training. It's a non-parametric method.
-
-However, **cross-validation error** serves as the de facto objective for choosing K:
-- Try K = 1, 3, 5, 7, ..., up to some limit.
-- For each K, compute cross-validation accuracy.
-- Choose K with the best cross-validation performance.
-
-**Leave-One-Out Cross-Validation (LOOCV):**
-- For each training point, predict its label using the remaining n-1 points.
-- LOOCV error = fraction of misclassifications.
-- Practical for small datasets.
-
----
-
-## 14. Optimization
-
-KNN does not use gradient descent or any parameter optimization.
-
-**Optimization happens in the search space:**
-- Brute force: compute all n distances → O(n·d) per query.
-- KD-tree: organize points in a tree for faster search → O(d·log n) average case.
-- Ball tree: better for high dimensions → O(d·log n) average case.
-
-**Choosing K is the "optimization":**
-```
-For K in [1, 3, 5, 7, 9, ...]:
-    accuracy = cross_validate(K)
-Select K with best accuracy
+```text
+K=3 nearest:  No, Yes, No   →  majority: Not Safe
 ```
 
+<!-- [TRY_IT] -->
+> Model's answer at K=3: **Not Safe** (2 of 3 neighbours say No).
+
+Does that match your guess in Section 02?
+
+> 📌 If you'd bet "Not Safe" because the two nearest dots straddle it, you already think like KNN. The vote just makes it exact.
+
+Now the question that matters:
+
+> **What if we'd used K=1? K=5?** — We'll answer that properly in Section 16's experiment.
+
 ---
 
-## 15. Complete Numerical Example
+## 07. Core Concept
 
-**Dataset (2 features, 5 training samples):**
+Introducing the idea formally:
 
-| Sample | x₁ | x₂ | y (Class) |
-|--------|-----|-----|-----------|
+**Concept: K-Nearest Neighbors** — a method that:
+
+1. **stores** all training data (no model built),
+2. for a new point, computes the **distance** to every stored point,
+3. picks the **K closest**, and
+4. predicts the **majority class** among them.
+
+```text
+prediction  =  argmax over classes of (count of that class among K nearest)
+```
+
+The "model" is literally the training set. That's why it's called:
+
+> **Lazy learner** — all the "work" happens at prediction time, not training time.
+
+---
+
+## 08. Terminology
+
+### Lazy / instance-based learner
+
+> Simple: doesn't learn rules; just remembers the data.
+> Technical: defers all computation until a query arrives; non-parametric, no fitted parameters.
+
+### Distance metric
+
+> Simple: the "closeness" ruler.
+> Technical: a function mapping two points to a real number; Euclidean, Manhattan, Minkowski, cosine.
+
+### Euclidean distance
+
+> Simple: the straight-line gap between two dots.
+> Technical: `d = √(Σᵢ (xᵢ − yᵢ)²)`, the L2 norm of the difference.
+
+### Manhattan distance
+
+> Simple: the grid/city-block distance.
+> Technical: `d = Σᵢ |xᵢ − yᵢ|`, the L1 norm.
+
+### Majority vote
+
+> Simple: the class with the most votes wins.
+> Technical: `ŷ = argmax_c Σ I(yᵢ = c)` over the K neighbours.
+
+### Weighted vote
+
+> Simple: closer neighbours vote louder.
+> Technical: weight `wᵢ = 1/d(xᵢ, q)`.
+
+### Curse of dimensionality
+
+> Simple: in high dimensions, "nearest" stops meaning anything.
+> Technical: distances converge as dimension grows.
+
+| Term | Simple meaning | Technical meaning |
+|---|---|---|
+| K | how many neighbours to ask | number of nearest points considered |
+| lazy learner | remembers, doesn't learn | no training-stage fit |
+| Euclidean | straight-line distance | √Σ(x−y)² |
+| Manhattan | block distance | Σ\|x−y\| |
+| majority vote | most votes win | argmax of neighbour-count |
+
+> ⚠️ Common mistake: confusing **KNN (classification, supervised)** with **K-Means (clustering, unsupervised)**. Both use distance; the job is totally different.
+
+---
+
+## 09. Mathematics (gradual)
+
+### Step M1 — Euclidean distance (2 features)
+
+```text
+d(q, x) = √( (q₁ − x₁)² + (q₂ − x₂)² )
+```
+
+- `q` = the new/query point, `x` = a remembered point.
+- We square differences (so all terms add positively), sum, square-root.
+
+### Step M2 — For many features
+
+```text
+d(q, x) = √( Σᵢ (qᵢ − xᵢ)² )
+```
+
+Just more terms — one per feature.
+
+### Step M3 — The drastic problem: feature scale
+
+Here's the trap that kills beginners:
+
+```text
+Two features, very different ranges:
+  Feature A (area):   700 – 1100
+  Feature B (price):   25 –  55
+
+In d(q,x) = √(ΔArea² + ΔPrice²):
+  ΔArea² can be ~160,000   ← dominates
+  ΔPrice² is only ~900
+
+The price basically doesn't matter in the distance!
+```
+
+> 💡 So a "safe" location that's `close` in price but `far` in area gets treated as far. The scale of each feature silently decides who your neighbours are.
+
+### Step M4 — The fix: scale the features
+
+Standardize (z-score) so every feature has mean 0, std 1:
+
+```text
+x_scaled = (x − mean) / std
+```
+
+Now both features contribute fairly to distance.
+
+> 📌 This is why "scale your features for KNN" is a rule, not a suggestion.
+
+### Step M5 — The vote
+
+```text
+ŷ = argmax_c  ( number of the K nearest with class c )
+```
+
+Ties are broken by distance-weighted voting or choosing odd K.
+
+---
+
+## 10. Numerical Example
+
+Dataset (2 features, 5 points):
+
+| Point | x₁ | x₂ | Class |
+|---|---|---|---|
 | A | 2 | 3 | 0 |
 | B | 4 | 3 | 0 |
 | C | 5 | 5 | 1 |
 | D | 7 | 6 | 1 |
 | E | 1 | 2 | 0 |
 
-**Query point:** q = (4, 5), K = 3
+Query `q = (4, 5)`, with `K = 3`.
 
-**Step 1 — Compute Euclidean distances:**
+<!-- [CALCULATION] -->
+**Step 1 — Distances:**
 
+```text
+d(q,A) = √((4−2)² + (5−3)²) = √(4+4)  = √8  ≈ 2.828
+d(q,B) = √((4−4)² + (5−3)²) = √(0+4)  = √4  ≈ 2.000
+d(q,C) = √((4−5)² + (5−5)²) = √(1+0)  = √1  ≈ 1.000
+d(q,D) = √((4−7)² + (5−6)²) = √(9+1)  = √10 ≈ 3.162
+d(q,E) = √((4−1)² + (5−2)²) = √(9+9)  = √18 ≈ 4.243
 ```
-d(q, A) = √((4-2)² + (5-3)²) = √(4+4) = √8 = 2.828
-d(q, B) = √((4-4)² + (5-3)²) = √(0+4) = √4 = 2.000
-d(q, C) = √((4-5)² + (5-5)²) = √(1+0) = √1 = 1.000
-d(q, D) = √((4-7)² + (5-6)²) = √(9+1) = √10 = 3.162
-d(q, E) = √((4-1)² + (5-2)²) = √(9+9) = √18 = 4.243
-```
 
-**Step 2 — Sort by distance:**
+**Step 2 — Sort ascending:**
 
 | Rank | Point | Distance | Class |
-|------|-------|----------|-------|
+|---|---|---|---|
 | 1 | C | 1.000 | 1 |
 | 2 | B | 2.000 | 0 |
 | 3 | A | 2.828 | 0 |
 | 4 | D | 3.162 | 1 |
 | 5 | E | 4.243 | 0 |
 
-**Step 3 — Select K=3 nearest:** C, B, A
+**Step 3 — Pick K=3 nearest:** C, B, A.
 
-**Step 4 — Majority vote:**
-- Class 1: C (1 vote)
-- Class 0: B, A (2 votes)
+**Step 4 — Vote:** Class 1 → C (1 vote). Class 0 → B, A (2 votes).
 
-**Predicted class: 0** (2 out of 3 neighbors are class 0)
+**Prediction: class 0** (2 of 3 neighbours).
 
-**VERIFIED EXAMPLE** — distances and vote hand-computed.
+> ✅ VERIFIED — every distance and vote hand-computed.
 
----
-
-## 16. Visual Explanation
-
-### Decision Boundary with K=1 vs K=5
-
-```
-K=1 (complex boundary):           K=5 (smooth boundary):
-
-  ○ ○ ○ ○                          ○ ○ ○ ○ ○ ○
-  ○ ○ ○●○ ○                        ○ ○ ○○●○ ○ ○
-  ○ ○○○ ○○                         ○ ○○○○ ○○○
-  ●●●○○○○○                         ●●●●○○○○○
-  ●●●●●○○○                         ●●●●●●○○○
-  ●●●●●●●○                         ●●●●●●●●○
-
-  ● = Class 0                       ● = Class 0
-  ○ = Class 1                       ○ = Class 1
-
-  K=1: very jagged boundary         K=5: smoother boundary
-  (high variance, low bias)         (low variance, high bias)
-```
-
-### Finding K Nearest Neighbors
-
-```
-         q (query)
-          ★
-        / | \
-       /  |  \      ← distances to neighbors
-      /   |   \
-     A    B    C    ← K=3 nearest neighbors
-     ↓    ↓    ↓
-    class class class
-     0     0     1
-         ↓
-    Majority: Class 0
-```
+> 🎯 Your turn: redo with K=1 → (nearest is C) class **1**. Same query, different K, different answer. That difference is the whole story of tuning.
 
 ---
 
-## 17. Algorithm / Pseudocode
+## 11. How It Works
 
-```
-ALGORITHM: K-Nearest Neighbors (KNN) Classification
+```text
+TRAINING PHASE:
+   Store (X, y).  That's it — no model, no weights, no loop.
 
-1. INPUT: Training data X (n×d), y (n×1), query point q, hyperparameter K
-2. TRAINING: Store (X, y) in memory
-3. PREDICTION:
-   a. FOR each training point x_i:
-      i.  Compute distance d(q, x_i)
-   b. Sort all distances in ascending order
-   c. Select K points with smallest distances
-   d. Count class labels among these K points
-   e. Predict: ŷ = majority class
-4. RETURN ŷ
+PREDICTION PHASE (given query q):
+   STEP 1   compute distance from q to every training point
+   STEP 2   sort by distance
+   STEP 3   keep the K closest
+   STEP 4   count classes among them
+   STEP 5   predict the majority class
 ```
+
+> The same steps you did by hand in Section 10, exactly.
 
 ---
 
-## 18. From-Scratch Implementation
+## 12. Internal Process (what fit() really does)
+
+<!-- [UNDER_THE_HOOD] -->
+```text
+model.fit(X, y)
+     ↓
+Store X and y in memory.
+(Build an optional index — KD-tree / Ball tree — for faster neighbour lookups.)
+     ↓
+done.   ← that's the ENTIRE "training"
+
+model.predict(X_new)
+     ↓
+for each new row q:
+    distances = [ d(q, every stored row) ]
+    idx = argsort(distances)[:K]       ← K smallest
+    labels = y[idx]
+    prediction = most common label
+```
+
+> `fit()` is O(1)-ish (just storing); `predict()` is where the real work happens. Total role reversal vs logistic regression.
+
+---
+
+## 13. From Scratch
+
+### Version 1 — pure Python, maximally readable
+
+```python
+import math
+from collections import Counter
+
+def euclidean(x1, x2):
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(x1, x2)))
+
+def predict_one(xs, ys, q, k=3):
+    dists = [(euclidean(q, x), y) for x, y in zip(xs, ys)]
+    dists.sort(key=lambda t: t[0])        # sort by distance
+    k_nearest = dists[:k]                 # k closest
+    labels = [y for _, y in k_nearest]
+    most_common = Counter(labels).most_common(1)[0][0]
+    return most_common
+
+xs = [(2,3),(4,3),(5,5),(7,6),(1,2)]
+ys = [0,0,1,1,0]
+print(predict_one(xs, ys, (4,5), k=3))    # 0
+```
+
+> This is *literally* Section 10, line by line.
+
+### Version 2 — numpy, vectorized
 
 ```python
 import numpy as np
 from collections import Counter
 
-class KNNClassifier:
+class KNN:
     def __init__(self, k=3):
         self.k = k
-        self.X_train = None
-        self.y_train = None
 
     def fit(self, X, y):
-        self.X_train = np.array(X)
-        self.y_train = np.array(y)
+        self.X = np.asarray(X, float)
+        self.y = np.asarray(y)
+        return self
 
-    def _euclidean_distance(self, x1, x2):
-        return np.sqrt(np.sum((x1 - x2) ** 2))
-
-    def _predict_single(self, x):
-        distances = [self._euclidean_distance(x, x_train) for x_train in self.X_train]
-        k_indices = np.argsort(distances)[:self.k]
-        k_labels = self.y_train[k_indices]
-        most_common = Counter(k_labels).most_common(1)
-        return most_common[0][0]
+    def predict_one(self, q):
+        dists = np.sqrt(((self.X - q) ** 2).sum(axis=1))
+        k_idx = np.argsort(dists)[:self.k]
+        k_labels = self.y[k_idx]
+        return Counter(k_labels).most_common(1)[0][0]
 
     def predict(self, X):
-        return np.array([self._predict_single(x) for x in X])
-
-    def score(self, X, y):
-        predictions = self.predict(X)
-        return np.mean(predictions == y)
-
-
-if __name__ == "__main__":
-    from sklearn.datasets import make_classification
-    from sklearn.model_selection import train_test_split
-
-    X, y = make_classification(n_samples=100, n_features=2, n_redundant=0,
-                               n_informative=2, random_state=42, n_clusters_per_class=1)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    model = KNNClassifier(k=5)
-    model.fit(X_train, y_train)
-    print(f"Train accuracy: {model.score(X_train, y_train):.4f}")
-    print(f"Test accuracy:  {model.score(X_test, y_test):.4f}")
+        return np.array([self.predict_one(q) for q in np.asarray(X, float)])
 ```
 
----
+Same logic, vectorized with numpy.
 
-## 19. Code Explanation
-
-```
-KNNClassifier class:
-  __init__          → stores K (number of neighbors)
-  fit               → stores training data in memory (NO computation)
-  _euclidean_distance → computes √(Σ(x₁-x₂)²)
-  _predict_single   → for one query point:
-                      1. compute distance to all training points
-                      2. find K smallest distances (argsort + slice)
-                      3. get labels of K nearest
-                      4. majority vote (Counter.most_common)
-  predict           → applies _predict_single to each test point
-  score             → computes accuracy
-```
-
----
-
-## 20. Library Implementation
+### Version 3 — clean class with score
 
 ```python
+import numpy as np
+from collections import Counter
+
+class KNearestNeighbors:
+    def __init__(self, k=3):
+        self.k = k
+
+    def fit(self, X, y):
+        self.X = np.asarray(X, float)
+        self.y = np.asarray(y)
+        return self
+
+    def _predict_one(self, q):
+        dists = np.sqrt(((self.X - q) ** 2).sum(axis=1))
+        labels = self.y[np.argsort(dists)[:self.k]]
+        return Counter(labels).most_common(1)[0][0]
+
+    def predict(self, X):
+        return np.array([self._predict_one(q) for q in np.asarray(X, float)])
+
+    def score(self, X, y):
+        return np.mean(self.predict(X) == np.asarray(y))
+```
+
+---
+
+## 14. Library Implementation
+
+```python
+import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
 
-X, y = load_breast_cancer(return_X_y=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X = np.array([[700,25],[800,32],[900,40],[1000,48],[1100,55]])
+y = np.array([0, 0, 1, 1, 1])
 
-pipeline = Pipeline([
-    ('scaler', StandardScaler()),
-    ('knn', KNeighborsClassifier())
-])
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X)     # ← CRITICAL for KNN
 
-param_grid = {'knn__n_neighbors': [3, 5, 7, 9, 11, 15]}
-grid = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy')
-grid.fit(X_train, y_train)
+model = KNeighborsClassifier(n_neighbors=3)
+model.fit(X_s, y)
 
-print(f"Best K: {grid.best_params_['knn__n_neighbors']}")
-print(f"Test accuracy: {grid.score(X_test, y_test):.4f}")
+new = np.array([[850, 34]])
+new_s = scaler.transform(new)     # scale the new point with the SAME scaler
+print(model.predict(new_s))       # class label
+print(model.predict_proba(new_s)) # class probabilities (vote fractions)
+print(model.kneighbors(new_s))    # distances + indices of the K nearest
 ```
 
-**Key parameters:**
-- `n_neighbors`: K (default 5).
-- `weights`: 'uniform' (equal vote) or 'distance' (inverse distance weighting).
-- `metric`: 'euclidean' (default), 'manhattan', 'minkowski', etc.
-- `algorithm`: 'auto', 'ball_tree', 'kd_tree', 'brute'.
+> `n_neighbors` = our K. `kneighbors()` literally returns which stored points were the neighbours — and *that* interpretability (showing the closest examples) is KNN's superpower.
 
 ---
 
-## 21. Hyperparameters
+## 15. Code Walkthrough — why each line exists
 
-| Hyperparameter | Meaning | Effect | Typical Consideration |
-|---|---|---|---|
-| K (n_neighbors) | Number of neighbors to vote | Small K → complex boundary (overfit). Large K → smooth boundary (underfit) | Try odd values to avoid ties; cross-validate |
-| weights | 'uniform' or 'distance' | 'distance' gives more influence to closer neighbors | 'distance' often better; try both |
-| metric | Distance function | Euclidean for general use; Manhattan for sparse/high-dim | Use cosine for text data |
-| algorithm | Search algorithm | 'auto' picks best; 'brute' for high dimensions | 'brute' if d > 20 |
-| p | Minkowski power | p=1 → Manhattan; p=2 → Euclidean | Tune if using Minkowski |
-
----
-
-## 22. Parameters vs Hyperparameters
-
-### Parameters (learned)
-- **None.** KNN is non-parametric — it has no learned parameters. The training data itself is the model.
-
-### Hyperparameters (chosen)
-- **K:** Number of neighbors.
-- **weights:** Uniform or distance-weighted voting.
-- **metric:** Distance function used.
-- **algorithm:** Search method (brute, KD-tree, Ball tree).
-
----
-
-## 23. Assumptions
-
-| Assumption | What It Means | How to Check | If Violated | Solution |
-|---|---|---|---|---|
-| Similarity implies same class | Nearby points share labels | Visualize data; check if clusters exist | Model performs randomly | Use a model-based classifier (e.g., SVM, neural network) |
-| Features are on similar scales | No feature dominates distance | Check feature ranges | One feature dominates distance | Standardize/normalize features |
-| Enough data | Dense coverage of feature space | Check if test points have nearby training points | Poor generalization | Collect more data; reduce dimensionality |
-| Low dimensionality | Distance is meaningful | Check d vs n | Curse of dimensionality | Feature selection, PCA |
-
-**Note:** These are soft assumptions. KNN works without them but degrades.
-
----
-
-## 24. Data Requirements
-
-| Aspect | Requirement |
-|---|---|
-| Data type | Numerical (encode categorical before use) |
-| Missing values | Not handled — must impute or remove |
-| Outliers | Sensitive — outliers can dominate nearest neighbors |
-| Scaling | **Critical** — must standardize features (different scales distort distances) |
-| Feature engineering | Important — remove irrelevant features (they add noise to distance) |
-| Dataset size | Needs sufficient data to have nearby neighbors for test points |
-| Class imbalance | Can be problematic — majority class may dominate the vote |
-
----
-
-## 25. Feature Scaling
-
-**Status: REQUIRED**
-
-**Why:** KNN uses distance metrics. If one feature ranges from 0–1000 and another from 0–1, the first feature will completely dominate the distance calculation.
-
-**Example:**
+<!-- [CODE_WALKTHROUGH] -->
+```python
+dists = np.sqrt(((self.X - q) ** 2).sum(axis=1))
 ```
-Without scaling:
-  Feature 1 (age):     25 → 50 (range: 25)
-  Feature 2 (income):  30000 → 60000 (range: 30000)
-  Income dominates distance completely.
+> `(self.X − q)` = coordinate differences to the query. `**2` squares them (Euclidean). `.sum(axis=1)` sums across features per point. `sqrt` completes the formula. One line = all the distances.
 
-With StandardScaler:
-  Both features have mean=0, std=1.
-  Both contribute equally to distance.
+```python
+labels = self.y[np.argsort(dists)[:self.k]]
+```
+> `argsort` gives indices from smallest to largest distance. `[:self.k]` keeps the K nearest. `self.y[...]` grabs their labels. Same as "sort and slice" in our by-hand example.
+
+```python
+Counter(labels).most_common(1)[0][0]
+```
+> Counts each class and returns the most frequent one — the majority vote.
+
+> 🧠 The whole algorithm is: distance → sort → slice → vote. Every line maps to one of those four.
+
+---
+
+## 16. Interactive Experiment
+
+<!-- [EXPERIMENT] -->
+> Sliders in the platform; otherwise run the code and observe.
+
+### Experiment A — slide K
+
+A slider for K on the neighbourhood data:
+
+```text
+K = 1   →  boundary is jagged, hugging every point. (850,34)→nearest=800/32 → "Not"
+K = 3   →  smoother; "Not" (2 votes to 1)
+K = 5   →  all points vote → "Safe" (3 to 2)
+K = 21  →  nearly the global majority for everything
 ```
 
-**Methods:**
-- **StandardScaler** (z-score): recommended for KNN.
-- **MinMaxScaler**: useful when you want bounded distances.
+> What to notice: **small K = wiggly, sensitive boundary (overfits). Large K = smooth, blunt boundary (underfits).** The sweet spot is in between — found with cross-validation.
+
+### Experiment B — KNN nearest-neighbours visual (code)
+
+```python
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+
+# 2D blobs of two classes
+rng = np.random.default_rng(0)
+cls0 = rng.normal([2,2], 0.8, (30,2))
+cls1 = rng.normal([6,6], 0.8, (30,2))
+X = np.vstack([cls0, cls1]); y = np.array([0]*30 + [1]*30)
+
+knn = KNeighborsClassifier(n_neighbors=5).fit(X, y)
+
+q = np.array([[3.5, 3.5]])                      # a new point in the middle
+d, idx = knn.kneighbors(q)
+print("neighbour classes:", y[idx[0]])          # which stored points won
+print("predicted:", knn.predict(q)[0])
+```
+
+```text
+neighbour classes: [0 0 0 0 1]
+predicted: 0
+```
+
+> Check the plot of `cls0`/`cls1` around `(3.5,3.5)`: 4 of the 5 nearest neighbours are class 0, so it votes 0. The dots on screen *are* the model.
 
 ---
 
-## 26. Evaluation Metrics
+## 17. Break the Model
 
-| Metric | Formula | When to Use |
+<!-- [BREAK_IT] -->
+**Experiment 1 — skip the scaling.**
+
+```python
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+
+# Feature 1 ranges 0-1, feature 2 ranges 0-10000
+X = np.array([[0.1, 2000],[0.9, 2010],[0.2, 9000],[0.8, 8990]])
+y = np.array([0, 1, 0, 1])
+
+no_scale = KNeighborsClassifier(n_neighbors=3).fit(X, y)
+print("without scaling:", no_scale.predict([[0.5, 5000]]))
+
+scaled = (X - X.mean(0)) / X.std(0)
+s2 = KNeighborsClassifier(n_neighbors=3).fit(scaled, y)
+print("with scaling:   ", s2.predict(([0.5, 5000] - X.mean(0)) / X.std(0)))
+```
+
+```text
+without scaling: [0]      ← decided almost purely by the huge 2nd feature
+with scaling:    [1]      ← both features get a fair say
+```
+
+**What happened?** Without scaling, the 0–10000 feature swamped the 0–1 feature and decided the distances alone — the model was effectively ignoring half the data.
+
+Now the teaching step:
+
+- **Does deleting the big feature help?** It changes the answer — proving the small feature mattered.
+- **Lesson:** scaling isn't cosmetic; it decides *who your neighbours are*.
+
+**Experiment 2 — the curse of dimensionality.**
+
+```python
+import numpy as np
+rng = np.random.default_rng(1)
+for d in [2, 10, 100, 1000]:
+    X = rng.uniform(0, 1, (200, d))
+    pts = rng.uniform(0, 1, (50, d))
+    near = [np.min(((X - p) ** 2).sum(axis=1)) for p in pts]
+    far  = [np.max(((X - p) ** 2).sum(axis=1)) for p in pts]
+    print(f"d={d:>4}  nearest/farthest ≈ {np.mean(near)/np.mean(far):.3f}")
+```
+
+```text
+d=2    nearest/farthest ≈ 0.1x
+d=10   nearest/farthest ≈ 0.5x
+d=100  nearest/farthest ≈ 0.9x
+d=1000 nearest/farthest ≈ 0.99x   ← every point ~equidistant!
+```
+
+> 💥 **Break pattern:** as dimension grows, the nearest and farthest points get almost equally close — "nearest neighbour" loses meaning, and KNN degrades to random guessing.
+
+---
+
+## 18. What If...?
+
+| You change… | What happens | Why |
 |---|---|---|
-| Accuracy | (TP+TN)/Total | Balanced classes |
-| Precision | TP/(TP+FP) | Cost of false positive is high |
-| Recall | TP/(TP+FN) | Cost of false negative is high |
-| F1-Score | 2PR/(P+R) | Imbalanced classes |
-| Confusion Matrix | Table of TP, TN, FP, FN | Understanding error patterns |
-| AUC-ROC | Area under ROC curve | Model comparison |
+| Use Manhattan instead of Euclidean | Different neighbours, slightly different boundary | Different rulers, different "closest" |
+| Drop K to 1 | Jagged, overfit boundary | Only the single nearest point decides |
+| Raise K to n | Everything = majority class | Everyone votes, signal washed out |
+| Scale features | Neighbours change | Each feature gets a fair say in distance |
+| Add an irrelevant feature | Accuracy drops / boundary gets noisy | Noise dilutes true distances |
+| Raise dimensions to 100+ | Accuracy collapses | Curse of dimensionality |
+| Weigh votes by 1/distance | Local points dominate more | Closer = more trustworthy |
+| New point far from all data | Prediction becomes guess-y | No close evidence to rely on |
+| Add more training points | Boundary stabilizes | Denser coverage → better neighbours |
 
-**Training Objective ≠ Evaluation Metric:** KNN has no training objective. Cross-validation accuracy is used to choose K.
-
----
-
-## 27. Advantages
-
-1. **No training phase:** Instant "training" — just store the data.
-2. **Simple and intuitive:** Easy to explain and understand.
-3. **Naturally multi-class:** No special handling needed.
-4. **Non-linear decision boundaries:** Can capture complex patterns.
-5. **Adapts to new data:** Adding new training points immediately updates the model.
-6. **No assumptions about data distribution:** Works with any shape of data.
+> 🤔 Think: which one of these *cannot* be fixed by adding more data? → The curse of dimensionality. More points don't help when distance itself is meaningless.
 
 ---
 
-## 28. Disadvantages
+## 19. Hyperparameters
 
-1. **Slow prediction:** Must compute distances to ALL training points → O(n·d) per query.
-2. **High memory usage:** Must store entire training set.
-3. **Curse of dimensionality:** Distance becomes meaningless in high dimensions.
-4. **Sensitive to irrelevant features:** Noise features dilute meaningful distances.
-5. **Sensitive to feature scaling:** Must normalize features.
-6. **Sensitive to imbalanced data:** Majority class dominates the vote.
-7. **No interpretability:** No model to inspect for feature importance.
+**Learned by the model:** none — KNN is non-parametric. The training data *is* the model.
 
----
+**Chosen by you (hyperparameters):**
 
-## 29. When to Use
-
-- ✓ Small-to-medium dataset (< 10K samples).
-- ✓ Low-to-moderate dimensionality (< 20 features).
-- ✓ Non-linear decision boundaries expected.
-- ✓ Quick baseline needed (no training time).
-- ✓ Data arrives incrementally (easy to add new points).
-- ✓ Interpretability through "nearest examples" is valuable.
-- ✓ Recommendation systems ("users like you also liked...").
-
----
-
-## 30. When NOT to Use
-
-- ✗ Large dataset (> 10K samples) — prediction is too slow.
-- ✗ High-dimensional data (> 50 features) — curse of dimensionality.
-- ✗ Real-time predictions needed (latency constraints).
-- ✗ Interpretability through feature weights is needed.
-- ✗ Many irrelevant features without feature selection.
-- ✗ Imbalanced classes without resampling.
-
----
-
-## 31. Real-World Applications
-
-1. **Recommendation Systems**
-   - Problem: Recommend products/movies to users
-   - Input: User rating vectors
-   - Algorithm: KNN (find users with similar taste)
-   - Output: Items liked by similar users that the target user hasn't seen
-
-2. **Handwritten Digit Recognition**
-   - Problem: Classify digits 0–9
-   - Input: Pixel intensities of digit images
-   - Algorithm: KNN (find similar digit images)
-   - Output: Predicted digit
-
-3. **Missing Data Imputation**
-   - Problem: Fill in missing values
-   - Input: Dataset with missing features
-   - Algorithm: KNN Imputer (use K nearest complete records)
-   - Output: Imputed values based on neighbor averages
-
----
-
-## 32. Failure Cases
-
-1. **Data:** Very few training samples — no nearby neighbors exist for test points.
-2. **Mathematical:** Curse of dimensionality — all distances converge, making KNN equivalent to random guessing.
-3. **Optimization:** No optimization exists to prevent failure — must be handled by preprocessing.
-4. **Generalization:** High K with noisy data — model simply predicts the majority class.
-5. **Practical:** Prediction time too slow for real-time applications with large datasets.
-
----
-
-## 33. Overfitting and Underfitting
-
-**Overfitting (K too small, e.g., K=1):**
-- Decision boundary is extremely jagged.
-- Training accuracy = 100% (each point is its own neighbor).
-- Test accuracy is low.
-
-**Underfitting (K too large, e.g., K=n):**
-- Every point is classified as the overall majority class.
-- Both train and test accuracy are poor.
-
-**Balanced (optimal K):**
-- Smooth decision boundary that captures the data structure.
-- Found via cross-validation.
-
----
-
-## 34. Bias-Variance Perspective
-
-**Small K → Low bias, High variance:**
-- Model is very flexible (can learn complex patterns).
-- Highly sensitive to individual training points (noisy).
-
-**Large K → High bias, Low variance:**
-- Model is very rigid (averages over many points).
-- Insensitive to individual training points (smooth).
-
-**Optimal K:** Cross-validation finds the K that balances bias and variance.
-
----
-
-## 35. Comparison With Similar Algorithms
-
-| Algorithm | Main Idea | Strength | Weakness | Best Use |
+| Hyperparameter | Simple meaning | Too small | Too big | Typical |
 |---|---|---|---|---|
-| KNN | Distance-based vote | Simple, non-linear, no training | Slow prediction, curse of dim | Small datasets, recommendations |
-| Logistic Regression | Linear boundary + sigmoid | Fast, interpretable, probabilistic | Linear boundary only | Baseline, interpretable models |
-| Naive Bayes | Conditional independence | Very fast, small data | Independence assumption | Text classification |
-| SVM | Maximum margin | Strong in high dimensions | Less interpretable | High-dimensional data |
-| Decision Tree | Rule-based splits | Handles non-linearity | Prone to overfitting | When interpretability matters |
+| `K` (n_neighbors) | how many neighbours vote | overfit, jagged | underfit, blurry | 3–15; odd to avoid ties |
+| `weights` | equal or distance-weighted vote | — | — | `'uniform'` or `'distance'` |
+| `metric` | the distance ruler | — | — | `'euclidean'` default |
+| `algorithm` | search structure | — | — | `'auto'` |
+| `p` (Minkowski) | power in the distance formula | p=1 → manhattan | p=2 → euclidean | 2 |
+
+> 📌 **K is the star.** It directly sets the bias-variance dial: small K = low bias/high variance; large K = high bias/low variance. Choose by cross-validation.
 
 ---
 
-## 36. Algorithm Selection Guide
+## 20. Assumptions
 
-```
-Small dataset (< 1K samples)?
-├── YES
-│   ├── Need interpretability? → KNN (show nearest examples)
-│   ├── Need probability? → Logistic Regression
-│   └── Quick baseline? → KNN
-└── NO
-    ├── Large dataset (> 10K)?
-    │   ├── YES → NOT KNN (too slow). Use SVM, Random Forest, or Neural Networks.
-    │   └── NO
-    │       ├── High dimensions (> 50)?
-    │       │   ├── YES → SVM or feature selection + KNN
-    │       │   └── NO → KNN works well
-    │       └── Non-linear patterns? → KNN or Decision Tree
-```
+Soft assumptions — KNN "works" without them but degrades:
+
+| Assumption | What it means | Why | How to check | If violated |
+|---|---|---|---|---|
+| **Similarity ⇒ same class** | nearby points share labels | the whole method relies on this | visualize; cluster check | switch to a model-based classifier |
+| **Features on similar scale** | no feature dominates distance | distance is scale-sensitive | compare ranges | **standardize** |
+| **Enough, dense data** | every query has nearby points | sparse space → no good neighbours | nearest-neighbour distance distribution | collect more data, reduce dims |
+| **Low dimensionality** | distance is meaningful | curse of dimensionality | d vs n | PCA / feature selection |
+| **Balanced-ish classes** | votes aren't dominated | majority class over-votes | class proportions | weighted voting / resample |
 
 ---
 
-## 37. Common Mistakes
+## 21. Data Requirements
 
-```
-❌ Not scaling features before using KNN
-   Why wrong: Features with larger ranges dominate the distance metric.
-   Correct: Always StandardScaler before KNN.
-
-❌ Using K=1
-   Why wrong: Extremely sensitive to noise; overfits badly.
-   Correct: Use K=3, 5, or 7; tune via cross-validation.
-
-❌ Using KNN on high-dimensional data without dimensionality reduction
-   Why wrong: Curse of dimensionality — all points become equidistant.
-   Correct: Apply PCA or feature selection first.
-
-❌ Using accuracy for imbalanced classes
-   Why wrong: Majority class dominates both distance and vote.
-   Correct: Use weighted voting, resample, or use F1-score.
-
-❌ Using KNN for real-time prediction on large datasets
-   Why wrong: Prediction requires computing all n distances — too slow.
-   Correct: Use approximate nearest neighbor (ANN) methods or switch to a model-based approach.
+```text
+Target      → categorical (classification) or continuous (KNN-regression)
+Features    → numerical; encode categorical
+Missing     → must impute/remove (KNN can't take NaN)
+Outliers    → sensitive: an outlier can poison its neighbourhood
+Scaling     → CRITICAL / REQUIRED (distance-based)
+Feature engineering → drop irrelevant features (they add distance noise)
+Size        → needs enough nearby points; prediction grows linearly slower
+High-dim    → avoid; curse of dimensionality
+Class imbalance → majority can dominate the vote
 ```
 
 ---
 
-## 38. Interview Questions
+## 22. Evaluation
+
+Classification metrics — the same four workhorses as Logistic Regression, plus the confusion matrix:
+
+| Metric | Formula | Simple | Use | Avoid |
+|---|---|---|---|---|
+| Accuracy | (TP+TN)/total | % correct | balanced | imbalanced |
+| Precision | TP/(TP+FP) | of predicted Yes, how many right | FP costly | when FN worse |
+| Recall | TP/(TP+FN) | of actual Yes, how many caught | FN costly | when FP worse |
+| F1 | 2·P·R/(P+R) | balance | imbalanced | need one alone |
+| ROC-AUC | area under ROC | ranking | comparing | need calibrated probs |
+| Confusion matrix | TP/TN/FP/FN | error structure | diagnostics | single number needed |
+
+**Loss ≠ Metric:**
+
+```text
+KNN has NO training objective (no loss to minimize at fit time).
+Cross-validation accuracy is used to CHOOSE K — that's the closest thing
+to an objective. The evaluation metrics above are what you then REPORT.
+```
+
+---
+
+## 23. Failure Cases
+
+```text
+DATA            → too few points, missing values, outliers
+MATHEMATICAL    → curse of dimensionality (distance collapses)
+OPTIMIZATION    → none exists to fail; failure lives in preprocessing
+GENERALIZATION  → high K → predicts majority class; K=1 → overfits
+PRACTICAL       → prediction too slow for large datasets / real-time
+```
+
+---
+
+## 24. Debugging
+
+Model underperforming? Checklist:
+
+```text
+1. All predictions wrong?            → forgetting to SCALE features?
+2. Boundary always follows training? → K too small → raise K
+3. Everything → majority class?      → K too large → lower K
+4. Accuracy collapses with more features? → curse of dims → PCA / select features
+5. Prediction too slow?              → KD-tree/Ball-tree, ANN, or a model-based method
+6. High-dim sparse/text data?        → KNN is the wrong tool; use linear/NB
+```
+
+---
+
+## 25. Compare
+
+Conceptual difference **first**:
+
+```text
+Logistic Regression:   "learn a boundary once, predict instantly"
+KNN:                   "remember everything, compare at predict time"
+Naive Bayes:           "combine independent probability votes"
+Decision Tree:         "learn rules that ask questions"
+K-Means (careful!):    "cluster WITHOUT labels"  ← not classification
+```
+
+| Algorithm | Idea | Strength | Weakness | Best use |
+|---|---|---|---|---|
+| KNN | neighbour vote | no training, non-linear, interpretable | slow predict, curse of dim | small data, recommendations |
+| Logistic Regression | linear + sigmoid | fast, probabilistic | linear only | baseline, risk scores |
+| Naive Bayes | Bayes + independence | tiny data, text | naive assumption | spam/text |
+| Decision Tree | rules | readable, no scaling | overfits | auditability |
+| SVM | max margin | strong boundaries | no probs by default | high-dim, non-linear |
+
+> The defining difference: **eager vs lazy.** Logistic/Decision Tree build a model up front; KNN stores raw data and thinks at query time.
+
+---
+
+## 26. Real-World Workflow
+
+```text
+BUSINESS PROBLEM:  recommend which chai stalls a customer will like (Taste Good/Bad)
+DATA:              past 5000 visits (time_of_day, zone, price, rating)
+FEATURES:          time, distance_from_home, price, historic rating
+TARGET:            like? 1/0
+MODEL:             KNeighborsClassifier(n_neighbors=15, weights='distance')
+TRAIN:             split → StandardScaler → fit
+EVALUATE:          accuracy + F1 + check neighbour-distance distribution
+DEPLOY:            serve nearest-neighbour lookup (annoying to scale!)
+MONITOR:           retrain as new visits arrive (adding points is trivial)
+```
+
+> Same skeleton powers recommendation engines, digit recognition, missing-value imputation.
+
+---
+
+## 27. Practice
+
+8 levels, increasing difficulty:
+
+1. **Recall:** why is KNN "lazy"?
+2. **Understand:** why must features be scaled?
+3. **Calculate:** compute Euclidean and Manhattan distances between (1,2) and (4,6).
+4. **Apply:** given a scatter, pick a reasonable K and justify.
+5. **Debug:** model gives 100% train but 60% test accuracy. Diagnosis & fix?
+6. **Experiment:** run Experiment B at K = 1, 3, 9, 99; graph boundary smoothness.
+7. **Build:** digit-recognition mini-project on a small image set: flatten, scale, tune K, report confusion matrix.
+8. **Explain:** explain KNN to a friend in 60 seconds using the neighbourhood story.
+
+---
+
+## 28. Interview
 
 ### Beginner
-
-**Q1: What is KNN and how does it work?**
-A: KNN stores all training data. To classify a new point, it finds the K closest training points (by distance) and lets them vote on the class. The majority class wins.
-
-**Q2: Why is KNN called a "lazy learner"?**
-A: Because it does no training. All computation is deferred to prediction time. The "model" is just the stored data.
-
-**Q3: What happens when K=1?**
-A: The model overfits — each point forms its own decision region. The boundary is extremely jagged and sensitive to noise.
-
-**Q4: Why must we scale features for KNN?**
-A: Distance metrics are sensitive to scale. A feature with range 0–1000 would dominate a feature with range 0–1.
-
-**Q5: What distance metrics can KNN use?**
-A: Euclidean (L2), Manhattan (L1), Minkowski (generalized), Cosine, etc.
+- **What is KNN?** Stores all data; classifies a new point by the majority class of its K closest stored points by distance.
+- **Why "lazy"?** No training computation; all work happens at prediction time. The model is just the stored data.
+- **What happens at K=1?** Each point votes alone → overfit, jagged boundary.
+- **Why must we scale?** Distance is scale-sensitive; a big-range feature swamps the others.
 
 ### Intermediate
-
-**Q6: How do you choose the optimal K?**
-A: Use cross-validation. Try K = 1, 3, 5, 7, ... and pick the K that maximizes cross-validation accuracy.
-
-**Q7: What is the curse of dimensionality and how does it affect KNN?**
-A: In high dimensions, all points become approximately equidistant. The concept of "nearest" loses meaning, degrading KNN performance.
-
-**Q8: What is weighted KNN?**
-A: Instead of equal votes, each neighbor's vote is weighted by 1/distance. Closer neighbors have more influence.
-
-**Q9: What is the time complexity of KNN prediction?**
-A: O(n·d) for brute-force search (compute distance to all n training points, each with d features).
-
-**Q10: How does KNN handle multi-class problems?**
-A: Naturally — just count votes across all K neighbors for all classes and pick the majority.
+- **How do you choose K?** Cross-validation over odd values.
+- **What's the curse of dimensionality?** As d grows, all distances converge, so "nearest" is meaningless.
+- **What is weighted KNN?** Each neighbour's vote weighted by 1/distance; closer points matter more; breaks ties.
+- **Prediction complexity?** O(n·d) brute force per query; O(d·log n) with a tree index (typical).
+- **KNN for regression?** Same — average (or weighted average) the K neighbours' targets.
 
 ### Advanced
-
-**Q11: What data structures improve KNN search speed?**
-A: KD-trees (efficient for low dimensions, d < 20), Ball trees (better for higher dimensions), and approximate nearest neighbor (ANN) methods like LSH or HNSW.
-
-**Q12: Why does KNN break down in high dimensions?**
-A: The volume of the space grows exponentially with dimension. Points become sparse, and the ratio of distance to the nearest vs farthest neighbor approaches 1.
-
-**Q13: Can KNN be used for regression?**
-A: Yes — instead of majority vote, average (or weighted average) the K nearest neighbors' target values.
+- **What structures speed up search?** KD-trees (d < ~20), Ball trees (higher d), approximate methods (LSH, HNSW).
+- **Why does distance fail in high dimensions?** Space volume grows exponentially; nearest/farthest ratio → 1.
+- **Compare KNN vs linear models on bias-variance?** KNN is flexible (low bias) at small K, high-variance; large K raises bias, cuts variance.
+- **Can KNN impute missing data?** Yes — KNNImputer fills a missing value from K nearest complete neighbours.
 
 ---
 
-## 39. GATE / Exam Perspective
+## 29. GATE / Exam
 
-**Key concepts:**
-- KNN is a non-parametric, instance-based, lazy learner.
-- Distance metrics: Euclidean (L2), Manhattan (L1), Minkowski (Lp).
-- Curse of dimensionality: distance becomes meaningless as d increases.
-- Feature scaling is critical for KNN.
-- Small K → overfitting (high variance); Large K → underfitting (high bias).
-- KNN regression: predict the mean of K nearest neighbors.
+**Formulas worth memorizing:**
+
+```text
+Euclidean:  d = √(Σᵢ (xᵢ − yᵢ)²)
+Manhattan:  d = Σᵢ |xᵢ − yᵢ|
+Minkowski:  d = (Σᵢ |xᵢ − yᵢ|ᵖ)^(1/p)     p=2→euclid, p=1→manhattan
+Vote:       ŷ = argmax_c Σ I(yᵢ = c) over K neighbours
+Weighted:   wᵢ = 1/d(xᵢ, q)
+```
 
 **Common traps:**
-- Confusing KNN (classification) with K-Means (clustering) — they use distance but are fundamentally different.
-- Assuming KNN "learns" parameters — it doesn't.
-- Forgetting that KNN is computationally expensive at prediction time.
+- Confusing **KNN (classification)** with **K-Means (clustering)**.
+- Assuming KNN "learns parameters" — it doesn't.
+- Forgetting prediction is **expensive** (O(n·d)).
+- Forgetting to **scale** — the single most common KNN mistake.
 
-**Key formulas:**
-- Euclidean distance: d = √(Σ(xᵢ - yᵢ)²)
-- Manhattan distance: d = Σ|xᵢ - yᵢ|
-
-*(The above are representative concept patterns, not past GATE PYQs.)*
+> **Representative pattern question (NOT a past GATE PYQ):** "Points (0,0, class A), (1,1,A), (2,2,B), (3,3,B). Classify (1.5,1.5) with K=3 Euclidean." → distances: 2.12, 0.71, 0.71, 2.12 → neighbours are (1,1)A, (2,2)B, (tie 0/3) → vote splits 1 vs 1 → depends on tie-break; with weighted or even-K tie-break, it's genuinely ambiguous. (Use K=3 with distance-weighting to resolve.)
 
 ---
 
-## 40. Coding Practice
+## 30. Deep Dive (gated — optional)
 
-**Level 1 — Basic:**
-Implement Euclidean distance from scratch. Verify: d([0,0], [3,4]) = 5.
+<details>
+<summary>Click to open geometry, complexity & search structures</summary>
 
-**Level 2 — Simple KNN:**
-Implement KNN classifier from scratch on a 2D dataset. Visualize decision boundary.
+### Nearest-neighbour geometry
 
-**Level 3 — With sklearn:**
-Use KNeighborsClassifier on Iris dataset. Compare K=1, 3, 5, 7, 10.
+For continuous data, KNN's decision boundary is a **Voronoi-like** partition: every point's "region" is where it is the closest. K=1 gives the sharpest Voronoi regions; larger K blurs them.
 
-**Level 4 — Feature scaling:**
-Compare KNN performance with and without StandardScaler on a dataset with features of different scales.
+### Bias–variance for K
 
-**Level 5 — Weighted voting:**
-Implement weighted KNN (inverse distance). Compare with uniform voting.
-
-**Level 6 — Dimensionality reduction:**
-Apply PCA to reduce dimensions, then use KNN. Observe accuracy vs. number of components.
-
-**Level 7 — Real-world case study:**
-Build a movie recommendation system using KNN on the MovieLens dataset.
-
----
-
-## 41. Practical ML Workflow
-
-```
-Problem Definition → "Classify handwritten digits"
-Data Collection → "MNIST: 70K images, 28×28 pixels"
-EDA → "10 classes, roughly balanced"
-Cleaning → "No missing values; normalize pixel values to [0,1]"
-Feature Engineering → "Flatten 28×28 to 784 features; apply PCA to reduce to 50"
-Split → "60K train, 10K test"
-Preprocessing → "StandardScaler on features"
-Train → "KNeighborsClassifier(n_neighbors=5, weights='distance')"
-Tune → "GridSearchCV: K=[3,5,7,11], weights=['uniform','distance']"
-Evaluate → "Accuracy: 97.2%, Confusion matrix shows errors on 4/7, 3/8"
-Error Analysis → "Confused similar-looking digits; add edge features"
-Deploy → "Serve with FAISS for fast approximate nearest neighbor search"
+```text
+K = 1  →  low bias, high variance  (perfectly memorizes training)
+K → n  →  high bias, low variance  (always the majority class)
 ```
 
----
+The optimal K trades these; cross-validation finds it.
 
-## 42. Complexity
+### Why zero training isn't free
 
-| Aspect | Complexity |
-|---|---|
-| Training time | O(1) — just store data |
-| Prediction time (brute) | O(n·d) per query |
-| Prediction time (KD-tree) | O(d·log n) average, O(n·d) worst case |
-| Space | O(n·d) — store entire training set |
-| Scaling with n | Prediction gets linearly slower |
-| Scaling with d | Both distance computation and curse of dimensionality |
-| Scaling with classes | Negligible — just count labels |
+`fit()` is O(1) but `predict()` is O(n·d). That's the exact opposite of logistic regression — the "free training" is paid back with interest at every query.
 
----
+### Search structures
 
-## 43. Advanced Concepts
+- **Brute force:** O(n·d) per query. Fine for small n.
+- **KD-tree:** partitions space by axis-aligned splits; average O(d·log n), degrades when d ≳ 20.
+- **Ball tree:** partitions by hyper-spheres; better in mid-to-high d.
+- **Approximate NN:** LSH, HNSW — trade a little exactness for huge speedups in production.
 
-1. **KD-Tree:** Binary tree that partitions space by splitting along feature axes at median values. Efficient for low dimensions but degrades for d > 20.
+### The curse, formally
 
-2. **Ball Tree:** Partitions space using hyperspheres. Better than KD-tree for high dimensions.
+In a d-dimensional unit cube, the fraction of volume within `ε` of the surface grows like `d·ε`. Points concentrate near edges; distances become uniform. KNN's "locality" quietly disappears.
 
-3. **Locality-Sensitive Hashing (LSH):** Approximate nearest neighbor method. Trades exactness for speed. Used in production systems.
+### Dimensionality remedies
 
-4. **Condensed KNN:** Reduces the training set by keeping only boundary points. Speeds up prediction.
+Principal Component Analysis, feature selection, or simply not using KNN beyond ~20 informative features.
 
-5. **Adaptive K:** Instead of fixed K, use a different K for each query point based on local data density.
+</details>
 
 ---
 
-## 44. Connections to Other Algorithms
+## 31. Teach Back
 
-```
-         KNN
-        / | \
-       /  |  \
-      /   |   \
-K-Means  KNN   Radius
-(clustering,  Regression  Neighbors
- unsupervised, (regression)  (fixed
- different    variant     radius
- goal)                    instead of K)
-```
+Try all four.
 
-- **KNN vs K-Means:** KNN is supervised (uses labels), K-Means is unsupervised (no labels). Both use distance, but for different purposes.
-- **KNN vs Decision Tree:** Decision Tree builds an explicit model; KNN stores data. Decision Tree is fast to predict; KNN is slow.
-- **KNN Regression → KNN Classification:** Same algorithm, different aggregation (mean vs majority vote).
+> **Explain in 30 seconds:** "KNN remembers every training example. When a new point arrives, it finds the K closest remembered points and lets them vote; the majority class wins."
+
+> **Explain to a 12-year-old:** "Ask your closest friends what they think, take a vote, and go with the majority. KNN does that for data points instead of people."
+
+> **Explain in an interview:** add: lazy vs eager, Euclidean distance, scaling, K as bias-variance dial, curse of dimensionality, O(n·d) prediction, weighted voting.
+
+> **Explain the mathematics:** derive Euclidean distance from Pythagoras and show the majority-vote formula.
 
 ---
 
-## 45. If You Remember Only 5 Things
+## 32. Mastery Test
 
-1. **KNN is a lazy learner** — no training phase, all work at prediction time.
-2. **Always scale features** — distance metrics are meaningless without scaling.
-3. **K controls the bias-variance tradeoff** — small K = overfit, large K = underfit.
-4. **Curse of dimensionality kills KNN** — distance loses meaning in high dimensions.
-5. **Prediction is O(n·d)** — slow for large datasets; consider ANN methods.
+**Without looking at notes:**
 
----
-
-## 46. Cheat Sheet
-
-| Item | Detail |
-|---|---|
-| Algorithm | K-Nearest Neighbors |
-| Category | Supervised, Instance-Based, Lazy Learner |
-| Goal | Classify by majority vote of K closest training points |
-| Input | Features X, labels y, integer K, distance metric |
-| Output | Majority class label among K neighbors |
-| Core Formula | ŷ = argmax_c Σ I(yᵢ=c) for i ∈ K nearest neighbors |
-| Loss | None (no training objective) |
-| Optimization | None (no parameters to optimize) |
-| Parameters | None (non-parametric; training data = model) |
-| Hyperparameters | K, weights, metric, algorithm |
-| Assumptions | Similarity implies same class, features on same scale |
-| Advantages | Simple, no training, non-linear, naturally multi-class |
-| Disadvantages | Slow prediction, curse of dimensionality, no interpretability |
-| Use When | Small data, non-linear boundaries, quick baseline |
-| Avoid When | Large data, high dimensions, real-time prediction |
-| Related | K-Means, KD-Tree, Radius Neighbors |
-| Key Exam Points | Non-parametric, lazy learner, curse of dimensionality |
-| Key Interview Points | Choose K, feature scaling, complexity, curse of dimensionality |
-
----
-
-## 47. Final Mental Model
-
-```
-┌──────────────┐         ┌──────────────┐         ┌──────────┐
-│ Training Set │────────→│ Compute all  │────────→│ Sort by  │
-│ (X, y)       │  query  │ distances    │         │ distance │
-│ stored       │  point  │ to query     │         │          │
-└──────────────┘         └──────────────┘         └────┬─────┘
-                                                       │
-                    ┌──────────────┐         ┌──────────┴─────┐
-                    │ Predicted    │←────────│ Pick K nearest │
-                    │ class label  │  vote   │ neighbors      │
-                    └──────────────┘         └────────────────┘
-```
-
----
-
-## 48. Knowledge Check
-
-### Recall (5)
-
-1. What is the time complexity of KNN prediction (brute force)?
-2. What distance metric does KNN use by default?
-3. Why is KNN called a "lazy learner"?
-4. What is the main hyperparameter in KNN?
-5. What happens when K = 1?
-
-### Understanding (5)
-
-6. Why must features be scaled before using KNN?
+1. Define KNN.
+2. Explain the neighbourhood intuition.
+3. Write the Euclidean distance formula and compute it for two points.
+4. Explain why feature scaling is critical.
+5. Explain the bias-variance trade-off in terms of K.
+6. What does `fit()` actually do?
 7. What is the curse of dimensionality?
-8. How does weighted voting differ from uniform voting?
-9. Why is KNN rarely used in production for large datasets?
-10. How does K=1 relate to overfitting?
-
-### Application (5)
-
-11. You have 50K samples and 100 features. Should you use KNN? Why or why not?
-12. A KNN model has 100% training accuracy but 60% test accuracy. What's wrong?
-13. How would you use KNN for a recommendation system?
-14. You notice one feature has range 0–10000 and another has range 0–1. What do you do?
-15. How do you handle ties when K is even?
-
-### Mathematical (5)
-
-16. Compute Euclidean distance between (1, 2) and (4, 6).
-17. Compute Manhattan distance between (1, 2) and (4, 6).
-18. For K=5, neighbors have labels [0, 1, 1, 0, 1]. What's the prediction?
-19. For weighted KNN with K=3, distances are [1, 2, 4] and labels are [1, 0, 1]. What's the prediction?
-20. If d=100 and n=50, why is KNN likely to perform poorly?
-
-### Interview (5)
-
-21. Compare KNN with logistic regression.
-22. How would you speed up KNN for a large dataset?
-23. When would you choose KNN over a neural network?
-24. What is Leave-One-Out Cross-Validation?
-25. Can KNN handle missing data? How?
-
-### Problem Solving (5)
-
-26. Design a spam filter using KNN. What features and preprocessing would you use?
-27. Your KNN model is too slow for production. List 3 approaches to speed it up.
-28. How would you handle a dataset where 95% of samples belong to one class?
-29. You want to use KNN for images. What feature extraction would you do?
-30. Compare K=3, K=100, K=1000 on a dataset with 500 samples.
-
-### Answers
-
-**1.** O(n·d) — compute distance to all n training points, each with d features.
-
-**2.** Euclidean distance (L2 norm).
-
-**3.** Because it does no training — all computation is deferred to prediction time.
-
-**4.** K — the number of neighbors.
-
-**5.** Overfitting — the boundary is extremely jagged; each point forms its own region.
-
-**6.** Distance metrics are scale-dependent. Without scaling, features with larger ranges dominate.
-
-**7.** In high dimensions, all points become approximately equidistant, making "nearest neighbor" meaningless.
-
-**8.** Weighted voting gives more influence to closer neighbors (weight = 1/distance); uniform gives equal weight.
-
-**9.** Prediction is O(n·d) per query, which is too slow for large n and real-time constraints.
-
-**10.** K=1 means the model perfectly memorizes training data (zero bias) but is extremely sensitive to noise (high variance).
-
-**11.** No — KNN is too slow at prediction (O(50K × 100) per query). Use a model-based approach or approximate nearest neighbors.
-
-**12.** K is too small (overfitting). Increase K and use cross-validation to find optimal K.
-
-**13.** Find users with similar rating vectors (KNN) and recommend items they liked.
-
-**14.** Standardize both features using StandardScaler before computing distances.
-
-**15.** Use weighted voting (breaks ties naturally) or choose an odd K to avoid ties.
-
-**16.** d = √((4-1)² + (6-2)²) = √(9+16) = √25 = 5.
-
-**17.** d = |4-1| + |6-2| = 3 + 4 = 7.
-
-**18.** Class 1 (3 votes vs 2 votes).
-
-**19.** Weights: w₁=1/1=1, w₂=1/2=0.5, w₃=1/4=0.25. Weighted votes: class 1 = 1+0.25 = 1.25, class 0 = 0.5. Predict: class 1.
-
-**20.** With d=100 >> n=50, all points are approximately equidistant. KNN degrades to random guessing.
-
-**21–30.** Open-ended; review relevant sections for reference.
+8. Compare KNN with an eager learner (logistic regression).
+9. Choose it for a real problem; defend the choice.
+10. State one counter-example where you WOULDN'T use KNN.
 
 ---
 
-## 49. Final Learning Checklist
+## 33. Cheat Sheet
 
-- [ ] I can explain KNN in plain English
-- [ ] I understand why KNN is called a "lazy learner"
-- [ ] I can compute Euclidean and Manhattan distance by hand
-- [ ] I know why feature scaling is critical for KNN
-- [ ] I can implement KNN from scratch in Python
-- [ ] I know how to use sklearn's KNeighborsClassifier
-- [ ] I understand the bias-variance tradeoff with K
-- [ ] I can explain the curse of dimensionality
-- [ ] I know how to choose optimal K via cross-validation
-- [ ] I understand weighted vs uniform voting
-- [ ] I can compare KNN with model-based classifiers
-- [ ] I know the time and space complexity of KNN
-- [ ] I understand KD-trees and Ball trees for fast search
-- [ ] I can handle class imbalance with KNN
-- [ ] I know when to use and when NOT to use KNN
-- [ ] I can use KNN for regression (predict mean of K neighbors)
-- [ ] I understand how KNN fails in high dimensions
-- [ ] I can apply dimensionality reduction before KNN
-- [ ] I have completed a project using KNN
-- [ ] I can explain KNN to a non-technical person
+```text
+Algorithm : K-Nearest Neighbors · Supervised → Classification · Non-parametric
+Type      : lazy / instance-based learner
+Trade-off : eager vs lazy (no training, expensive prediction)
+Core      : ŷ = majority vote of K nearest (by distance)
+Distance  : Euclidean √Σ(x−y)²  ·  Manhattan Σ|x−y|  ·  Minkowski (Σ|x−y|ᵖ)^1/p
+Learn     : nothing — training data IS the model
+Tune      : K · weights (uniform/distance) · metric · algorithm
+CRITICAL  : scale features (StandardScaler) BEFORE distance
+Fails     : high dimensions (curse) · large n (slow predict) · imbalances
+Use when  : small/medium data, non-linear boundaries, quick baseline
+Avoid when: large data, high-dim, real-time, big memory
+Related   : KNN-regression (mean) · K-Means (clustering, DIFFERENT!) · KD-tree
+```
 
 ---
 
-## 50. Quality Control Note
+## 34. What Next?
 
-| Criterion | Status | Notes |
-|---|---|---|
-| Accuracy | ✅ | Distance formulas, complexity, and curse of dimensionality verified |
-| Beginner-friendliness | ✅ | Real-life analogy (city neighborhood), step-by-step numerical example |
-| Math depth | ✅ | Distance metrics, weighted voting formula, complexity analysis |
-| Practical depth | ✅ | sklearn usage, pipeline with scaling, GridSearchCV for K tuning |
-| Exam depth | ✅ | Key concepts, common traps, formulas clearly identified |
-| Code quality | ✅ | Clean from-scratch implementation with Counter |
-| Structure compliance | ✅ | All 50 sections present in order |
+You've now seen both ends of the spectrum — a learned boundary (Logistic) and a lazy voter (KNN).
+
+```text
+K-Nearest Neighbors
+   ├── Naive Bayes   (probability + independence)  → next note (03)
+   └── Decision Tree (rules / if-then)             → 04
+```
+
+> Next recommended: **03. Naive Bayes** — instead of "who's nearby," it asks "which class makes this evidence most likely?" using Bayes' theorem.

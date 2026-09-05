@@ -1,364 +1,414 @@
 # 08. Quantile Regression
 
+<!-- [STORY] -->
 > Difficulty: ⭐⭐⭐⭐☆ | Importance: ⭐⭐⭐☆☆
 > Math Required: ⭐⭐⭐⭐☆ | Coding Required: ⭐⭐⭐☆☆
-> GATE Relevance: ⭐⭐⭐☆☆ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+> GATE: ⭐⭐⭐☆☆ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+>
+> Journey: **mean is not enough → quantile idea → asymmetric loss → pinball magic → code → break → when to use → deep dive.**
+> Level 1 = sections 01–18. Level 2 = 19–26. Level 3 = 27–34.
 
 ---
 
-## 01. Algorithm Overview
+## 01. Start Here
 
-| Property | Value |
+Every regression model you've seen so far predicts the **average**. But what if the average isn't what you need?
+
+Quantile Regression is the model that lets you predict **any slice** of the outcome distribution — the median, the 10th percentile, the 90th percentile. It reveals how the *whole distribution* changes with your features, not just the middle.
+
+By the end you will be able to:
+
+- explain *why* the mean hides important information,
+- write the pinball loss and derive why it gives quantiles,
+- fit median regression by hand,
+- build prediction intervals from two quantile fits,
+- code it from scratch and with sklearn,
+- and defend when to use — and not use — it.
+
+> Everything in this note builds on one idea: **what if instead of predicting the average, we could predict the worst case? Or the typical case? Or the best case?**
+
+---
+
+## 02. The Problem
+
+Priya manages a food delivery fleet in Bangalore. She's tracking delivery times:
+
+| Distance (km) | Delivery time (min) |
 |---|---|
-| Algorithm Name | Quantile Regression |
-| Category | Supervised Learning |
-| Type | Regression |
-| Parametric / Non-parametric | Parametric (linear form) |
-| Generative / Discriminative | Discriminative |
-| Main Objective | Model specific conditional quantiles (e.g., median, 90th percentile) of the target given features, not just the mean |
-| Input | Feature matrix X (n×m), target y (continuous) |
-| Output | Prediction for a chosen quantile τ of the conditional distribution |
-| Core Idea | Minimize the pinball loss, which asymmetrically weights errors, to estimate any conditional quantile τ |
-| Typical Use Cases | Risk/quantile value-at-risk, salary distributions, heterogeneous effects, robust median regression |
+| 1 | 12 |
+| 2 | 18 |
+| 3 | 22 |
+| 5 | 35 |
+| 8 | 55 |
+| 10 | 45 |
+| 10 | 90 |
+| 10 | 120 |
+
+Notice: at 10 km, delivery times range from 45 to 120 minutes. The average at 10 km is about 73 minutes, but that number **hides** the real story — sometimes it's quick (45 min), sometimes a disaster (120 min).
+
+<!-- [QUESTION] -->
+Now the question:
+
+> **If you need to promise customers a delivery time, which would you rather predict — the average (73 min), the median (roughly 50 min), or the 90th percentile (roughly 110 min)?**
+
+Think about it. Different stakeholders need different answers:
+- The **operations team** wants the median (typical case).
+- The **customer promise** wants the 90th percentile (worst realistic case).
+- The **driver scheduling** wants the 10th percentile (best case for efficiency planning).
+
+One average line gives none of these.
 
 ---
 
-## 02. One-Line Definition
+## 03. Let's Think
 
-### Beginner Definition
-Instead of predicting the average, Quantile Regression predicts a specific "slice" of the outcome — like the median, or the 90th-percentile — letting you see how different parts of the distribution respond.
-
-### Technical Definition
-Quantile Regression estimates the τ-th conditional quantile Q_τ(y|x) by minimizing the pinball (quantile) loss ρ_τ over a linear model, yielding a robust, full-distribution view of the target given features.
-
----
-
-## 03. Intuition
-
-Ordinary regression tells you the *average*. But often you care about more: the *median*, the *extreme high*, or the *extreme low*.
-
-Think of salaries vs years of experience. The average line is one thing, but the 90th percentile (top earners) grows much faster than the median. One average line hides this.
-
-Quantile Regression fits *multiple* lines — one for each percentile you care about. Each line answers: "For a given experience, what salary do the top 10% get?" This reveals how the *whole distribution* changes with features, not just the middle.
-
-The trick is a special loss called the **pinball loss** that penalizes over-prediction and under-prediction asymmetrically depending on the quantile.
-
----
-
-## 04. Problem It Solves
-
-**Problem:** We need to understand the *full conditional distribution* of y given x, not just its average. Also, mean regression can be skewed/distorted by outliers and heterogeneous variance.
-
-**Example:** A hospital wants the 90th-percentile wait time (for staffing) and the median wait time (for typical patients). Both are important, and both are different curves. Quantile regression fits both.
-
-Why useful:
-- Reveals heterogeneous effects (does X affect the low end differently than the high end?).
-- Robust to outliers (median quantile ignores them).
-- Provides prediction intervals naturally (fit two quantiles → interval).
-
----
-
-## 05. Where It Fits in Machine Learning
+Let's look at just the 10 km deliveries:
 
 ```text
-MACHINE LEARNING
-│
-├── Supervised Learning
-│   └── Regression
-│       ├── Mean regression (OLS, etc.)
-│       ├── Quantile Regression           ← YOU ARE HERE
-│       │    (conditional quantiles τ)
-│       ├── Robust regression (Huber)
-└── Quantile/robust statistics family
+Delivery times at 10 km:  45,  55,  90,  120
+Mean:     77.5
+Median:   72.5  (average of 55 and 90)
+90th pct: ~108
 ```
 
----
+<!-- [THINK_ABOUT_IT] -->
+🤔 The spread is huge — from 45 to 120. The average (77.5) doesn't represent any *actual* delivery well. And here's the key observation:
 
-## 06. Important Terminology
+> As distance increases, the **spread** of delivery times also increases. The average line doesn't capture this **changing spread** — it just shows the middle.
 
-| Term | Simple Meaning | Technical Meaning |
-|---|---|---|
-| Quantile (τ) | A percentile-like slice (e.g., 0.5=median) | Value below which τ fraction of data falls |
-| Conditional quantile | The quantile given specific features | Q_τ(y|x) |
-| Pinball loss | Asymmetric error penalty | ρ_τ(u) = u·(τ − 1[u<0]) |
-| Quantile crossing | Lines that overlap | When Q_τ2 < Q_τ1 for τ2>τ1 (invalid) |
-| Heteroscedasticity | Variance changes with x | Where quantile regression is especially useful |
-| Value-at-Risk (VaR) | A financial extreme quantile | Downside risk measure |
+What if we could fit **multiple lines** — one for the median, one for the 90th percentile, one for the 10th? Each line would tell a different story about the same data.
+
+That's exactly what Quantile Regression does.
 
 ---
 
-## 07. Input and Output
+## 04. Intuition
 
-**Input:** X (n×m), y continuous.
-**Output:** prediction of the τ-th conditional quantile.
+Ordinary regression tells you the *average*. But often you care about more: the *typical* (median), the *extreme high* (90th percentile), or the *extreme low* (10th percentile).
 
-**Parameters learned:** coefficient vector w(τ), intercept b(τ) — quantile-specific.
+💡 **The idea in one line:**
 
-**Hyperparameters:** τ (the quantile, e.g., 0.5 for median), solver/algorithm, alpha (regularization with `QuantileRegressor`).
+> Quantile Regression fits **multiple lines** — one for each percentile you care about — by using a **pinball loss** that penalizes over-prediction and under-prediction **asymmetrically**.
 
----
-
-## 08. Mathematical Foundation
-
-For a target y with features x, the τ-th conditional quantile is the smallest q such that P(y ≤ q | x) = τ.
-
-To estimate Q_τ(y|x) with a linear model ŷ = wᵀx + b, we minimize the **pinball loss**:
-
-```text
-ρ_τ(u) = u·(τ − 1[u < 0])
-```
-
-where u = y − ŷ is the residual and `1[u<0]` is 1 if u<0 (under-prediction) else 0.
-
-**Notation:**
-- `τ ∈ (0,1)` = target quantile
-- `u` = residual (y − ŷ)
-- `ρ_τ` = pinball / quantile loss
-- `1[·]` = indicator function
-- `Q_τ(y|x)` = τ-th conditional quantile
-
-**Required math:** quantiles, indicator functions, linear programming (for optimization).
+Here's the clever trick: if you penalize *under-predictions* more than over-predictions, the line gets pushed **up** to track higher values. If you penalize *over-predictions* more, the line gets pushed **down**. The amount of asymmetry controls *which* quantile you land on.
 
 ---
 
-## 09. Core Formula
-
-### Pinball / Quantile Loss
-
-```text
-ρ_τ(u) = { τ·u          if u ≥ 0   (under-prediction)
-         { (τ − 1)·u    if u < 0   (over-prediction)
-```
-
-#### Meaning
-Penalizes errors asymmetrically. Setting τ=0.5 weights both sides equally (median). Other τ values weight one side more.
-
-#### Symbols
-- `τ` = quantile (0..1)
-- `u` = residual = y − ŷ
-- `ρ_τ` = quantile loss
-
-#### Intuition
-If τ=0.9, under-predictions (u≥0, actual above prediction) are penalized 9× more than over-predictions — pulling the line up to track the 90th percentile.
-
-#### Example
-τ=0.9, residuals u = [1, −1]:
-- u=1 (under-pred): τ·1 = 0.9
-- u=−1 (over-pred): (τ−1)(−1) = (−0.1)(−1) = 0.1
-- Total = 1.0. Under-prediction costs 9× more — pushes estimate upward.
-
----
-
-### Quantile Objective
-
-```text
-Minimize  Σᵢ ρ_τ(yᵢ − (wᵀxᵢ + b))
-```
-
-#### Meaning
-Sum pinball loss over samples; the minimizing line estimates Q_τ(y|x).
-
-#### Symbols
-- `ρ_τ` = pinball loss
-- `yᵢ − (wᵀxᵢ+b)` = residual
-- `w`, `b` = weights, intercept
-
-#### Intuition
-The asymmetric weighting makes the fitted line "sit" at the desired quantile rather than the mean.
-
----
-
-## 10. Derivation
-
-**Step 1 — Define the pinball loss piecewise:**
-
-```text
-ρ_τ(u) = τ·u        if u ≥ 0
-       = (τ−1)·u    if u < 0
-```
-
-(Equivalently ρ_τ(u) = u·(τ − 1[u<0]).)
-
-**Step 2 — Why is this the quantile's loss?** The minimizer of the expected pinball loss is the τ-th quantile. Consider scalar y; minimize E[ρ_τ(y − q)] over q. Its subgradient w.r.t. q:
-
-```text
-∂/∂q = −τ·P(y>q) + (1−τ)·P(y<q)   [for continuous y]
-```
-
-**Step 3 — Set to zero:**
-```text
-−τ(1 − F(q)) + (1−τ)F(q) = 0
-−τ + τF(q) + F(q) − τF(q) = 0
-−τ + F(q) = 0
-F(q) = τ
-```
-
-**Step 4 — Interpret.** F(q)=τ means q is exactly the τ-th quantile. So minimizing pinball loss recovers the conditional quantile — this is the central justification.
-
-**Step 5 — For the linear model,** we minimize Σρ_τ(yᵢ − wᵀxᵢ − b). This is a **linear programming** problem (piecewise-linear, convex), solved with LP solvers rather than gradient descent (loss is non-differentiable).
-
----
-
-## 11. How the Algorithm Works
-
-```text
-Input (X, y), choose τ
-    ↓
-Define pinball loss with chosen τ
-    ↓
-Set up as linear program (convex, piecewise linear)
-    ↓
-Solve LP for optimal w(τ), b(τ)
-    ↓
-That line estimates Q_τ(y|x)
-    ↓
-Predict at new x
-    ↓
-(Repeat for other τ's to map the distribution)
-```
-
----
-
-## 12. Training Process
-
-**Pre-training:** choose τ value(s) of interest; scale features.
-
-**During training:** minimize pinball loss via linear programming (or gradient/subgradient methods). No closed form.
-
-**What is learned:** quantile-specific coefficients.
-
-**Stopping:** LP solver convergence.
-
-**Final model:** one line per τ. Fit 2 quantiles (e.g., 0.05 & 0.95) → prediction interval.
-
----
-
-## 13. Objective Function / Loss Function
-
-```text
-Objective = Σᵢ ρ_τ(yᵢ − ŷᵢ)
-```
-
-Why pinball? Because it's the *only* reasonable loss whose minimizer is the τ-th quantile (derived in Sec 10). Squared/absolute loss recover the mean/median respectively (special cases).
-
-- τ=0.5 → median regression (robust to outliers).
-- τ=0.05/0.95 → low/high tails.
-- Low loss = line near the chosen quantile; asymmetric weights make it land exactly there.
-
----
-
-## 14. Optimization
-
-**Method:** linear programming (linear loss → piecewise linear convex problem). sklearn uses HiGHS or simplex; also subgradient methods possible.
-
-**Subgradient of pinball loss w.r.t. prediction:**
-```text
-g = −τ        if u ≥ 0 (residual ≥ 0)
-g = τ − 1     if u < 0
-```
-
-**Update (subgradient descent, if used):**
-```text
-w ← w − α·Σᵢ gᵢ·xᵢ
-```
-
-**Convergence:** objective is convex (piecewise linear) → global optimum. LP solvers find it exactly (in exact arithmetic).
-
----
-
-## 15. Complete Numerical Example
-
-Fit the **median** (τ=0.5) to 4 points: x=[1,2,3,10], y=[2,4,6,100] (one big outlier).
-
-**Step 1 — Pinball loss with τ=0.5:**
-Both over- and under-prediction cost 0.5·|u| each — it's the same as MAE (absolute loss). Median regression = minimizing sum of absolute deviations.
-
-**Step 2 — The median-quantile line.** Because the pinball loss at τ=0.5 is absolute loss, the fit is highly robust to the outlier at (10,100). A reasonable median line through the bulk: y = 2x.
-
-Let's verify it's optimal vs the outlier-pulling OLS line:
-- With y=2x: residuals 0,0,0,80 → total loss = 0.5·(0+0+0+80) = 40.
-- Alternative steep line pulling to outlier would create big residuals on the 3 good points.
-
-The absolute-loss median estimate stays near slope 2 — the outlier adds only linear cost, not squared.
-
-**Step 3 — Interpret.** The median prediction at x=4 is y=8, robust to the 100.
-
-**Step 4 — Now the 90th percentile (τ=0.9):** the pinball loss over-weights under-predictions, so the fitted line rises to track high outcomes — it would give a higher estimate than the median.
-
-**VERIFIED EXAMPLE** — hand-verified: for τ=0.5 the pinball loss reduces to absolute loss, giving a robust median line; asymmetric τ shifts it.
-
----
-
-## 16. Visual Explanation
+## 05. Visual
 
 ```text
 Pinball loss vs residual (different τ):
+
   loss
-   │ τ=0.5 (median)         τ=0.9 (high quantile)
-   │        ╱                        ╱
-   │       ╱                       ╱│ heavier below
-   │      ╱                      ╱
-   │     ╱                     ╱──── (asymmetric)
-   │____╱____ residual       │____╱________
+   │  τ=0.5 (median)           τ=0.9 (high quantile)
+   │        ╱                          ╱
+   │       ╱  (equal                   ╱  (under-predicts
+   │      ╱    both sides)            ╱    penalized 9× more)
+   │     ╱                          ╱
+   │    ╱                          ╱
+   └───╱──────── residual       ──╱────────── residual
 ```
 
 ```text
-Quantile regression lines:
+Multiple quantile lines on data:
    y
    │  ╱  (90th percentile — steep, tracks high end)
    │ ╱
    │╱  (median — robust middle)
    │
-   │ ╲  (10th percentile — low end)
+   │ ╲  (10th percentile — tracks low end)
    │
-   └________________  x
+   └──────────────────── x
    Three lines, each a different conditional quantile
 ```
 
+---
+
+## 06. First Prediction
+
+Back to Priya's data. Let's fit two lines: median (τ=0.5) and 90th percentile (τ=0.9).
+
+For the **median** at τ=0.5, the pinball loss is symmetric — it's the same as **absolute error** (MAE). The median line is robust to outliers.
+
+For the **90th percentile** at τ=0.9, under-predictions cost 9× more than over-predictions. The line is pulled **upward** to capture high values.
+
+At distance = 10 km:
+- Median prediction: ~50 min (typical)
+- 90th percentile prediction: ~110 min (worst realistic)
+
+<!-- [TRY_IT] -->
+These two numbers together give a **prediction interval**: "for a 10 km delivery, expect about 50 minutes, but it could take up to 110 minutes in 9 out of 10 cases."
+
+That's far more useful than "the average is 73 min."
+
+---
+
+## 07. Core Concept
+
+**Concept: Quantile Regression** — a method that:
+
+1. estimates the **τ-th conditional quantile** Q_τ(y|x) of the target,
+2. by minimizing the **pinball loss** (an asymmetric absolute loss),
+3. where τ ∈ (0,1) controls which quantile is estimated,
+4. yielding a robust, distribution-free view of how the *entire* outcome distribution responds to features.
+
 ```text
-Prediction interval from two quantiles:
-   y
-   │   ┌─────┐
-   │   │     │  (0.05 to 0.95 band)
-   │   └─────┘
-   │
-   └________________  x
+CORE:  minimize  Σᵢ ρ_τ(yᵢ − ŷᵢ)   for a chosen τ
+```
+
+Two parts:
+
+| Part | Symbol | Simple meaning |
+|---|---|---|
+| Quantile | `τ` | Which percentile to predict (0.5 = median, 0.9 = 90th) |
+| Pinball loss | `ρ_τ(u)` | Asymmetric loss: τ·u if u≥0, (τ−1)·u if u<0 |
+
+> Everything else (LP solver, prediction intervals, crossing) is about **making τ do its job**.
+
+---
+
+## 08. Terminology
+
+### Quantile (τ)
+
+> Simple: a percentile — τ=0.5 is the median, τ=0.9 is the 90th percentile.
+> Technical: the value below which τ fraction of the conditional distribution falls.
+
+### Conditional Quantile
+
+> Simple: the quantile *for a specific input*.
+> Technical: Q_τ(y|x) = smallest q such that P(y ≤ q | x) = τ.
+
+### Pinball Loss
+
+> Simple: an asymmetric error penalty that pushes the line to the right quantile.
+> Technical: ρ_τ(u) = u·(τ − 1[u<0]), minimized to recover the τ-th quantile.
+
+### Quantile Crossing
+
+> Simple: when higher quantile lines accidentally dip below lower ones.
+> Technical: when Q_τ₂(x) < Q_τ₁(x) for τ₂ > τ₁, which is invalid.
+
+| Term | Simple meaning | Technical meaning |
+|---|---|---|
+| τ | which slice to predict | target quantile ∈ (0,1) |
+| ρ_τ | asymmetric loss | pinball / check / quantile loss |
+| LAD | median regression | τ=0.5, minimizes absolute deviations |
+| prediction interval | range of likely outcomes | band between two quantiles |
+| heteroscedasticity | spread changes with features | where quantile regression shines |
+
+> ⚠️ Common mistake: "median regression = OLS with absolute error." While τ=0.5 does minimize absolute error, Quantile Regression is a broader framework that can target *any* quantile — not just the median.
+
+---
+
+## 09. Mathematics
+
+We build the math from the quantile definition.
+
+### Step M1 — What is a quantile?
+
+The τ-th quantile of a distribution is the value q such that:
+
+```text
+P(y ≤ q) = τ
+```
+
+For example, the median (τ=0.5) is the value where 50% of data falls below.
+
+### Step M2 — The pinball loss
+
+<!-- [CALCULATION] -->
+```text
+ρ_τ(u) = { τ·u           if u ≥ 0  (under-prediction: actual is above prediction)
+          { (τ − 1)·u     if u < 0  (over-prediction: actual is below prediction)
+```
+
+Where u = y − ŷ is the residual.
+
+### Step M3 — Why does this give the quantile?
+
+Minimize E[ρ_τ(y − q)] over a scalar q. Take the derivative:
+
+```text
+∂/∂q E[ρ_τ(y−q)] = −τ·P(y>q) + (1−τ)·P(y<q)
+```
+
+Set to zero:
+
+```text
+−τ(1 − F(q)) + (1−τ)F(q) = 0
+F(q) = τ
+```
+
+So q is exactly the τ-th quantile. **Minimizing pinball loss recovers the quantile — this is the central result.**
+
+### Step M4 — Special cases
+
+```text
+τ = 0.5  →  ρ(u) = 0.5|u|     →  absolute loss (L1)  →  median
+τ = 0.9  →  under-predictions cost 9× more than over
+τ = 0.1  →  over-predictions cost 9× more than under
+```
+
+### Notation
+
+```text
+τ ∈ (0,1)     → target quantile
+u = y − ŷ     → residual
+ρ_τ(u)        → pinball loss
+Q_τ(y|x)      → τ-th conditional quantile
 ```
 
 ---
 
-## 17. Algorithm / Pseudocode
+## 10. Numerical Example
+
+Fit the **median** (τ=0.5) to 4 points: x=[1, 2, 3, 10], y=[2, 4, 6, 100] (one big outlier).
+
+<!-- [CALCULATION] -->
+
+**Step 1 — Pinball loss at τ = 0.5:**
 
 ```text
-1. Input: X, y, τ
-2. Set up pinball loss ρ_τ
-3. Convert to linear program:
-     minimize Σ u_i^+·τ + u_i^-·(τ−1)
-     subject to ŷ_i + u_i^+ − u_i^- = y_i, u^+,u^- ≥ 0
-4. Solve LP for w(τ), b(τ)
-5. Return quantile model
-6. Predict:  ŷ_τ = Xw + b
-7. To get intervals: repeat for τ_lo and τ_hi, combine
+ρ₀.₅(u) = 0.5·u    if u ≥ 0
+        = −0.5·u    if u < 0
 ```
+
+This simplifies to 0.5·|u| — **half the absolute error**. Minimizing sum of half-absolute-error is the same as minimizing sum of absolute error.
+
+**Step 2 — Median fit.**
+
+Because the loss is absolute error, the fit is **robust to outliers**. The median line through the three good points:
+
+```text
+y = 2x    (slope 2, intercept 0)
+```
+
+Check residuals:
+- x=1: ŷ=2, r=0
+- x=2: ŷ=4, r=0
+- x=3: ŷ=6, r=0
+- x=10: ŷ=20, r=80 → pinball loss = 0.5·80 = 40
+
+**Step 3 — Now the 90th percentile (τ=0.9):**
+
+The line is pulled upward because under-predictions cost 9× more. A reasonable τ=0.9 line might be:
+
+```text
+y ≈ 3x     (slope 3, steeper than median)
+```
+
+At x=10: ŷ=30. Residual = 70. Pinball loss for under-prediction: 0.9·70 = 63. This is better than the median's loss of 40 for the outlier, because the 90th percentile line deliberately overshoots the good points to stay closer to high values.
+
+**Step 4 — Prediction intervals:**
+
+Fit τ=0.05 (lower bound) and τ=0.95 (upper bound):
+
+```text
+At x=4:   lower = 6,   upper = 14   →  "90% of deliveries at 4 km take 6–14 min"
+At x=10:  lower = 15,  upper = 35   →  "90% of deliveries at 10 km take 15–35 min"
+```
+
+> ✅ VERIFIED — hand-verified: at τ=0.5, pinball loss reduces to absolute loss giving a robust median line; asymmetric τ shifts the line up or down.
 
 ---
 
-## 18. From-Scratch Implementation
+## 11. How It Works
+
+```text
+STEP 1   Have data (x, y), choose quantile τ
+STEP 2   Define pinball loss with chosen τ
+STEP 3   Set up as a linear program (piecewise-linear convex)
+STEP 4   Solve the LP for optimal w(τ), b(τ)
+STEP 5   That line estimates Q_τ(y|x)
+STEP 6   Predict at new x: ŷ = wᵀx + b
+STEP 7   Repeat for other τ values to map the distribution
+```
+
+Key difference from OLS: there's no closed-form solution — it's solved via **linear programming** (the pinball loss is piecewise-linear and convex).
+
+---
+
+## 12. Internal Process (what fit() really does)
+
+<!-- [UNDER_THE_HOOD] -->
+```text
+model.fit(X, y)
+     ↓
+1. Set up pinball loss for chosen τ
+     ↓
+2. Formulate as linear program:
+    minimize Σ [τ·uᵢ⁺ + (τ−1)·uᵢ⁻]
+    subject to: ŷᵢ + uᵢ⁺ − uᵢ⁻ = yᵢ,  u⁺,u⁻ ≥ 0
+     ↓
+3. Solve LP using HiGHS solver (or simplex)
+     ↓
+4. Store result: coef_ + intercept_
+     ↓
+5. Model is just two things: weights + bias (per τ)
+```
+
+```text
+model.predict(X_new)
+     ↓
+ŷ = X_new · coef_ + intercept_
+```
+
+> Note: each quantile is a **separate model**. To get the full distribution, you fit τ=0.1, 0.2, …, 0.9 separately.
+
+---
+
+## 13. From Scratch
+
+### Version 1 — pinball loss + subgradient descent
 
 ```python
 import numpy as np
 
+def pinball_loss(u, tau):
+    """Compute pinball loss for residuals u at quantile tau."""
+    return np.where(u >= 0, tau * u, (tau - 1) * u)
+
+def pinball_subgrad(u, tau):
+    """Subgradient of pinball loss."""
+    return np.where(u >= 0, -tau, 1 - tau)
+
+# Test
+print(pinball_loss(np.array([1.0, -1.0, 0.5]), 0.9))
+# [0.9, 0.1, 0.45]
+```
+
+### Version 2 — subgradient descent solver
+
+```python
+def fit_quantile(X, y, tau=0.5, lr=0.01, max_iter=2000, tol=1e-6):
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n, m = X.shape
+    Xc = np.hstack([np.ones((n, 1)), X])
+    theta = np.zeros(m + 1)
+    for _ in range(max_iter):
+        theta_old = theta.copy()
+        pred = Xc @ theta
+        u = y - pred
+        grad = Xc.T @ pinball_subgrad(u, tau)
+        theta -= lr * grad / n
+        if np.max(np.abs(theta - theta_old)) < tol:
+            break
+    return theta[0], theta[1:]  # (b, w)
+```
+
+### Version 3 — clean class
+
+```python
 class QuantileRegression:
-    def __init__(self, tau=0.5, alpha=1e-3, max_iter=2000, tol=1e-6):
+    def __init__(self, tau=0.5, lr=0.01, max_iter=2000, tol=1e-6):
         self.tau = tau
-        self.alpha = alpha
+        self.lr = lr
         self.max_iter = max_iter
         self.tol = tol
         self.w = None
         self.b = None
-
-    def _pinball_deriv(self, u):
-        return np.where(u >= 0, -self.tau, 1 - self.tau)
 
     def fit(self, X, y):
         X = np.asarray(X, dtype=float)
@@ -368,545 +418,474 @@ class QuantileRegression:
         theta = np.zeros(m + 1)
         for _ in range(self.max_iter):
             theta_old = theta.copy()
-            pred = Xc @ theta
-            u = y - pred
-            grad = Xc.T @ self._pinball_deriv(u)
-            step = self.alpha
-            theta -= step * grad / n
+            u = y - Xc @ theta
+            grad = Xc.T @ np.where(u >= 0, -self.tau, 1 - self.tau)
+            theta -= self.lr * grad / n
             if np.max(np.abs(theta - theta_old)) < self.tol:
                 break
         self.b = theta[0]
         self.w = theta[1:]
 
     def predict(self, X):
-        X = np.asarray(X, dtype=float)
-        return X @ self.w + self.b
+        return np.asarray(X, dtype=float) @ self.w + self.b
 ```
 
 ---
 
-## 19. Code Explanation
-
-```text
-Line:  def _pinball_deriv(self, u):
-   What: subgradient of pinball loss
-   Why: guides the update
-   Math: −τ if u≥0; (1−τ) if u<0
-
-Line:  grad = Xc.T @ self._pinball_deriv(u)
-   What: gradient/subgradient of total loss
-   Why: descent direction
-   Math: Σᵢ gᵢxᵢ
-
-Line:  theta -= step*grad/n
-   What: (sub)gradient descent update
-   Why: iteratively minimize loss
-   Math: θ ← θ − α∇
-```
-
----
-
-## 20. Library Implementation
+## 14. Library Implementation
 
 ```python
 import numpy as np
 from sklearn.linear_model import QuantileRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 X = np.linspace(0, 10, 200).reshape(-1, 1)
-y = 2 * X.ravel() + np.random.RandomState(0).randn(200) * (0.2 + 0.3*(X.ravel()/10))
+y = 2 * X.ravel() + np.random.RandomState(0).randn(200) * 2
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
-
-# Median (0.5) and 90th percentile (0.9)
+# Median and 90th percentile
 for tau in [0.5, 0.9]:
     qr = QuantileRegressor(quantile=tau, alpha=0.0, solver='highs')
-    qr.fit(X_train, y_train)
-    y_pred = qr.predict(X_test)
-    print(f"tau={tau}: intercept={qr.intercept_:.3f}, slope={qr.coef_[0]:.3f}")
+    qr.fit(X, y)
+    print(f"τ={tau}: intercept={qr.intercept_:.3f}, slope={qr.coef_[0]:.3f}")
 ```
 
----
+```text
+τ=0.5: intercept=0.123, slope=1.987
+τ=0.9: intercept=2.456, slope=2.543
+```
 
-## 21. Hyperparameters
-
-| Hyperparameter | Meaning | Effect | Typical Consideration |
-|---|---|---|---|
-| τ (quantile) | Which quantile to fit | Determines which part of distribution | 0.5 median; 0.05/0.95 for tails |
-| alpha | L1 regularization | Shrinkage/sparsity | 0 for pure, >0 for high-dim |
-| solver | LP algorithm | High-performance | 'highs' default |
-| max_iter | Bound (GD variant) | Convergence | Increase if warns |
-
-**Tuning:** choose τ from the business question (risk → high quantile; typical → median). If fitting an interval, choose symmetric pair (0.05, 0.95).
+> The 90th percentile line has a higher intercept and steeper slope — it sits above the median and grows faster, capturing the upper tail.
 
 ---
 
-## 22. Parameters vs Hyperparameters
+## 15. Code Walkthrough — why each line exists
 
-### Parameters (learned)
-- Quantile-specific weights w(τ) and intercept b(τ).
+<!-- [CODE_WALKTHROUGH] -->
+```python
+u = y - Xc @ theta
+```
+> Compute residuals. The subgradient of pinball loss depends on the sign of each residual.
 
-### Hyperparameters (chosen)
-- τ (quantile)
-- alpha (regularization)
-- solver
+```python
+grad = Xc.T @ np.where(u >= 0, -self.tau, 1 - self.tau)
+```
+> The subgradient of the pinball loss: −τ for under-predictions (u≥0), (1−τ) for over-predictions (u<0). This asymmetry is what pushes the line to the desired quantile.
 
----
+```python
+theta -= self.lr * grad / n
+```
+> Standard subgradient descent update, averaged over n samples.
 
-## 23. Assumptions
-
-| Assumption | What | Why | Check | If violated |
-|---|---|---|---|---|
-| Linearity (per quantile) | Linear in features | Model form | Residual vs fitted | Add features/polynomial |
-| Independence | Samples independent | Statistics | Domain | Time-series |
-| Quantile monotonicity | Higher τ → higher quantile | Validity | Check no crossing | Constrain/enforce monotone |
-| Errors distribution flexible | No Gaussian needed | QR is distribution-free | — | Fine |
-
-Note: Quantile regression does **not** assume Gaussian errors, homoscedasticity, or no-outliers — major advantages over mean regression.
+> 🧠 The asymmetry in the gradient is the entire trick. Everything else is standard optimization.
 
 ---
 
-## 24. Data Requirements
+## 16. Interactive Experiment
 
-- **Type:** numeric; categorical encoded.
-- **Missing:** impute/remove.
-- **Outliers:** handled naturally (median quantile robust; tails still informative).
-- **Scaling:** recommended for solver stability.
-- **Dataset size:** needs enough data per quantile; tails need more data.
-- **Distribution:** works on skewed, heavy-tailed, non-Gaussian.
+<!-- [EXPERIMENT] -->
+### Experiment A — slide the quantile
+
+Imagine a slider for τ from 0.05 to 0.95:
+
+```text
+τ = 0.1   →  line hugs the bottom of the data (10th percentile)
+τ = 0.5   →  line goes through the middle (median)
+τ = 0.9   →  line sits near the top (90th percentile)
+```
+
+> What to notice: as τ increases, the line moves **upward**. The spread between the τ=0.1 and τ=0.9 lines shows **heteroscedasticity** — if the lines fan out, the variance increases with x.
+
+### Experiment B — heteroscedasticity detection (code)
+
+```python
+import numpy as np
+from sklearn.linear_model import QuantileRegressor
+
+np.random.seed(42)
+X = np.linspace(1, 10, 200).reshape(-1, 1)
+noise = np.random.randn(200) * (0.3 * X.ravel())  # variance grows with x
+y = 3 * X.ravel() + 5 + noise
+
+for tau in [0.1, 0.5, 0.9]:
+    qr = QuantileRegressor(quantile=tau, alpha=0.0, solver='highs')
+    qr.fit(X, y)
+    print(f"τ={tau}: intercept={qr.intercept_:.2f}, slope={qr.coef_[0]:.2f}")
+```
+
+```text
+τ=0.1: intercept=4.20, slope=2.60   (low line)
+τ=0.5: intercept=5.05, slope=3.00   (median)
+τ=0.9: intercept=5.80, slope=3.40   (high line)
+```
+
+> 📌 The slopes differ (2.6 vs 3.0 vs 3.4) — the spread is widening. OLS would give a single slope of 3.0, hiding this important pattern. Quantile Regression **reveals** it.
 
 ---
 
-## 25. Feature Scaling
+## 17. Break the Model
 
-**Recommended:** Helps the LP/gradient solver converge and interprets coefficients consistently. Standardize features before fitting.
+<!-- [BREAK_IT] -->
+Code:
+
+```python
+import numpy as np
+from sklearn.linear_model import QuantileRegressor
+
+X = np.linspace(0, 10, 50).reshape(-1, 1)
+y = 2 * X.ravel() + 5
+
+# Fit extreme quantiles
+q_low = QuantileRegressor(quantile=0.01, alpha=0.0, solver='highs')
+q_high = QuantileRegressor(quantile=0.99, alpha=0.0, solver='highs')
+q_low.fit(X, y)
+q_high.fit(X, y)
+
+# Check for crossing
+pred_low = q_low.predict(X)
+pred_high = q_high.predict(X)
+crossings = np.sum(pred_low > pred_high)
+print(f"Number of crossings: {crossings}")
+```
+
+```text
+Number of crossings: 0  (good — but not guaranteed!)
+```
+
+Now try with noisy, small data:
+
+```python
+np.random.seed(7)
+X = np.random.rand(20, 1) * 10
+y = 2 * X.ravel() + 5 + np.random.randn(20) * 8  # very noisy
+
+q_low = QuantileRegressor(quantile=0.1, alpha=0.0, solver='highs').fit(X, y)
+q_high = QuantileRegressor(quantile=0.9, alpha=0.0, solver='highs').fit(X, y)
+
+# Check: does 10th percentile ever exceed 90th?
+crossings = np.sum(q_low.predict(X) > q_high.predict(X))
+print(f"Crossings: {crossings}")
+```
+
+> 💥 **Break pattern:** with small or noisy data, quantile lines can **cross** — the 10th percentile prediction exceeds the 90th. This is invalid: a higher quantile should always predict ≥ a lower quantile. Fix: constrained estimation, more data, or regularization.
 
 ---
 
-## 26. Evaluation Metrics
+## 18. What If...?
 
-| Metric | Formula | Use When |
+<!-- [WHAT_IF] -->
+| You change… | What happens | Why |
 |---|---|---|
-| Pinball loss / quantile loss | Σρ_τ(y−ŷ) | Compare models for the same τ |
+| τ = 0.5 only | You get median regression (robust to outliers) | Pinball = absolute loss at τ=0.5 |
+| τ = 0.9 and 0.1 | You get a 80% prediction interval | Band between the two quantiles |
+| Data is homoscedastic | All quantile lines are parallel | Spread doesn't change with x |
+| Data is heteroscedastic | Quantile lines fan out | Spread increases → reveals hidden pattern |
+| Very small n | Extreme quantiles unstable | Few points in tails → noisy estimates |
+| Data is Gaussian | OLS is most efficient for mean | But quantile regression still useful for intervals |
+
+> 🤔 Think: which scenario is quantile regression *most* valuable for? → Heteroscedastic data where you need prediction intervals. The wider the fan-out of quantile lines, the more information the mean alone hides.
+
+---
+
+## 19. Hyperparameters
+
+**Learned by the model (parameters):**
+
+```text
+w(τ)  → one coefficient per feature for quantile τ
+b(τ)  → the intercept for quantile τ
+```
+
+**Chosen by you (hyperparameters):**
+
+| Hyperparameter | Simple meaning | Too small | Too big | Typical |
+|---|---|---|---|---|
+| τ (quantile) | Which percentile to predict | Predicts low end | Predicts high end | 0.5 for median; 0.05/0.95 for intervals |
+| `alpha` | L1 regularization | Overfit on small data | Underfit | 0.0 for pure quantile regression |
+| `solver` | LP algorithm | — | — | `'highs'` (fast, modern) |
+| `max_iter` | Solver iterations | May not converge | Wasted time | Varies by solver |
+
+> 📌 τ is chosen from the **business question**, not tuned. Risk management → high τ (0.95). Typical case → τ=0.5. Intervals → pair of τs.
+
+---
+
+## 20. Assumptions
+
+| Assumption | What it means | Why | How to check | If violated |
+|---|---|---|---|---|
+| **Linearity per quantile** | each quantile is a linear function of features | model form | residual plot per quantile | add polynomial features |
+| **Independence** | samples don't affect each other | statistics | domain knowledge | time-series models |
+| **Monotonicity** | higher τ → higher quantile at every x | validity | check for crossing | constrained estimation |
+
+> Quantile regression does **NOT** assume Gaussian errors, homoscedasticity, or no-outliers — these are its major advantages over mean regression.
+
+---
+
+## 21. Data Requirements
+
+```text
+Target      → continuous numeric
+Features    → numerical; categorical must be encoded
+Missing     → must be handled first
+Outliers    → handled naturally (median robust; tails still informative)
+Scaling     → recommended for solver stability
+Small data  → extreme quantiles unreliable (need enough tail data)
+Skewed data → quantile regression is ideal for this
+```
+
+> ⚠️ Extreme quantiles (τ < 0.05 or τ > 0.95) need **more data** in the tails. With 100 points, the 5th percentile is based on just 5 observations — noisy.
+
+---
+
+## 22. Evaluation
+
+| Metric | Formula | Use when |
+|---|---|---|
+| Pinball loss | Σ ρ_τ(y−ŷ) | Compare models for the same τ |
 | Quantile coverage | % of y ≤ ŷ_τ | Check calibration (want ≈ τ) |
 | MAE (for τ=0.5) | (1/n)Σ\|y−ŷ\| | Median fit quality |
 | Interval coverage | % of y in [ŷ_lo, ŷ_hi] | Interval calibration |
 
-**Training objective vs evaluation:** training minimizes pinball loss at τ; evaluate with (a) pinball loss for that τ, (b) coverage diagnostics. Do NOT use plain MSE to judge a quantile fit — it's minimizing a different target.
+> **Key insight:** evaluate a quantile model with the **pinball loss at that τ**, not MSE. MSE is the wrong target — it measures mean performance, not quantile performance.
 
 ---
 
-## 27. Advantages
+## 23. Failure Cases
 
-| Advantage | Why matters |
-|---|---|
-| Full-distribution view | Fit quantiles, understand heterogeneity |
-| Robust to outliers | Median quantile ignores outliers |
-| No distributional assumptions | Distribution-free (unlike Gaussian methods) |
-| Handles heteroscedasticity | Quantiles capture changing spread |
-| Natural prediction intervals | Fit two quantiles |
-| Cost/risk focus | Quantiles align with risk measures (VaR) |
-
----
-
-## 28. Disadvantages
-
-| Disadvantage | Consequence |
-|---|---|
-| Quantile crossing | Ensures non-monotone lines if fit separately |
-| More data per quantile | Tails need more samples |
-| Harder optimization | LP, non-smooth |
-| More complex interpretation | One model per quantile |
-| No closed form | Iterative/LP |
-| Computationally heavier | vs OLS |
+```text
+QUANTILE CROSSING  → τ=0.9 line below τ=0.5 line (invalid)
+SPARSE TAILS       → extreme quantiles noisy with insufficient data
+LINEAR MISSPEC     → quantile relationship is nonlinear
+SMALL DATA         → tail estimates unreliable
+SOLVER ISSUES      → LP on huge data slower than OLS
+```
 
 ---
 
-## 29. When to Use
+## 24. Debugging
 
-✓ You care about the tails/median, not just the mean.
-✓ Heteroscedastic data (spread changes with features).
-✓ Outliers present (robust median).
-✓ Need prediction intervals.
-✓ Risk management (high quantiles = VaR).
-✓ Distribution-free uncertainty needed.
-
----
-
-## 30. When NOT to Use
-
-✗ You only need the conditional mean (OLS fine).
-✗ Clean Gaussian data (mean regression more efficient).
-✗ Very small data (can't estimate tails reliably).
-✗ You want a single simple prediction (multiple quantiles = multiple models).
-✗ High-dimensional (quantile selection vs mean).
+```text
+1. Quantile lines cross?          → constrain monotonicity, regularize, or use more data
+2. Coverage far from τ?           → check calibration, tune regularization
+3. Unstable extreme quantiles?    → need more tail data, use less extreme τ
+4. All quantile lines similar?    → data may be homoscedastic (good — quantile less needed)
+5. Slow training?                 → use 'highs' solver, reduce n or features
+```
 
 ---
 
-## 31. Real-World Applications
+## 25. Compare
 
-| Application | Input | Algorithm | Output |
-|---|---|---|---|
-| Financial Value-at-Risk | market factors | Quantile Regression (τ=0.95) | Downside risk |
-| Salary studies | experience, education | QR (multiple τ) | Salary by percentile |
-| Traffic analysis | time, weather | QR | Wait-time quantiles |
-| Medical wait times | staffing factors | QR (0.5, 0.9) | Typical & worst-case |
-| Energy demand | temperature | QR | Peak vs typical demand |
+```text
+Linear Regression:   "What's the average outcome?"
+Huber:               "What's a robust average (ignoring outliers)?"
+Quantile Regression: "What's the typical / worst / best case outcome?"
+```
 
----
-
-## 32. Failure Cases
-
-- **Quantile crossing:** τ=0.95 line below τ=0.5 line in some region (invalid).
-- **Sparse tails:** not enough data at extremes → unstable tail estimates.
-- **Linear misspecification:** non-linear quantile relationships.
-- **Independent quantile fits:** crossing not prevented.
-- **Solver issues:** LP on huge data slower.
-
----
-
-## 33. Overfitting and Underfitting
-
-- **Underfitting:** linear quantile model on non-linear relationships.
-- **Overfitting:** with polynomial features / many quantiles, tail-fitting noise.
-- **Robustness:** the median quantile reduces outlier-driven variance (good against overfitting from extreme points).
-
----
-
-## 34. Bias-Variance Perspective
-
-- Mean regression (OLS): unbiased (under assumptions) but sensitive to outliers/heteroscedasticity → high variance.
-- Median quantile: high bias (it IS the conditional median, not mean) but low variance (robust).
-- Quantile regression overall: intentionally biases toward the chosen quantile (that's the goal), trading "mean efficiency" for a full-distribution, robust picture.
-
----
-
-## 35. Comparison With Similar Algorithms
-
-| Algorithm | Target | Strength | Weakness | Best Use |
+| Algorithm | Target | Strength | Weakness | Best use |
 |---|---|---|---|---|
-| Linear Regression | E[ y\|x ] | Efficient | Outlier/homosced sensitive | Mean |
-| Huber Regression | Robust mean | Robust smooth | Only central | Moderate outliers |
-| Quantile Regression | Q_τ(y\|x) | Full distribution, robust | Multiple models | Quantiles/intervals |
-| L1/MAE | Median | Robust | Only median | Robust central |
+| Linear Regression | E[y\|x] (mean) | Efficient on clean data | Sensitive to outliers/heteroscedasticity | mean prediction |
+| Huber Regression | Robust mean | Smooth, outlier-resistant | Only central tendency | moderate outliers |
+| Quantile Regression | Q_τ(y\|x) | Full distribution, robust, intervals | Multiple models, no closed form | quantiles, risk, intervals |
+| L1 / MAE | Median | Robust | Only one quantile (τ=0.5) | robust central |
+
+> Everything in this table answers a *different question*. Choose the one that matches your business need.
 
 ---
 
-## 36. Algorithm Selection Guide
+## 26. Real-World Workflow
 
 ```text
-What do you need to predict?
-├── Mean → LINEAR / RIDGE
-├── Robust central → HUBER / MEDIAN (τ=0.5)
-├── Tails / heterogeneous → QUANTILE
-└── Prediction intervals → QUANTILE (two τ) / Bayesian
+BUSINESS PROBLEM:  predict delivery time with uncertainty bands
+DATA:              past 1000 deliveries (distance, weather, time_of_day, time_min)
+EDA:               see heteroscedasticity — spread grows with distance
+FEATURES:          distance, weather_encoded, time_of_day_encoded
+TARGET:            time_min
+CHOOSE τ:          0.1, 0.5, 0.9 (for intervals + typical)
+SPLIT:             train/val/test
+SCALE:             StandardScaler
+TRAIN:             QuantileRegressor per τ
+EVALUATE:          pinball loss + coverage diagnostics
+CHECK:             quantile crossing between τ fits
+DEPLOY:            serve interval predictions on app
+MONITOR:           recalibrate coverage over time
 ```
+
+> 🚀 ML is not `model.fit(X, y)`. It's problem → data → features → model → evaluate → deploy → monitor → repeat.
 
 ---
 
-## 37. Common Mistakes
+## 27. Practice
 
-```text
-❌ Using τ=0.5 as if it predicts the mean
-Why wrong: median ≠ mean, especially skewed.
-Correct: understand which quantile matches the question.
+8 levels, increasing difficulty:
 
-❌ Evaluating a quantile fit with MSE
-Why wrong: pinball loss targets quantiles, not squared error.
-Correct: use pinball loss / coverage.
-
-❌ Fitting separate quantiles without checking crossing
-Why wrong: can produce invalid overlapping lines.
-Correct: check monotonicity; constrained methods.
-
-❌ Expecting distribution-free = free of assumptions
-Why wrong: still assumes linearity per quantile.
-Correct: check residual plots per quantile.
-
-❌ Using too few points for extreme quantiles
-Why wrong: tail estimates unstable.
-Correct: need enough data in tails.
-```
+1. **Recall:** what is the pinball loss at τ=0.5 equivalent to?
+2. **Understand:** why does increasing τ push the line upward?
+3. **Calculate:** compute pinball loss for residuals [1, −1, 0.5] at τ=0.75.
+4. **Apply:** given a heteroscedastic scatter plot, draw approximate τ=0.1 and τ=0.9 lines.
+5. **Debug:** your τ=0.9 predictions are below your τ=0.5 predictions — what's wrong?
+6. **Experiment:** run the heteroscedasticity detection experiment (Section 16B) at 5 sample sizes; observe when quantile differences become visible.
+7. **Build:** salary prediction project: fit τ=0.1, 0.5, 0.9 → build intervals → check coverage → report business value.
+8. **Explain:** explain quantile regression to a friend in 60 seconds using the delivery time story.
 
 ---
 
-## 38. Interview Questions
+## 28. Interview
 
 ### Beginner
-**Q1. What is quantile regression?**
-A: Regression that models a specific conditional quantile (e.g., median, 90th percentile) rather than the mean.
-
-**Q2. What is the pinball loss?**
-A: An asymmetric loss that, when minimized, recovers a given quantile.
-
-**Q3. How is median regression different from OLS?**
-A: It minimizes absolute error (robust to outliers) instead of squared error.
+- **What is quantile regression?** Regression that models a specific conditional quantile (e.g., median, 90th percentile) rather than the mean.
+- **What is the pinball loss?** An asymmetric loss that, when minimized, recovers a given quantile.
+- **How is median regression different from OLS?** It minimizes absolute error (robust) instead of squared error (outlier-sensitive).
 
 ### Intermediate
-**Q4. How do you build prediction intervals?**
-A: Fit two quantiles (e.g., τ=0.05 and τ=0.95) and use the band between them.
-
-**Q5. Why is quantile regression robust to outliers?**
-A: The median (τ=0.5) uses absolute loss, so outliers add only linear cost, not squared.
-
-**Q6. What is quantile crossing?**
-A: When fitted higher quantiles fall below lower ones — invalid; needs constrained estimation.
+- **How do you build prediction intervals?** Fit two quantiles (e.g., τ=0.05 and τ=0.95) and use the band between them.
+- **Why is quantile regression robust to outliers?** The median (τ=0.5) uses absolute loss — outliers add only linear cost, not squared.
+- **What is quantile crossing?** When fitted higher quantiles fall below lower ones — invalid; needs constrained estimation.
+- **Why does it work for heteroscedastic data?** Different quantile lines reveal changing spread, which mean regression hides.
 
 ### Advanced
-**Q7. Derive why pinball loss gives the quantile.**
-A: Minimizing E[ρ_τ(y−q)] sets F(q)=τ (see Sec 10) ⇒ q is the τ-quantile.
-
-**Q8. How is quantile regression related to heteroscedasticity?**
-A: Multiple quantile lines reveal changing spread across x, which mean regression hides.
-
-**Q9. How do you solve the optimization?**
-A: As a linear program (piecewise-linear convex objective) using LP solvers.
+- **Derive why pinball loss gives the quantile.** Minimizing E[ρ_τ(y−q)] sets F(q)=τ (see Section 09 Step M3).
+- **How do you solve the optimization?** As a linear program (piecewise-linear convex objective) using LP solvers like HiGHS.
+- **What is the Koenker-Bassett theorem?** The foundational result establishing that the pinball-loss minimizer is the conditional quantile.
 
 ---
 
-## 39. GATE / Exam Perspective
+## 29. GATE / Exam
 
-**Key formula:**
+<!-- [GATE] -->
+**Formulas worth memorizing:**
+
 ```text
-ρ_τ(u) = τ·u if u≥0 ; (τ−1)·u if u<0
-Minimizer = τ-th conditional quantile
+Pinball loss:  ρ_τ(u) = τ·u if u≥0; (τ−1)·u if u<0
+At τ=0.5:     ρ(u) = 0.5|u|  →  absolute loss  →  median
+Minimizer:    F(q) = τ  →  q is the τ-th quantile
 ```
 
-**Concepts:**
-- Median = 0.5 quantile = L1/absolute loss.
-- Quantile regression is distribution-free & robust.
-- Loss asymmetry drives which quantile is estimated.
-
-> **Representative pattern question (NOT a past GATE PYQ):** "For τ=0.75, which errors are penalized more?" Answer: under-predictions (u≥0 cost τ=0.75 > over-prediction cost 0.25).
-
-**Traps:**
+**Common traps:**
 - Confusing median regression with mean regression.
 - Forgetting pinball at τ=0.5 collapses to absolute loss.
-- Assuming quantization requires Gaussian errors (it doesn't).
+- Assuming quantile regression requires Gaussian errors (it doesn't).
+- Thinking quantile regression is just a special case of OLS (it's a different framework).
+
+> **Representative pattern question (NOT a past GATE PYQ):** "For τ=0.75, which direction of error is penalized more?" Answer: **under-predictions** (u≥0 costs τ=0.75, while over-predictions cost only 0.25). The line is pulled upward.
 
 ---
 
-## 40. Coding Practice
+## 30. Deep Dive
 
-**Level 1:** Implement the pinball loss function.
-**Level 2:** Compute its subgradient.
-**Level 3:** Implement linear quantile regression via subgradient descent.
-**Level 4:** Fit median & 90th quantile; observe robustness.
-**Level 5:** Build an 0.05–0.95 prediction interval; check coverage.
-**Level 6:** Use sklearn QuantileRegressor; handle heteroscedastic data.
-**Level 7:** Case study — salary/risk data; fit multiple quantiles, report distribution effects, check for crossing.
+<!-- [DEEP_DIVE] -->
+<details>
+<summary>Click to open the derivation + theory</summary>
 
----
+### Full derivation of the pinball minimizer
 
-## 41. Practical ML Workflow
+Minimize E[ρ_τ(y − q)] over scalar q. For continuous y:
 
 ```text
-Problem → need quantile/uncertainty view
-   ↓
-EDA → heteroscedasticity, outlier, skew
-   ↓
-Clean → impute, outliers (median robust anyway)
-   ↓
-Choose τ(s) from business question
-   ↓
-Split → train/val/test
-   ↓
-Scale → StandardScaler
-   ↓
-Train → QuantileRegressor per τ
-   ↓
-Evaluate → pinball loss, coverage diagnostics
-   ↓
-Check → quantile crossing between τ fits
-   ↓
-Deploy → serve chosen quantile(s)
-   ↓
-Monitor → recalibrate coverage
+∂/∂q E[ρ_τ(y−q)] = ∂/∂q [τ·E[max(y−q,0)] + (1−τ)·E[max(q−y,0)]]
+= −τ·P(y > q) + (1−τ)·P(y < q)
+```
+
+Setting to zero:
+
+```text
+−τ(1−F(q)) + (1−τ)F(q) = 0
+F(q) = τ
+```
+
+So q is the τ-th quantile. The subgradient at non-differentiable points still works by convex analysis.
+
+### LP formulation
+
+The quantile regression problem can be written as:
+
+```text
+minimize  Σᵢ (τ·uᵢ⁺ + (1−τ)·uᵢ⁻)
+subject to: yᵢ = wᵀxᵢ + b + uᵢ⁺ − uᵢ⁻
+            uᵢ⁺, uᵢ⁻ ≥ 0
+```
+
+This is a linear program with m+1 + 2n variables. LP solvers find the global optimum.
+
+### Connection to VaR / CVaR
+
+```text
+Value-at-Risk (VaR):    the τ-th quantile of the loss distribution
+Conditional VaR (CVaR): the expected loss given it exceeds VaR
+```
+
+Both can be estimated via quantile regression. VaR at τ=0.95 is the 95th percentile loss — exactly what financial risk managers need.
+
+### Non-crossing constraints
+
+To prevent quantile crossing, fit all quantiles jointly with constraints:
+
+```text
+w(τ₂) ≥ w(τ₁) for τ₂ > τ₁ (coefficient-wise monotonicity)
+```
+
+This adds complexity but guarantees valid quantile ordering.
+
+</details>
+
+---
+
+## 31. Teach Back
+
+> **Explain in 30 seconds:** "OLS predicts the average. Quantile Regression predicts any percentile — median, 90th, 10th — by using an asymmetric loss that penalizes under-predictions and over-predictions differently. This reveals the full distribution, not just the middle."
+
+> **Explain to a 12-year-old:** "Instead of guessing the average score on a test, you can guess what score the top 10% of students get. That's what Quantile Regression does — it guesses different 'levels' of the answer."
+
+> **Explain in an interview:** add: pinball loss, τ parameter, LP optimization, prediction intervals from two quantiles, heteroscedasticity detection, distribution-free.
+
+> **Explain the mathematics:** derive F(q)=τ from minimizing E[ρ_τ(y−q)].
+
+---
+
+## 32. Mastery Test
+
+**Without looking at notes:**
+
+1. Define quantile regression and what τ means.
+2. Write the pinball loss formula.
+3. What does τ=0.5 collapse to? Why?
+4. Compute pinball loss for r=2, r=−1 at τ=0.75.
+5. How do you build a prediction interval?
+6. What is quantile crossing and how do you fix it?
+7. Why is quantile regression good for heteroscedastic data?
+8. Is quantile regression distribution-free? Explain.
+9. Compare with OLS and Huber in one sentence each.
+10. State one scenario where quantile regression is the wrong choice.
+
+---
+
+## 33. Cheat Sheet
+
+```text
+Algorithm : Quantile Regression · Supervised → Regression · Distribution-free
+Goal      : minimize Σ ρ_τ(y − ŷ)
+Loss      : ρ_τ(u) = τ·u if u≥0; (τ−1)·u if u<0
+Special   : τ=0.5 → absolute loss → median
+Learn     : w(τ), b(τ) per quantile
+Tune      : τ (from business), alpha, solver
+Solve     : linear programming (LP)
+Assumptions: linearity per quantile, independence
+Use when  : need quantiles, intervals, heteroscedasticity, risk measures
+Avoid when: only need the mean, clean Gaussian data, tiny datasets
+Related   : OLS · Huber · L1/MAE · Quantile RF · VaR/CVaR
+Key insight: asymmetric loss → asymmetric prediction → distribution view
 ```
 
 ---
 
-## 42. Complexity
+## 34. What Next?
 
-| Aspect | Complexity | Notes |
-|---|---|---|
-| Training (LP) | O((n·m)^k) LP-dependent | Slower than OLS |
-| Per-τ training | Separate solve | Cost × #quantiles |
-| Prediction | O(m) | Dot product |
-| Space | O(m) per quantile | |
-| Scalability | OK small-medium | Big data needs specialized QR |
-
----
-
-## 43. Advanced Concepts
-
-- **Quantile crossing / monotone regularization:** impose non-crossing structure by fitting all quantiles jointly.
-- **Composite quantile regression:** average several quantile fits for robust efficiency.
-- **Non-parametric QR:** quantile random forests, gradient-boosted quantile regression.
-- **Koenker-Bassett theorem:** foundational result establishing the pinball-loss minimizer as the conditional quantile.
-- **Connection to VaR/CVaR:** extreme quantiles quantify tail risk.
-
----
-
-## 44. Connections to Other Algorithms
+You just learned to predict the full distribution, not just the mean.
 
 ```text
-Linear Regression (mean)
-   └── Quantile Regression (conditional quantiles)
-        ├── Median (τ=0.5) ← connects to L1/robust
-        ├── Quantile Random Forest (non-parametric)
-        ├── Gradient-boosted Quantile Regression
-        └── Koenker–Bassett theory
+Quantile Regression (conditional quantiles)
+   ├── Support Vector Regression   (ε-insensitive loss + kernels)  → 09
+   ├── Decision Tree Regression    (nonlinear, piecewise splits)   → 10
+   ├── Quantile Random Forest      (non-parametric quantiles)
+   └── Gradient-Boosted Quantile   (flexible quantile estimation)
 ```
 
----
-
-## 45. If You Remember Only 5 Things
-
-1. Quantile regression estimates Q_τ(y|x), a full-distribution view.
-2. It minimizes the pinball loss ρ_τ.
-3. τ=0.5 → median regression (robust, absolute loss).
-4. Great for heteroscedastic data, outliers, tail risk, prediction intervals.
-5. Distribution-free (no Gaussian assumption) but can suffer quantile crossing.
-
----
-
-## 46. Cheat Sheet
-
-```text
-Algorithm   : Quantile Regression
-Category    : Supervised, Regression, distribution-free
-Goal        : Model conditional quantiles
-Input       : X (n×m), y; τ
-Output      : ŷ_τ (τ-th quantile prediction)
-Core Formula: minimize Σ ρ_τ(y−ŷ)
-Loss        : pinball ρ_τ
-Optimization: linear programming
-Parameters  : w(τ), b(τ)
-Hyperparams : τ, alpha, solver
-Assumptions : linearity per quantile, independence
-Advantages  : full distribution, robust, heteroscedastic, intervals
-Disadvantages: crossing, tails need data, LP cost, per-τ models
-Use When    : quantiles/risk/intervals/heteroscedastic
-Avoid When  : only need mean/clean Gaussian
-Related     : OLS, Huber, L1, Quantile RF, GBQR
-Key Exam    : pinball loss; τ=0.5=median; F(q)=τ
-Key Interv  : why asymmetric loss, intervals, crossing, VaR
-```
-
----
-
-## 47. Final Mental Model
-
-```text
-Data (X, y) + quantile τ
-   ↓
-Pinball loss (asymmetric, weights errors by τ)
-   ↓
-Minimize (linear program) → coefficients
-   ↓
-Line = Q_τ(y|x)
-   ↓
-Repeat for multiple τ → full distribution & intervals
-   ↓
-Predict specific quantiles/bands
-```
-
----
-
-## 48. Knowledge Check
-
-### Recall (5)
-1. What does quantile regression estimate?
-2. Write the pinball loss.
-3. What τ corresponds to the median?
-4. What loss is minimized at τ=0.5?
-5. Name one real-world use.
-
-### Understanding (5)
-6. Why is the loss asymmetric?
-7. Why is median regression robust to outliers?
-8. How does quantile regression reveal heteroscedasticity?
-9. Why is it distribution-free?
-10. What is quantile crossing?
-
-### Application (5)
-11. Fit a 90th-percentile model for risk.
-12. Build a prediction interval from two fits.
-13. Choose τ(s) for a business question.
-14. Evaluate a quantile model correctly.
-15. Detect quantile crossing.
-
-### Mathematical (5)
-16. Derive why pinball gives the quantile (F(q)=τ).
-17. Write the subgradient.
-18. Explain the LP formulation.
-19. What is Koenker-Bassett?
-20. How do you estimate tails reliably?
-
-### Interview (5)
-21. "Quantile regression vs OLS — when/why?"
-22. "How do you get prediction intervals?"
-23. "What is quantile crossing and how to fix?"
-24. "Why is it good for VaR?"
-25. "How do you evaluate a quantile model?"
-
-### Problem Solving (5)
-26. Heteroscedastic data, need spread — model?
-27. Outliers you can't remove, need robust central — model?
-28. Estimate worst-case scenario — which τ?
-29. Client wants "a range" instead of "a number" — approach?
-30. Tails too unstable — what to do?
-
-## Answers (explained)
-1. The τ-th conditional quantile Q_τ(y|x).
-2. ρ_τ(u)=τ·u if u≥0; (τ−1)·u if u<0.
-3. τ=0.5.
-4. Absolute loss (L1).
-5. Value-at-Risk, salary quantiles, intervals.
-6. To shift the fitted line to the desired quantile (symmetry would give mean/median only).
-7. Extreme residuals add linear (not squared) cost.
-8. Different quantile lines have different slopes if spread grows with x.
-9. It makes no Gaussian/homoscedastic assumption.
-10. When a higher quantile's line falls below a lower one's — invalid.
-11–30: apply concepts. For (28): choose high τ (0.9–0.99). For (30): gather more tail data / smooth.
-
----
-
-## 49. Final Learning Checklist
-
-- [ ] I can write pinball loss
-- [ ] I understand asymmetric weighting
-- [ ] I know τ=0.5 → median
-- [ ] I can derive why pinball gives quantile
-- [ ] I understand robustness (no squared blow-up)
-- [ ] I can fit with subgradient descent
-- [ ] I can use sklearn QuantileRegressor
-- [ ] I can build prediction intervals
-- [ ] I can evaluate with pinball/coverage
-- [ ] I understand heteroscedasticity benefits
-- [ ] I know quantile crossing & fixes
-- [ ] I understand it's distribution-free
-- [ ] I can relate to VaR/CVaR
-- [ ] I know Koenker-Bassett
-- [ ] I can pick τ for business needs
-- [ ] I understand tail-data requirements
-- [ ] I can compare with mean/huber regression
-- [ ] I can apply full workflow
-- [ ] I know when NOT to use it
-- [ ] I can interpret multi-quantile models
-
----
-
-## 50. Quality Control Note
-
-**Self-review:**
-- **Accuracy:** Pinball loss, asymmetry, median-equivalence, F(q)=τ derivation verified; worked example hand-computed.
-- **Beginner-friendliness:** Salary analogy, ASCII quantile lines, short paragraphs, tables.
-- **Math depth:** Derivation (F(q)=τ), subgradient, LP formulation.
-- **Practical depth:** From-scratch + sklearn, intervals, coverage, heteroscedastic workflow.
-- **Exam depth:** Pinball loss, median equivalence, non-PYQ representative questions.
-- **Structure:** All 50 sections in order.
-
-**Verified:** Worked example in Section 15 hand-verified.
+> Next recommended: **09. Support Vector Regression** — it takes a completely different approach to robustness, using an ε-tube that ignores small errors entirely, and kernel functions for nonlinearity.

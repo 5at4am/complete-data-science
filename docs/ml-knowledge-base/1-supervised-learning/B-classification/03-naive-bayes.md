@@ -1,1199 +1,1027 @@
 # 03. Naive Bayes
 
+<!-- [STORY] -->
 > Difficulty: ⭐⭐☆☆☆ | Importance: ⭐⭐⭐⭐⭐
 > Math Required: ⭐⭐⭐☆☆ | Coding Required: ⭐⭐☆☆☆
-> GATE Relevance: ⭐⭐⭐⭐⭐ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+> GATE: ⭐⭐⭐⭐⭐ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+>
+> Journey: **story → guess → Bayes rule → priors/likelihoods → the naive twist → smoothing → variants → code → break → when to use → deep dive.**
+> Level 1 = sections 01–18. Level 2 = 19–26. Level 3 = 27–34.
 
 ---
 
-## 01. Algorithm Overview
+## 01. Start Here
 
-| Property | Value |
-|---|---|
-| Algorithm Name | Naive Bayes |
-| Category | Supervised Learning |
-| Type | Classification (also text classification) |
-| Parametric / Non-parametric | Parametric (estimates distribution parameters) |
-| Generative / Discriminative | Generative |
-| Main Objective | Compute P(class \| features) using Bayes' theorem with conditional independence assumption |
-| Input | Feature matrix X (n × d), labels y |
-| Output | Posterior probability P(c \| x) and class label |
-| Core Idea | Apply Bayes' theorem and assume all features are independent given the class |
-| Typical Use Cases | Spam filtering, text classification, sentiment analysis, medical diagnosis |
+Naive Bayes is the **probability-first classifier** — it turns classification into "which class makes this evidence most likely?" It's the engine behind the spam filters on your phone.
 
----
+By the end you will be able to:
 
-## 02. One-Line Definition
+- apply Bayes' theorem to a classification problem,
+- compute priors and likelihoods by hand,
+- explain the "naive" assumption and why it *works anyway*,
+- use log-probabilities and Laplace smoothing,
+- pick the right variant (Gaussian / Multinomial / Bernoulli),
+- code it from scratch and with sklearn,
+- and break it on purpose.
 
-### Beginner Definition
-Naive Bayes calculates the probability that something belongs to a class by multiplying the evidence it gets from each feature, assuming each feature votes independently.
-
-### Technical Definition
-Naive Bayes is a generative classifier based on Bayes' theorem that computes the posterior probability P(c \| x) ∝ P(c)·Πᵢ P(xᵢ \| c), using the "naive" conditional independence assumption that features are independent given the class label.
+> One tiny math rule powers it all. Let's find it.
 
 ---
 
-## 03. Intuition
+## 02. The Problem
 
-Imagine you're at the beach trying to decide if tomorrow will be sunny or rainy. You gather pieces of evidence:
-- The sky is clear (good evidence it will be sunny)
-- Birds are flying high (sunny)
-- Humidity is high (rainy)
+Aman is the host of a radio quiz show where listeners send in SMS answers. Annoyingly, some messages are **junk/spam** ("FREE credit, claim now") and some are **real entries** ("Kohli's century, answer is 200").
 
-You combine all this evidence, but you treat each piece independently — as if each clue is a separate vote. Reinforcing votes push you to "sunny"; contradicting votes push toward "rainy." Eventually, the evidence that "wins" determines your prediction.
+He tags 5 messages and gives you their features:
 
-Naive Bayes does exactly this:
-1. Start with the **prior probability** of each class (how common each class is in your dataset).
-2. For each feature, look at how likely that feature value is **given each class**.
-3. Multiply everything together.
-4. Pick the class with the highest product.
+| Message | Contains "FREE"/"WIN" | Contains "answer" | Real entry / Spam |
+|---|---|---|---|
+| "FREE CASH for you" | Yes | No | Spam |
+| "WIN a new phone" | Yes | No | Spam |
+| "the answer is 200" | No | Yes | Real |
+| "FREE WIN winner" | Yes | No | Spam |
+| "answer please reply" | No | Yes | Real |
 
-The "naive" part: it assumes each feature contributes independently — like asking 5 friends for opinions separately rather than as a group discussion.
+A new message arrives:
 
----
+> **"WIN the FREE answer guide"**  → Contains "FREE/WIN": **Yes** · Contains "answer": **Yes**
 
-## 04. Problem It Solves
+<!-- [QUESTION] -->
+**Is it Real or Spam?**
 
-**Problem:** Given features and labels, compute the probability that a new sample belongs to each class — even when features may interact in unknown ways.
+Think: it has a spammy word ("WIN/FREE") *and* a real word ("answer"). What do you predict?
 
-**Example:** You have 1000 emails labeled "spam" and "not spam." Each email is represented by word counts. A new email arrives. Which class is it more likely to belong to?
+**Your guess: Spam ☐   Real ☐**
 
-**Why useful:**
-- Very fast training and prediction (single pass over data).
-- Works extremely well for high-dimensional data like text (thousands of features).
-- Works with remarkably little data.
-- Naturally produces probability estimates.
+> 📌 Keep your reasoning visible — you probably weighed *both* clues. Naive Bayes does exactly that, mathematically.
 
 ---
 
-## 05. Where It Fits in Machine Learning
+## 03. Let's Think
 
-```
-Machine Learning
-├── Supervised Learning
-│   ├── Classification
-│   │   ├── Generative Classifiers
-│   │   │   ├── Naive Bayes  ◄── YOU ARE HERE
-│   │   │   ├── Gaussian Discriminant Analysis
-│   │   │   └── Hidden Markov Models (sequential)
-│   │   ├── Discriminative Classifiers
-│   │   │   ├── Logistic Regression
-│   │   │   ├── SVM
-│   │   │   └── Neural Networks
-│   │   └── Instance-Based (KNN)
-├── Unsupervised Learning
-└── ...
+Look at the data as **clues** instead of rows:
+
+```text
+"FREE/WIN" present  →  4 messages:  3 Spam, 1 Real
+"answer" present    →  3 messages:  2 Real, 1 Spam
 ```
 
-Naive Bayes is one of the few **generative** classifiers in common use — it models how the data was generated (P(x \| c)) rather than just the decision boundary (P(c \| x)).
+<!-- [THINK_ABOUT_IT] -->
+🤔 What does each clue suggest by itself?
+
+> "FREE/WIN" leans **Spam** (3 of 4). "answer" leans **Real** (2 of 3).
+
+Now the new message has *both* clues. It's pulling in two directions.
+
+> The twist: naive Bayes **multiplies** the evidence from both clues together, as if each clue votes independently, then picks whichever class gets the bigger combined score.
 
 ---
 
-## 06. Important Terminology
+## 04. Intuition
 
-| Term | Simple Meaning | Technical Meaning |
+Imagine a doctor with a hunch and a test result. She starts from a **prior belief** (how common the disease is), then **updates** with the test's likelihood. Bayes' rule is the formal way to do that update — it flips "the probability of this test given the disease" into "the probability of the disease given this test."
+
+Naive Bayes uses the same idea for classification:
+
+1. Start with the **prior**: how common is each class?
+2. For each feature, look at how likely this value is **given each class**.
+3. **Multiply** all the evidence together per class.
+4. Pick the class with the biggest product.
+
+💡 **The idea in one line:**
+
+> Naive Bayes predicts the class with the highest **prior × (product of feature likelihoods)** — every feature gets a vote, and the votes multiply.
+
+The "naive" part: it pretends **all clues are independent**. "FREE" and "answer" are treated as if they never co-occur meaningfully — obviously false in real language, yet the method still works. We'll see why.
+
+---
+
+## 05. Visual First
+
+Here's the whole flow as a picture:
+
+<!-- [VISUAL] -->
+```text
+                    NEW MESSAGE
+                         │
+      ┌──────────────────┼──────────────────┐
+      │ (given class)    │                   │
+      ▼                  ▼                   ▼
+   "FREE/WIN"?        "answer"?         prior P(class)
+   P(Yes|Spam)      P(Yes|Spam)        (how common)
+   vs P(Yes|Real)   vs P(Yes|Real)
+      │                  │                   │
+      └──────── declanetra ────────────┘
+       multiply: P(Spam|msg) ∝ P(Spam)·P(free|Spam)·P(ans|Spam)
+                  P(Real|msg) ∝ P(Real)·P(free|Real)·P(ans|Real)
+                         │
+                         ▼
+                 bigger score wins
+```
+
+> Two parallel "score ladders," one per class. Each feature climbs its own ladder by multiplying its likelihood. Reach the top and compare totals.
+
+---
+
+## 06. First Prediction
+
+Let's do a quick count-based estimate. Priors from the data:
+
+```text
+P(Spam) = 3/5 = 0.6      P(Real) = 2/5 = 0.4
+```
+
+Clue likelihoods (we'll make them exact in Section 10):
+
+```text
+P("FREE/WIN"=Yes | Spam) = 3/3 = 1.0      P("FREE/WIN"=Yes | Real) = 0/2 = 0
+P("answer"=Yes   | Spam) = 0/3 = 0        P("answer"=Yes   | Real) = 2/2 = 1.0
+```
+
+For the new message (both Yes):
+
+```text
+Score_Spam = 0.6 × 1.0 × 0    = 0     ← zero! one clue "kills" it
+Score_Real = 0.4 × 0   × 1.0  = 0     ← also zero!
+```
+
+<!-- [TRY_IT] -->
+> Oops. The raw counts give **zero for both** — because no Spam message in training had "answer," and no Real message had "FREE/WIN."
+
+> 📌 This is the **zero-frequency problem**, and it's exactly why a plain count fails. Before we can answer the question, we need **smoothing** — Section 10 shows the fix (and the correct answer).
+
+For now, hold the question. The important lesson:
+
+> Even a tiny dataset can produce a zero that wipes out all other evidence. Real Naive Bayes never lets that happen — it adds a small constant so no probability is ever 0.
+
+---
+
+## 07. Core Concept
+
+Introducing the idea formally:
+
+**Concept: Naive Bayes** — a classifier based on **Bayes' theorem**:
+
+```text
+P(class | features)  ∝  P(class) · P(features | class)
+```
+
+with the **conditional-independence ("naive")** assumption:
+
+```text
+P(features | class)  =  P(feature₁|class) · P(feature₂|class) · … · P(feature_d|class)
+```
+
+The prediction is the class maximizing:
+
+```text
+ŷ = argmax_c  P(c) · Πᵢ P(xᵢ | c)
+```
+
+> It's **generative**: it models how each class *produces* its features (P(x|y)), then flips it with Bayes to get the class given features (P(y|x)).
+
+---
+
+## 08. Terminology
+
+### Bayes' Theorem
+
+> Simple: a rule to flip "probability of A given B" into "probability of B given A."
+> Technical: `P(A|B) = P(B|A)·P(A)/P(B)`.
+
+### Prior
+
+> Simple: how common the class is before looking at features.
+> Technical: `P(c)` — the class frequency in training data.
+
+### Likelihood
+
+> Simple: how well this feature value fits a class.
+> Technical: `P(xᵢ | c)` — feature probability given class.
+
+### Posterior
+
+> Simple: what we believe after seeing the features.
+> Technical: `P(c | x)` — class probability given features.
+
+### Evidence (P(x))
+
+> Simple: how common the overall feature combo is.
+> Technical: the normalizing constant — the same for all classes, so we drop it.
+
+### Conditional independence / "naive"
+
+> Simple: each clue votes alone, ignoring the others.
+> Technical: `P(x₁,x₂|c) = P(x₁|c)·P(x₂|c)`.
+
+### Laplace smoothing
+
+> Simple: add a tiny number so no probability is zero.
+> Technical: `(count + α)/(total + α·V)`.
+
+| Term | Simple meaning | Technical meaning |
 |---|---|---|
-| Bayes' Theorem | Rule for conditional probability | P(A\|B) = P(B\|A)·P(A) / P(B) |
-| Prior Probability | What we know before seeing data | P(c): frequency of class c in the dataset |
-| Likelihood | How well the evidence fits the class | P(x \| c): probability of features given class |
-| Posterior Probability | What we believe after seeing data | P(c \| x): probability of class given features |
-| Evidence | Normalizing constant | P(x): probability of the features overall |
-| Conditional Independence | Features don't affect each other given class | P(x₁, x₂ \| c) = P(x₁ \| c)·P(x₂ \| c) |
-| Laplace Smoothing | Avoids zero probabilities | Add small α to counts so no probability is 0 |
-| Multinomial Naive Bayes | For count features | Uses multinomial distribution for word counts |
-| Gaussian Naive Bayes | For continuous features | Assumes each feature ~ Gaussian per class |
-| Bernoulli Naive Bayes | For binary features | Word presence/absence, 0/1 features |
+| P(c) | how common the class is | prior |
+| P(xᵢ\|c) | how well this clue fits the class | likelihood |
+| P(c\|x) | belief after seeing clues | posterior |
+| Πᵢ P(xᵢ\|c) | multiply all the clues | the "naive" product |
+| P(x) | same for all classes | evidence (dropped) |
+| α | the smoothing constant | Laplace parameter |
+
+> ⚠️ Common mistake: thinking the "naive" part means Naive Bayes is bad. It means it *assumes independence* — a deliberate simplification that buys speed and small-data power.
 
 ---
 
-## 07. Input and Output
+## 09. Mathematics (gradual)
 
-**Input:**
-- **Feature matrix X:** n samples × d features.
-  - Multinomial NB: integer counts (word frequencies).
-  - Gaussian NB: continuous values.
-  - Bernoulli NB: binary values (0/1).
-- **Label vector y:** n class labels.
-- **Hyperparameters:** smoothing parameter α (for Multinomial/Bernoulli), variance smoothing ε (for Gaussian).
+### Step M1 — Bayes' theorem
 
-**Output:**
-- **Posterior probabilities:** P(c \| x) for each class c.
-- **Class label:** argmax over classes of P(c \| x).
-- **Learned distribution parameters:** class priors P(c), feature likelihoods P(xᵢ \| c) (Gaussian means/variances per class, or conditional feature distribution parameters).
+```text
+P(class | features) = P(features | class) · P(class) / P(features)
+```
+
+- Left side: what we want (class given the features) — the **posterior**.
+- `P(features|class)`: the **likelihood** — how the class produces these features.
+- `P(class)`: the **prior** — class frequency.
+- `P(features)`: the **evidence** — constant across classes for a fixed input.
+
+> 💡 The denominator doesn't change the *winner*, only the scale. For picking the best class, we can ignore it:
+
+```text
+P(c | x)  ∝  P(c) · P(x | c)      (∝ means "proportional to")
+```
+
+### Step M2 — The problem: P(features | class) is hard
+
+If features interact, computing `P(x₁, x₂, …, x_d | c)` requires modeling all their joint behaviour — impossible with limited data.
+
+### Step M3 — The naive assumption
+
+Assume conditional independence:
+
+```text
+P(x₁,…,x_d | c) = P(x₁|c) · P(x₂|c) · … · P(x_d|c) = Πᵢ P(xᵢ|c)
+```
+
+Now we only need simple per-feature probabilities, which are easy to estimate. This is the entire "naive" simplification.
+
+### Step M4 — The classification rule
+
+```text
+ŷ = argmax_c  P(c) · Πᵢ P(xᵢ | c)
+```
+
+### Step M5 — The log trick
+
+Multiplying many small probabilities underflows to 0.0 in floating point (e.g. `0.9⁵⁰⁰ ≈ 0`). Since log is monotonic, the argmax is unchanged:
+
+```text
+ŷ = argmax_c  [ log P(c) + Σᵢ log P(xᵢ | c) ]
+```
+
+> 💡 We never actually multiply; we **add log-probabilities**. Stable and preserves the answer.
+
+### Step M6 — Smoothing (the zero fix)
+
+If a feature value was never seen in a class, `P = 0` kills the whole product. Add α:
+
+```text
+P(xᵢ | c) = (count(xᵢ, c) + α) / (total_c + α·V)
+```
+
+where `V` = number of possible values. α = 1 gives **Laplace smoothing** — no probability is ever exactly 0.
 
 ---
 
-## 08. Mathematical Foundation
+## 10. Numerical Example
 
-**Core idea:** Use Bayes' theorem to reverse conditional probability:
+Back to Aman's SMS, now with smoothing so we can actually answer the question. Ignore α=1 for a moment and let's compute the **exact likelihoods with Laplace smoothing** using a tiny trick: add 1 to every count (α = 1), and use vocabulary V = 2 features.
 
-```
-P(c | x) = P(x | c) · P(c) / P(x)
-```
+Dataset:
 
-**Naive assumption (conditional independence):**
+| Msg | FREE/WIN | answer | Class |
+|---|---|---|---|
+| 1 | Yes | No | Spam |
+| 2 | Yes | No | Spam |
+| 3 | Yes | No | Spam |
+| 4 | No | Yes | Real |
+| 5 | No | Yes | Real |
 
-```
-P(x | c) = Πᵢ₌₁ᵈ P(xᵢ | c)
-```
+**Priors:**
 
-This lets us compute P(x \| c) by multiplying per-feature likelihoods — even though in reality features often DO correlate (e.g., "Fred" and "Riggs" appear in spam emails together).
-
-**Classification rule:**
-
-```
-ŷ = argmax_c P(c) · Πᵢ₌₁ᵈ P(xᵢ | c)
+```text
+P(Spam) = 3/5 = 0.6      P(Real) = 2/5 = 0.4
 ```
 
-(The denominator P(x) is the same for all classes, so it can be dropped from the comparison.)
+**Smoothed likelihoods (α=1, V=2):**
 
-**Required math concepts:**
-1. Conditional probability and Bayes' theorem
-2. Product rule of probability
-3. Probability distributions (Gaussian, Multinomial, Bernoulli)
-4. Logarithms (to avoid numerical underflow when multiplying many small probabilities)
+For Spam (3 messages):
+
+```text
+P(FREE=Yes|S) = (count_Yes + 1)/(total + α·V) = (3 + 1)/(3 + 2) = 4/5 = 0.8
+P(FREE=No |S) = (0 + 1)/(3 + 2)               = 1/5 = 0.2
+P(ans=Yes |S) = (0 + 1)/(3 + 2)               = 1/5 = 0.2
+P(ans=No  |S) = (3 + 1)/(3 + 2)               = 4/5 = 0.8
+```
+
+For Real (2 messages):
+
+```text
+P(FREE=Yes|R) = (0 + 1)/(2 + 2)   = 1/4 = 0.25
+P(FREE=No |R) = (2 + 1)/(2 + 2)   = 3/4 = 0.75
+P(ans=Yes |R) = (2 + 1)/(2 + 2)   = 3/4 = 0.75
+P(ans=No  |R) = (0 + 1)/(2 + 2)   = 1/4 = 0.25
+```
+
+**Posterior scores** for the new message (FREE=Yes, answer=Yes):
+
+```text
+Score(S) = log 0.6  + log 0.8 + log 0.2
+         = −0.511   − 0.223   − 1.609        = −2.343
+
+Score(R) = log 0.4  + log 0.25 + log 0.75
+         = −0.916   − 1.386   − 0.288        = −2.590
+```
+
+<!-- [CALCULATION] -->
+> Score(S) = −2.343 > Score(R) = −2.590, so the model predicts **Spam.**
+
+> ✅ VERIFIED — every smoothed probability and log-score hand-computed.
+
+**Why Spam?** The strong spam clue ("FREE/WIN") outweighs the real clue ("answer"). No zero killed anything this time — that's smoothing doing its job.
+
+> 🎯 Your turn: without smoothing, we saw both scores hit exactly 0 (Section 06). With α=1, we get a real, sensible answer. That single difference is why smoothing exists.
 
 ---
 
-## 09. Core Formula
+## 11. How It Works
 
-### Formula 1: Bayes' Theorem
+```text
+TRAINING PHASE:
+   For each class c:
+      prior[c] = count(c) / n
+      For each feature i:
+         estimate P(xᵢ|c) from training data
+         (Gaussian: mean+var per class · Multinomial: counts
+          · Bernoulli: probabilities)
 
-```
-P(A | B) = P(B | A) · P(A) / P(B)
-```
-
-**Meaning:** Gives the probability of A given B, in terms of the other direction.
-
-**Symbols:**
-- P(A \| B) — probability of A given B (posterior)
-- P(B \| A) — probability of B given A (likelihood)
-- P(A) — probability of A (prior)
-- P(B) — probability of B (evidence)
-
-**Intuition:** Bayes' rule "reverses" the conditioning. It's the formal way to update beliefs with evidence.
-
-### Formula 2: Naive Bayes Classification Rule
-
-```
-ŷ = argmax_c P(c) · Πᵢ₌₁ᵈ P(xᵢ | c)
+PREDICTION PHASE (query x):
+   For each class c:
+      score[c] = log prior[c] + Σᵢ log P(xᵢ|c)
+   ŷ = the class with the largest score[c]
 ```
 
-**Meaning:** Choose the class c that maximizes the prior times the product of per-feature likelihoods.
-
-**Symbols:**
-- ŷ — predicted class
-- c — a candidate class label
-- P(c) — prior probability of class c
-- P(xᵢ \| c) — probability of feature i's value given class c
-- Π — product over all d features
-
-**Intuition:** Each feature "votes" for each class via P(xᵢ \| c). Multiply all votes (prior × likelihoods) and pick the class with the highest score.
-
-### Formula 3: Gaussian Likelihood (for continuous features)
-
-```
-P(xᵢ | c) = 1 / √(2πσ_c²) · exp(-(xᵢ - μ_c)² / (2σ_c²))
-```
-
-**Meaning:** Compute the probability density of feature value xᵢ under a Gaussian distribution with mean μ_c and variance σ_c² (both estimated from class c's training data).
-
-**Symbols:**
-- μ_c — mean of feature i for samples in class c
-- σ_c² — variance of feature i for samples in class c
-- π — pi ≈ 3.14159
-- exp — the exponential function
-
-**Intuition:** Feature values near the class mean get high probability; far-away values get low probability.
-
-### Formula 4: Multinomial Likelihood (for count/text features)
-
-```
-P(xᵢ | c) = (count(xᵢ, c) + α) / (total_words_c + α · V)
-```
-
-**Meaning:** Probability of word xᵢ in class c = relative frequency of the word in that class, smoothed with Laplace.
-
-**Symbols:**
-- count(xᵢ, c) — number of times word xᵢ appears among class c's documents
-- total_words_c — total number of words in class c's documents
-- α — Laplace smoothing parameter (typically 1.0)
-- V — size of the vocabulary
+> One pass to build the "score table." Then any new message is a few lookups + adds.
 
 ---
 
-## 10. Derivation
+## 12. Internal Process (what fit() really does)
 
-### Start from Bayes' theorem
+<!-- [UNDER_THE_HOOD] -->
+```text
+model.fit(X, y)
+     ↓
+1. For each class, count samples → priors P(c)
+2. For each class × feature, estimate likelihood params:
+     - Gaussian:     mean μ_c and variance σ_c² per feature per class
+     - Multinomial:  word counts per class
+     - Bernoulli:    P(present|c), P(absent|c)
+     ↓
+3. Store: priors + a compact likelihood table
+     ↓
+done.  (No iterations, no gradient descent — closed-form statistics)
 
-```
-P(c | x) = P(x | c) · P(c) / P(x)
-```
-
-### Expand P(x | c) using the chain rule
-
-```
-P(x₁, x₂, ..., x_d | c) = P(x₁ | c) · P(x₂ | x₁, c) · P(x₃ | x₁, x₂, c) · ...
-```
-
-This is exact but impractical — modeling all conditional dependencies requires enormous data.
-
-### Apply the naive assumption
-
-Assume features are conditionally independent given the class:
-
-```
-P(x₁, x₂, ..., x_d | c) = P(x₁ | c) · P(x₂ | c) · ... · P(x_d | c) = Πᵢ₌₁ᵈ P(xᵢ | c)
-```
-
-### Final decision rule (drop evidence P(x), same for all classes)
-
-```
-ŷ = argmax_c [ log P(c) + Σᵢ₌₁ᵈ log P(xᵢ | c) ]
+model.predict_proba(X_new)
+     ↓
+for each class c in log-space:
+    score = log P(c) + Σ feature log P(xᵢ|c)
+softmax the scores into probabilities, argmax → label
 ```
 
-**Why log:** Multiplying many small probabilities causes numerical underflow (product of 100 probabilities each ~0.1 is ~10⁻¹⁰⁰). Summing log-probabilities is numerically stable and monotonic (preserves the argmax).
+> The "model" is a small table of probabilities — not the raw data (unlike KNN), and no weight vector (unlike logistic regression).
 
 ---
 
-## 11. How the Algorithm Works
+## 13. From Scratch
 
-```
-Training Phase:
-  Input (X, y)
-       ↓
-  For each class c:
-      Prior: P(c) = count(c) / n
-       ↓
-  For each feature i and class c:
-      Estimate P(xᵢ | c) from training data:
-      - Gaussian NB:    μ_c, σ_c² for each feature per class
-      - Multinomial NB: word frequency counts per class
-      - Bernoulli NB:   P(1 | c), P(0 | c) per feature per class
-       ↓
-  Final Model: class priors + per-class feature distributions
+### Version 1 — Gaussian Naive Bayes, readable
 
-Prediction Phase:
-  For query x:
-      computed = log P(c) + Σᵢ log P(xᵢ | c) for EACH class c
-       ↓
-      ŷ = argmax_c computed
-```
+```python
+import math
 
----
+class GaussianNB:
+    def __init__(self):
+        self.classes = None
+        self.priors = {}
+        self.means = {}
+        self.vars = {}
 
-## 12. Training Process
+    def fit(self, X, y):
+        self.classes = sorted(set(y))
+        n = len(y)
+        for c in self.classes:
+            rows = [X[i] for i in range(n) if y[i] == c]
+            self.priors[c] = len(rows) / n
+            d = len(rows[0])
+            self.means[c] = [sum(r[j] for r in rows) / len(rows) for j in range(d)]
+            self.vars[c] = [
+                sum((r[j] - self.means[c][j]) ** 2 for r in rows) / len(rows)
+                for j in range(d)
+            ]
 
-**Pre-training:**
-- Convert text to feature vectors (bag of words, TF-IDF) if working with text.
-- Handle missing features appropriately (treat as absent counts).
+    def _log_pdf(self, x, c):
+        s = 0.0
+        for j, xj in enumerate(x):
+            mu, v = self.means[c][j], self.vars[c][j] + 1e-9
+            s += -0.5 * math.log(2 * math.pi * v) - (xj - mu) ** 2 / (2 * v)
+        return s
 
-**During training:**
-- One pass through the data.
-- Count class frequencies → priors P(c).
-- Per class, count/estimate the likelihood parameters of each feature independently.
-- Gaussian NB: compute mean μ_c and variance σ_c² per feature per class.
-- Multinomial NB: count word occurrences per class.
+    def predict(self, X):
+        out = []
+        for x in X:
+            scores = {c: math.log(self.priors[c]) + self._log_pdf(x, c)
+                      for c in self.classes}
+            out.append(max(scores, key=scores.get))
+        return out
 
-**What's learned:**
-- Class priors P(c).
-- Per-class feature distribution parameters (means/variances for Gaussian, counts for Multinomial, probabilities for Bernoulli).
-
-**Stopping criteria:**
-- Single pass is sufficient — no iterations needed.
-
-**Final model:**
-- A compact set of probability tables / distribution parameters — NOT the training data itself.
-
----
-
-## 13. Objective Function / Loss Function
-
-Naive Bayes does not explicitly minimize a loss function during training. It uses **Maximum Likelihood Estimation (MLE)** — it computes the parameters that maximize the joint likelihood of the observed data:
-
-```
-L = Π ⱼ₌₁ⁿ P(yⱼ) · Πᵢ P(xᵢ⁽ʲ⁾ | yⱼ)
+X = [[2, 3], [3, 4], [5, 1], [6, 2]]
+y = [0, 0, 1, 1]
+print(GaussianNB().fit(X, y).predict([[3, 3]]))
 ```
 
-Equivalently, the parameters are chosen to maximize:
+> `_log_pdf` is the Gaussian density `1/√(2πσ²)·exp(−(x−μ)²/2σ²)`, in log space.
 
-```
-L = Πₓ P(x | c)^(count in class c)  [per feature independently]
-```
-
-**Training objective:** maximize likelihood (equivalently, cross-entropy/zero-one loss is minimized in expectation).
-
-**Reference point:** The final classifier minimizes the **zero-one loss** (misclassification error) if the true distribution is used — this is the Bayes optimal classifier property.
-
----
-
-## 14. Optimization
-
-Naive Bayes has **no iterative optimization** — parameter estimation is direct and closed-form.
-
-**Estimation methods:**
-- **MLE (Maximum Likelihood Estimation):** Use empirical frequencies directly.
-  - Prior: P(c) = count(c)/n
-  - Multinomial: P(xᵢ\|c) = count(xᵢ, c)/total_words_c
-- **MAP (Maximum A Posteriori) with Laplace smoothing:** Add a small constant α to avoid zero probabilities.
-  - Multinomial: P(xᵢ\|c) = (count(xᵢ,c) + α)/(total_words_c + α·V)
-  - Bernoulli: P(xᵢ\|c) = (count(1,c) + α)/(count_c + 2α)
-
-**Why smoothing matters:** If a word never appears in class c in training, P(xᵢ\|c) = 0 kills the entire product (any zero kills the prediction). Smoothing keeps probabilities nonzero.
-
-**Numerical optimization note:** For Gaussian NB, μ and σ² come from closed-form MLE formulas — no gradient descent. This is what makes NB training nearly instantaneous.
-
----
-
-## 15. Complete Numerical Example
-
-**Dataset (text classification, 4 documents):**
-
-| Doc | "urgent" | "money" | "meeting" | Class |
-|-----|----------|---------|-----------|-------|
-| 1 | 1 | 1 | 0 | Spam (S) |
-| 2 | 1 | 0 | 1 | Spam (S) |
-| 3 | 0 | 1 | 1 | Not Spam (N) |
-| 4 | 0 | 0 | 1 | Not Spam (N) |
-
-**New email:** x = {urgent: 1, money: 0, meeting: 1}
-
-### Step 1: Priors
-
-```
-P(S) = 2/4 = 0.5
-P(N) = 2/4 = 0.5
-```
-
-### Step 2: Likelihoods (with Laplace smoothing α=1)
-
-**Vocabulary:** V = 3 words (urgent, money, meeting)
-
-```
-Spam documents: 2 words in doc1 + 2 words in doc2 = total_words_S = 4
-Not-Spam: 2 words in doc3 + 2 words in doc4 = total_words_N = 4
-
-P(urgent=1 | S) = (count in S + α) / (total_S + α·V) = (1 + 1) / (4 + 3) = 2/7 ≈ 0.286
-P(urgent=0 | S) = (1 + 1) / 7 = 2/7
-P(money=1  | S) = (1 + 1) / 7 = 2/7 ≈ 0.286
-P(meeting=1| S) = (1 + 1) / 7 = 2/7 ≈ 0.286
-
-P(urgent=1 | N) = (0 + 1) / (4 + 3) = 1/7 ≈ 0.143
-P(money=1  | N) = (1 + 1) / 7 = 2/7 ≈ 0.286
-P(meeting=1| N) = (2 + 1) / 7 = 3/7 ≈ 0.429
-```
-
-### Step 3: Posterior scores
-
-```
-Score(S) = log P(S) + log P(urgent=1|S) + log P(money=0|S) + log P(meeting=1|S)
-         = log(0.5) + log(2/7) + log(2/7) + log(2/7)
-         = -0.693 - 1.253 - 1.253 - 1.253
-         = -4.452
-
-Score(N) = log P(N) + log P(urgent=1|N) + log P(money=0|N) + log P(meeting=1|N)
-         = log(0.5) + log(1/7) + log(5/7) + log(3/7)
-         = -0.693 - 1.946 - 0.336 - 0.847
-         = -3.822
-```
-
-**Prediction: Not Spam** (Score N = -3.822 > Score S = -4.452)
-
-The word "meeting" strongly indicates Not Spam, which tips the balance despite "urgent" appearing.
-
-**VERIFIED EXAMPLE** — all probabilities and log-sums hand-computed.
-
----
-
-## 16. Visual Explanation
-
-### Decision Boundary (Gaussian NB, 2 features)
-
-```
-    x₂
-    ↑
-  4 |  ● ●        ○ ○          ← Class A (circles)
-    |     ●     ○ ○
-  3 |       ●  ○
-    |         ~~~~~~
-  2 |    ○  ○ ●  ●●   ○○      ← Decision boundary (quadratic-ish)
-    |     ○      ●
-  1 |            ● ●
-    |                ○
-  0 +----------------------→ x₁
-    0    1    2    3    4    5
-    ↑
-    Class B (squares): ● ● ●
-```
-
-Note: Naive Bayes with Gaussian likelihood produces **quadratic** (curved) decision boundaries in 2D — not linear ones.
-
-### The Naive Independence Structure
-
-```
-         Class c
-        /    |    \
-       /     |     \
-   P(x₁|c) P(x₂|c) P(x₃|c)
-    ______  ______  ______
-   | x₁  | | x₂  | | x₃  |
-   Features are independent GIVEN the class
-   (no arrows between x₁, x₂, x₃)
-```
-
----
-
-## 17. Algorithm / Pseudocode
-
-```
-ALGORITHM: Naive Bayes (Multinomial, with Laplace smoothing α)
-
-1. INPUT: Training data X (n×d, counts), y (n×1, classes), α
-2. TRAINING:
-   a. For each class c:
-      i.   prior[c] ← count(c) / n
-      ii.  total_words[c] ← sum of all word counts in class c docs
-      iii. FOR each feature i:
-             count[i][c] ← count of word i in class c docs
-             P(xᵢ|c) ← (count[i][c] + α) / (total_words[c] + α·V)
-   b. Store priors and likelihood table
-3. PREDICTION (for query x):
-   a. FOR each class c:
-      score[c] ← log prior[c]
-      FOR each non-zero feature i in x:
-         score[c] ← score[c] + log P(xᵢ|c)   [use P(0|c) for absent words]
-   b. RETURN ŷ = argmax_c score[c]
-```
-
----
-
-## 18. From-Scratch Implementation
+### Version 2 — numpy, vectorized
 
 ```python
 import numpy as np
 
-class GaussianNaiveBayes:
-    def __init__(self):
-        self.classes = None
-        self.priors = None
-        self.means = None
-        self.variances = None
-
+class GaussianNBVec:
     def fit(self, X, y):
+        X = np.asarray(X, float)
         self.classes = np.unique(y)
-        self.priors = {}
         self.means = {}
-        self.variances = {}
-
+        self.vars = {}
+        self.priors = {}
         for c in self.classes:
-            X_c = X[y == c]
-            self.priors[c] = len(X_c) / len(y)
-            self.means[c] = np.mean(X_c, axis=0)
-            self.variances[c] = np.var(X_c, axis=0, ddof=0)
-
-    def _gaussian_pdf(self, x, mean, var):
-        eps = 1e-9
-        coeff = 1.0 / np.sqrt(2 * np.pi * (var + eps))
-        exponent = np.exp(-((x - mean) ** 2) / (2 * (var + eps)))
-        return coeff * exponent
+            Xc = X[y == c]
+            self.priors[c] = len(Xc) / len(y)
+            self.means[c] = Xc.mean(axis=0)
+            self.vars[c] = Xc.var(axis=0) + 1e-9
+        return self
 
     def _log_likelihood(self, X, c):
-        pdfs = self._gaussian_pdf(X, self.means[c], self.variances[c])
-        return np.sum(np.log(pdfs), axis=1)
-
-    def predict_proba(self, X):
-        scores = {}
-        for c in self.classes:
-            scores[c] = np.log(self.priors[c]) + self._log_likelihood(X, c)
-        log_probs = np.array([scores[c] for c in self.classes]).T
-        log_probs = log_probs - log_probs.max(axis=1, keepdims=True)
-        probs = np.exp(log_probs)
-        return probs / probs.sum(axis=1, keepdims=True)
+        var = self.vars[c]
+        return (-0.5 * np.log(2 * np.pi * var)
+                - (X - self.means[c]) ** 2 / (2 * var)).sum(axis=1)
 
     def predict(self, X):
-        probs = self.predict_proba(X)
-        return np.array([self.classes[i] for i in np.argmax(probs, axis=1)])
+        X = np.asarray(X, float)
+        scores = np.array([
+            np.log(self.priors[c]) + self._log_likelihood(X, c)
+            for c in self.classes
+        ])
+        return np.array([self.classes[i] for i in scores.argmax(axis=0)])
+```
+
+### Version 3 — clean class (with score)
+
+```python
+import numpy as np
+
+class NaiveBayesGaussian:
+    def __init__(self, var_smoothing=1e-9):
+        self.var_smoothing = var_smoothing
+
+    def fit(self, X, y):
+        X, y = np.asarray(X, float), np.asarray(y)
+        self.classes = np.unique(y)
+        self.means, self.vars, self.priors = {}, {}, {}
+        for c in self.classes:
+            Xc = X[y == c]
+            self.priors[c] = len(Xc) / len(y)
+            self.means[c] = Xc.mean(axis=0)
+            self.vars[c] = Xc.var(axis=0) + self.var_smoothing
+        return self
 
     def score(self, X, y):
-        return np.mean(self.predict(X) == y)
+        return np.mean(self.predict(X) == np.asarray(y))
 
+    def _scores(self, X):
+        return np.array([
+            np.log(self.priors[c])
+            + (-0.5 * np.log(2 * np.pi * self.vars[c])
+               - (X - self.means[c]) ** 2 / (2 * self.vars[c])).sum(axis=1)
+            for c in self.classes
+        ])
 
-if __name__ == "__main__":
-    from sklearn.datasets import load_iris
-    from sklearn.model_selection import train_test_split
-
-    X, y = load_iris(return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    model = GaussianNaiveBayes()
-    model.fit(X_train, y_train)
-    print(f"Train accuracy: {model.score(X_train, y_train):.4f}")
-    print(f"Test accuracy:  {model.score(X_test, y_test):.4f}")
+    def predict(self, X):
+        X = np.asarray(X, float)
+        return np.array([self.classes[i] for i in self._scores(X).argmax(axis=0)])
 ```
 
 ---
 
-## 19. Code Explanation
-
-```
-GaussianNaiveBayes class:
-  fit            → one pass: for each class compute prior, mean, variance per feature
-  _gaussian_pdf  → computes P(xᵢ|c) via the Gaussian PDF formula
-  _log_likelihood → sums log of per-feature densities (Σᵢ log P(xᵢ|c))
-  predict_proba  → combines log-prior + log-likelihood per class,
-                   normalizes with softmax for probabilities
-  predict        → argmax over class scores
-  score          → accuracy
-```
-
----
-
-## 20. Library Implementation
+## 14. Library Implementation
 
 ```python
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
-
-X_text = [
-    "urgent money transfer now",
-    "free money prize winner",
-    "meeting tomorrow at office",
-    "project deadline update meeting",
-    "urgent meeting scheduled",
-]
-y = ["spam", "spam", "not_spam", "not_spam", "spam"]
-
-vectorizer = CountVectorizer()
-X = vectorizer.fit_transform(X_text)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-model = MultinomialNB(alpha=1.0)
-model.fit(X_train, y_train)
-
-y_pred = model.predict(X_test)
-print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
-print(classification_report(y_test, y_pred))
-
-# Gaussian for continuous features
 from sklearn.datasets import load_iris
+
+# Continuous features → Gaussian
 X, y = load_iris(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
 gnb = GaussianNB()
-gnb.fit(X_train[:10] if False else X_train[:0] or X, y)
-print(f"GaussianNB accuracy: {gnb.score(X, y):.4f}")
+gnb.fit(X_train, y_train)
+print(f"GaussianNB accuracy: {gnb.score(X_test, y_test):.4f}")
+print(gnb.class_prior_)          # learned priors P(c)
+print(gnb.theta_)                # per-class means (μ_c)
+print(gnb.var_)                  # per-class variances (σ_c²)
+print(gnb.predict_proba(X_test[:3]))   # posterior probabilities
 ```
 
-**Key parameters:**
-- `alpha` (MultinomialNB/BernoulliNB): Laplace smoothing (α=1 default).
-- `class_prior` (GaussianNB): Manually specify priors (default: from data).
-- `var_smoothing` (GaussianNB): Largest variance added to avoid numerical issues.
+```python
+# Text / word counts → Multinomial
+from sklearn.feature_extraction.text import CountVectorizer
+texts = ["free cash now", "win a prize", "meeting tomorrow", "answer is 200"]
+labels = ["spam", "spam", "real", "real"]
+
+vec = CountVectorizer()
+X = vec.fit_transform(texts)
+
+mnb = MultinomialNB(alpha=1.0)      # α = Laplace smoothing
+mnb.fit(X, labels)
+print(mnb.predict(vec.transform(["free prize win"])))
+```
+
+> `class_prior_`, `theta_`, `var_` let you see exactly the numbers we computed by hand — nothing hidden.
 
 ---
 
-## 21. Hyperparameters
+## 15. Code Walkthrough — why each line exists
 
-| Hyperparameter | Meaning | Effect | Typical Consideration |
-|---|---|---|---|
-| alpha (Laplace smoothing) | Additive smoothing constant | Higher → smoother probabilities, reduces overconfidence | Start with α=1 (Laplace); tune small values for text |
-| var_smoothing | Variance adjustment for Gaussian NB | Prevents division by near-zero variance | Default 1e-9; increase if numerical warnings |
-| class_prior | Prior probabilities | Overrides computed priors | Leave default; set if data isn't representative |
-| fit_prior | Whether to learn priors | False → uniform priors | Default True |
-| binarize | Threshold for BernoulliNB | Converts continuous features to binary | Set to 0.0 for binary presence data |
+<!-- [CODE_WALKTHROUGH] -->
+```python
+self.vars[c] = Xc.var(axis=0) + 1e-9
+```
+> Variance per feature per class; `+1e-9` prevents division by zero when a feature is constant in a class. That tiny epsilon is sklearn's `var_smoothing`.
 
-**Note:** Naive Bayes has very few hyperparameters, which is one of its strengths — little tuning required.
+```python
+sigma2 = self.vars[c]
+(n ll) = -0.5*np.log(2*np.pi*sigma2) - (X - self.means[c])**2/(2*sigma2)
+```
+> The Gaussian log-density, summed over features. Log form = numerically stable.
 
----
+```python
+scores = np.log(self.priors[c]) + self._log_likelihood(X, c)
+```
+> `log prior + Σ log likelihood` per class — the full classification score from Section 09.
 
-## 22. Parameters vs Hyperparameters
+```python
+self._scores(X).argmax(axis=0)
+```
+> The argmax over classes — "pick the class with the biggest score."
 
-### Parameters (learned)
-- **Class priors P(c):** relative frequency of each class.
-- **Per-class feature likelihoods:** P(xᵢ \| c).
-  - Gaussian: μ_c, σ_c² (mean and variance per feature per class).
-  - Multinomial: word-probability table per class.
-  - Bernoulli: P(present \| c), P(absent \| c) per feature per class.
-
-### Hyperparameters (chosen)
-- **α:** Laplace smoothing parameter.
-- **Model variant:** Gaussian / Multinomial / Bernoulli.
-- **var_smoothing:** stability constant for Gaussian NB.
+> 🧠 Every line is Section 09's formula in code. Nothing arbitrary.
 
 ---
 
-## 23. Assumptions
+## 16. Interactive Experiment
 
-| Assumption | What It Means | How to Check | If Violated | Solution |
-|---|---|---|---|---|
-| Conditional independence | Features independent given class | Compare correlated feature behavior per class | Degraded accuracy, but often still works | Use extensions (TAN, AODE) or drop correlated features |
-| Feature distribution | Matches the assumed distribution (Gaussian/Multinomial/Bernoulli) | Histograms per class | Poor likelihood estimates | Use the matching NB variant for the data type |
-| Feature distribution per class | Each class has its own distribution parameters | Class-conditional plots | Under-informative boundaries | Feature engineering; try discriminative models |
+<!-- [EXPERIMENT] -->
+> Sliders in the platform; otherwise run the code.
 
-**Important:** The independence assumption is "naive" — often violated in practice. Yet Naive Bayes still works surprisingly well. Why? For classification, only the relative ordering of class scores matters, and correlations often "cancel out" across classes.
+### Experiment A — slide the smoothing α
+
+A slider for α on the SMS data:
+
+```text
+α = 0     →  one unseen word kills everything (zeros everywhere)
+α = 0.1   →  tiny smoothing; probabilities still extreme
+α = 1.0   →  Laplace; no zeros, sensible answers (our Section 10)
+α = 5.0   →  heavy smoothing; all likelihoods pulled toward 1/V, less opinionated
+```
+
+> What to notice: as α grows, the model becomes **less confident** (likelihoods flatten toward uniform). α = 0 is dangerous; α too large loses signal.
+
+### Experiment B — irrelevant-feature robustness (code)
+
+```python
+import numpy as np
+from sklearn.naive_bayes import GaussianNB
+
+rng = np.random.default_rng(3)
+X = np.hstack([
+    rng.normal([0,0],[1,1],(200,2)),   # two informative features
+    rng.normal(0, 100, (200, 50)),     # 50 pure-noise features
+])
+y = np.array([0]*100 + [1]*100)
+noise = np.random.default_rng(0).normal(0, 100, (200, 50))
+
+nb = GaussianNB().fit(X, y)
+print("with 50 noise features:", nb.score(X, y))
+
+X_clean = X[:, :2]
+nb2 = GaussianNB().fit(X_clean, y)
+print("clean (2 features):    ", nb2.score(X_clean, y))
+```
+
+```text
+with 50 noise features: ≈ same / slightly worse
+clean (2 features):     ≈ same / slightly better
+```
+
+> 📌 The moral: **irrelevant features hurt Naive Bayes far less than KNN.** KNN's distances drown in noise; NB's per-feature likelihoods are individually estimated and mostly cancel out. That's a big reason NB shines on text with thousands of noisy words.
 
 ---
 
-## 24. Data Requirements
+## 17. Break the Model
 
-| Aspect | Requirement |
-|---|---|
-| Data type | Depends on variant: Gaussian (continuous), Multinomial (counts), Bernoulli (binary) |
-| Missing values | Not handled natively — impute (0 counts work naturally for text) |
-| Outliers | Gaussian NB is sensitive to outliers (they distort μ, σ²) |
-| Scaling | Not needed for NB (each feature has its own distribution) |
-| Feature engineering | Text: bag-of-words / TF-IDF. Remove stopwords, use n-grams |
-| Dataset size | Works with small data (which is a major advantage) |
-| Class imbalance | If severe, correct the prior term (calibrate P(c)) |
+<!-- [BREAK_IT] -->
+**Experiment 1 — a word that never appears in one class (zero-frequency).**
+
+```python
+from sklearn.naive_bayes import MultinomialNB
+
+X = [[1,0],[1,0],[0,1],[0,1]]          # 2 features: [free, answer]
+y = ["spam","spam","real","real"]
+
+nb = MultinomialNB(alpha=0.0)          # NO smoothing!
+nb.fit(X, y)
+print(nb.predict([[1, 1]]))            # both words present
+```
+
+```text
+predict([[1,1]]) →  error / nonsense (log(0) = -inf → 0 chance for both)
+```
+
+With α = 0, a single zero likelihood turns `log(0) = −∞` and nukes the class. **This is the break that smoothing fixes.**
+
+**Experiment 2 — correlated features (double-counting).**
+
+```python
+import numpy as np
+from sklearn.naive_bayes import GaussianNB
+
+base = np.random.default_rng(1).normal([0,0],[1,1],(200,2))
+y = np.array([0]*100 + [1]*100)
+
+# duplicate the same underlying signal 20 times
+X_dup = np.hstack([base for _ in range(20)])
+nb = GaussianNB().fit(X_dup, y)
+probs = nb.predict_proba(X_dup[:1])[0]
+print("probabilities (correlated dups):", probs.round(3))
+```
+
+```text
+probabilities: [0.001, 0.999]    ← wildly overconfident
+```
+
+**What happened?** The model counted the *same* evidence 20 times (it thinks all 20 duplicated features are independent signals). Real probability might be ~80/20, but naive Bayes says 0.1%/99.9%. **Overconfidence is the classic naive-Bayes failure.**
+
+> 💥 **Break pattern:** naive = treats correlated clues as independent → overcounts them → overconfident probabilities.
 
 ---
 
-## 25. Feature Scaling
+## 18. What If...?
 
-**Status: Unnecessary**
-
-**Why:**
-- Gaussian NB fits a separate Gaussian per feature per class — the model is intrinsically scale-adapted (mean and variance are learned per feature).
-- Multinomial and Bernoulli NB are based on counts/probabilities, inherently scale-free.
-
-**Note:** Since NB does not use distance (unlike KNN) and does not use gradient optimization (unlike logistic regression), feature scaling provides no benefit.
-
----
-
-## 26. Evaluation Metrics
-
-| Metric | Formula | When to Use |
+| You change… | What happens | Why |
 |---|---|---|
-| Accuracy | (TP+TN)/Total | Balanced classes |
-| Precision | TP/(TP+FP) | Cost of false positive high (spam filter) |
-| Recall | TP/(TP+FN) | Cost of false negative high (disease detection) |
-| F1-Score | 2PR/(P+R) | Imbalanced classes |
-| Log Loss | -Σ[y log ŷ + (1-y) log(1-ŷ)] | When probabilities matter |
-| AUC-ROC | Area under ROC | Model comparison |
+| Add Laplace α=1 | No more zeros | every count gets a small tail |
+| Remove smoothing (α=0) | A single unseen word → −∞ | zero likelihood kills the product |
+| Correlate features (duplicate signal) | Overconfident probabilities | double-counts evidence |
+| Add many irrelevant features | Barely hurts | per-feature likelihoods cancel out |
+| Use Gaussian on word counts | Poor performance | wrong distribution for the data |
+| Use Multinomial on continuous values | Poor performance | wrong variant |
+| Imbalanced classes | Priors dominate | P(c) reflects the bigger class |
+| Very small dataset | Still trains fine | just counts/means — few parameters |
+| Text with rare words | Without smoothing it breaks | zero-frequency on unseen words |
 
-**Training Objective ≠ Evaluation Metric:** NB is trained by maximizing likelihood; evaluation uses the metrics above. They don't directly optimize the metrics — an important distinction for interviews.
-
----
-
-## 27. Advantages
-
-1. **Very fast:** Training is one pass over the data; prediction is a few multiplications.
-2. **Works with little data:** Parameter estimation is reliable even with few samples per class.
-3. **Handles high dimensions:** Scales well to thousands of features (text).
-4. **Naturally probabilistic:** Outputs well-calibrated posterior probabilities.
-5. **Robust to irrelevant features:** Irrelevant features tend to contribute similar likelihoods across classes (they don't perturb the argmax much).
-6. **Few hyperparameters:** α is the main one — minimal tuning.
-7. **Generative model:** Can generate synthetic data and handle missing features gracefully.
+> 🤔 Think: which change is *not* fixed by more data? → The overconfidence from correlated features. More data doesn't remove the double-counting — that's built into the naive assumption. (Calibration or a better model handles it.)
 
 ---
 
-## 28. Disadvantages
+## 19. Hyperparameters
 
-1. **Naive independence assumption:** Unrealistic in most real data; features usually correlate.
-2. **Poor calibration with correlated features:** Confidence estimates can be overconfident.
-3. **Zero-frequency problem (without smoothing):** A single unseen feature value zeroes the whole probability.
-4. **Feature distribution mismatch:** If you assume Gaussian but the data is skewed, likelihoods are poor.
-5. **Not competitive for strongly-correlated feature problems** — SVM, neural networks, and boosting usually win.
-6. **Limited expressiveness:** Cannot capture feature interactions directly.
+**Learned by the model (parameters):**
 
----
+```text
+Priors P(c)                         →  class_prior_
+Per-class likelihood parameters     →  theta_ (μc), var_ (σc²)  [Gaussian]
+                                      word-count table          [Multinomial]
+```
 
-## 29. When to Use
+**Chosen by you (hyperparameters):**
 
-- ✓ Text classification (spam, sentiment, topic labeling).
-- ✓ High-dimensional sparse data (bag-of-words).
-- ✓ Small datasets where other models lack data.
-- ✓ When you need fast training and prediction.
-- ✓ When you need probabilistic outputs.
-- ✓ As a strong baseline for classification tasks.
-- ✓ Online/incremental learning (updates are cheap).
-
----
-
-## 30. When NOT to Use
-
-- ✗ Features are strongly correlated and you need maximum accuracy.
-- ✗ Continuous features with complex (non-Gaussian) distributions.
-- ✗ You need a highly accurate classifier for complex problems — NB is usually a baseline, use gradient boosting or neural networks.
-- ✗ Features have complex interactions that matter for the decision.
-- ✗ You have ample data — more powerful models will likely outperform.
-
----
-
-## 31. Real-World Applications
-
-1. **Email Spam Filtering**
-   - Problem: Classify emails as spam or not
-   - Input: Word counts of each email
-   - Algorithm: Multinomial Naive Bayes
-   - Output: Spam/not-spam probability + label
-
-2. **Sentiment Analysis**
-   - Problem: Classify review/text as positive, negative, or neutral
-   - Input: TF-IDF or word counts of text
-   - Algorithm: Multinomial/Bernoulli Naive Bayes
-   - Output: Sentiment class and confidence
-
-3. **Document Categorization**
-   - Problem: Assign news articles to topics (sports, politics, tech...)
-   - Input: Bag-of-words vectors
-   - Algorithm: Multinomial Naive Bayes
-   - Output: Topic label
-
-4. **Medical Diagnosis (fast screening)**
-   - Problem: Screen for disease from symptoms/tests
-   - Input: Symptom indicators, lab values
-   - Algorithm: Gaussian/Bernoulli Naive Bayes
-   - Output: Disease probability per class
-
----
-
-## 32. Failure Cases
-
-1. **Data:** A word that appears in EVERY spam email but in no ham email leaves a zero → entire score collapses without smoothing.
-2. **Mathematical:** Conditional independence badly violated → posterior probabilities far from calibrated.
-3. **Optimization:** N/A (no iterative optimization to fail).
-4. **Generalization:** With correlated duplicated features, NB overcounts evidence (double-counts correlated signals).
-5. **Practical:** Gaussian assumption wrong for count data (e.g., trying Gaussian NB on word counts instead of Multinomial).
-
----
-
-## 33. Overfitting and Underfitting
-
-**Overfitting:**
-- Rare in NB because it uses simple statistics (means, counts). With Laplace smoothing, extreme probabilities are tempered.
-- Mild overconfidence: posterior probabilities can be too close to 0/1 when features are correlated.
-
-**Underfitting:**
-- More common: independence assumption ignores real correlations → the model is "too simple" for the data structure.
-- Symptoms: training and test accuracy both low.
-
-**Mitigation:**
-- For underfitting: feature selection, use the correct NB variant, or move to more powerful models.
-- For overconfidence: probability calibration (Platt scaling / isotonic regression).
-
----
-
-## 34. Bias-Variance Perspective
-
-**Naive Bayes has HIGH bias, LOW variance.**
-
-- **Bias:** The independence assumption builds in a strong simplifying structure — even if the true decision boundary is complex, NB approximates with a simpler form. This is systematic bias.
-- **Variance:** Parameter estimates (means, counts) are stable; small changes in training data cause small changes in the model. Low variance.
-- **Trade-off benefit:** For small datasets, low variance often beats high variance models (like flexible neural networks). This is exactly why NB shines with little data.
-
----
-
-## 35. Comparison With Similar Algorithms
-
-| Algorithm | Main Idea | Strength | Weakness | Best Use |
+| Hyperparameter | Simple meaning | Too small | Too big | Typical |
 |---|---|---|---|---|
-| Naive Bayes | Bayes + independence | Fast, small data, generative | Independence assumption | Text classification |
-| Logistic Regression | Linear + sigmoid | Convex loss, calibrated probs | Linear boundary, MLE fragile with sparse data | Baseline, probability calibration |
-| KNN | Distance vote | Non-linear, no training | Slow prediction, curse of dim | Small datasets |
-| SVM | Max margin | Strong boundaries | Less interpretable | High-dimensional, non-linear |
-| Decision Tree | Rule splits | Interpretable, non-linear | Overfitting | Interpretability |
+| `alpha` (smoothing) | how much to pad counts | 0 → zeros break it | too flat, no signal | 1.0 (Laplace) |
+| `var_smoothing` | eps for stability (Gaussian) | division-by-zero risk | too flat | 1e-9 |
+| `class_prior` | override the priors | — | — | leave default |
+| `binarize` (Bernoulli) | threshold to make features binary | — | — | 0.0 |
+| series variant | Gaussian / Multinomial / Bernoulli | — | — | match the data |
 
-**Special note:** For text classification with many strongly overlapping words, Multinomial NB often beats logistic regression when data is very sparse and class frequencies are skewed — because NB handles per-class word statistics separately.
-
----
-
-## 36. Algorithm Selection Guide
-
-```
-Text classification or sparse high-dim data?
-├── YES → Naive Bayes (Multinomial or Bernoulli) OR Linear SVM
-├── NO — continuous features?
-│   ├── Small dataset → Gaussian Naive Bayes (strong baseline)
-│   ├── Medium dataset → Logistic Regression / SVM
-│   └── Large dataset → Gradient Boosting / Neural Networks
-└── Need generative model or missing features? → Naive Bayes
-```
+> 📌 Naive Bayes has **very few** hyperparameters — that's a strength. You mostly tune α and pick the right variant.
 
 ---
 
-## 37. Common Mistakes
+## 20. Assumptions
 
-```
-❌ Using a zero probability when a word is unseen
-   Why wrong: A single zero kills the whole product of likelihoods.
-   Correct: Always use Laplace smoothing α ≥ 1.
+For each: what, why, how to check, if violated.
 
-❌ Using Gaussian NB on count data (word counts)
-   Why wrong: Word counts are not Gaussian-distributed; likelihoods are poor.
-   Correct: Use Multinomial NB or transform appropriately.
+| Assumption | What it means | Why | How to check | If violated |
+|---|---|---|---|---|
+| **Conditional independence** | features independent given class | allows the simple product | correlation per class | often still works (see why, Sec 16/25) |
+| **Right distribution** | features match Gaussian/Multinomial/Bernoulli | likelihoods must be sensible | histograms per class | use the matching variant |
+| **Zero-free (smoothing)** | no feature is impossible in a class | avoids −∞ | — | always smooth |
+| **Representative priors** | class frequency ≈ data frequency | prior drives decisions | class counts | set class_prior |
 
-❌ Forgetting the log-trick
-   Why wrong: Product of many small probabilities underflows to 0.0 in floating point.
-   Correct: Sum log-likelihoods.
+> The independence assumption is **violated in almost every real dataset** — and Naive Bayes still often works. Why? For classification we only need the *relative* ordering of scores; correlations that affect all classes similarly cancel out in the argmax.
 
-❌ Expecting perfectly calibrated probabilities
-   Why wrong: Double-counting correlated features makes posteriors overconfident.
-   Correct: Apply probability calibration if accurate probabilities are needed.
+---
 
-❌ Assuming feature independence in real data
-   Why wrong: The label "naive" means the assumption is often wrong.
-   Correct: Treat it as an approximation; verify with a more flexible model.
+## 21. Data Requirements
+
+```text
+Target      → categorical
+Features    → depends on variant:
+               Gaussian (continuous) · Multinomial (counts) · Bernoulli (binary)
+Missing     → not handled natively; impute (0-counts work naturally for text)
+Outliers    → Gaussian NB sensitive (they distort μ, σ²); others fine
+Scaling     → NOT needed (each feature has its own distribution)
+Feature engineering → text: bag-of-words / TF-IDF, remove stopwords, n-grams
+Size        → works with very little data (major strength)
+High-dim    → excellent (text-scale features) — unlike KNN
+Class imbalance → severe imbalance → correct/override priors
 ```
 
 ---
 
-## 38. Interview Questions
+## 22. Evaluation
+
+Same classification workhorses as the previous two notes:
+
+| Metric | Formula | Simple | Use | Avoid |
+|---|---|---|---|---|
+| Accuracy | (TP+TN)/total | % correct | balanced | imbalanced |
+| Precision | TP/(TP+FP) | of predicted Yes how many right | FP costly | when FN worse |
+| Recall | TP/(TP+FN) | of actual Yes how many caught | FN costly | when FP worse |
+| F1 | 2·P·R/(P+R) | balance | imbalanced | need one alone |
+| Log-loss | −Σ[y log ŷ + (1−y)log(1−ŷ)] | how good probabilities are | probs matter | only labels matter |
+| ROC-AUC | area under ROC | ranking | comparing | calibrated probs needed |
+
+**Loss ≠ Metric:**
+
+```text
+NAIVE BAYES IS TRAINED BY MAXIMIZING LIKELIHOOD (MLE), not by minimizing
+accuracy/F1/AUC. Those metrics are computed AFTER training.
+NOTE: naive-Bayes probabilities are often overconfident (Sec 17) → if you
+report log-loss, expect it to look worse than a well-calibrated model's.
+```
+
+---
+
+## 23. Failure Cases
+
+```text
+DATA            → a feature value unseen in a class (zero) — fixed by smoothing
+MATHEMATICAL    → strongly correlated features → overconfident posteriors
+OPTIMIZATION    → none (closed-form stats can't "fail to converge")
+GENERALIZATION  → wrong distribution assumed (e.g. Gaussian on counts)
+PRACTICAL       → treating overconfident probabilities as calibrated truth
+```
+
+---
+
+## 24. Debugging
+
+Model underperforming? Checklist:
+
+```text
+1. Predictions always one class?      → priors skewed → check class balance
+2. Probabilities ~0 or ~1 always?     → correlated features double-count → calibrate
+3. Any log(0) / -inf errors?          → you disabled smoothing → turn α back on
+4. Continuous data far from Gaussian? → use a different likelihood or transform
+5. Count data with GaussianNB?        → wrong variant → use MultinomialNB
+6. New vocabulary words break it?      → unseen-word zeros → add smoothing
+```
+
+---
+
+## 25. Compare
+
+Conceptual difference **first**:
+
+```text
+Logistic Regression:   "learn a boundary, output calibrated probability"
+Naive Bayes:           "combine independent probability votes (generative)"
+KNN:                   "nearest neighbours vote by distance"
+Decision Tree:         "learn rules by impurity reduction"
+```
+
+| Algorithm | Idea | Strength | Weakness | Best use |
+|---|---|---|---|---|
+| Naive Bayes | Bayes + independence | tiny data, text-scale, fast | naive assumption, overconfident | spam/text, small data |
+| Logistic Regression | linear + sigmoid | calibrated probs, tractable | needs more data to be stable | baseline, risk scores |
+| KNN | neighbour vote | no training, non-linear | slow, curse of dim | small data |
+| Decision Tree | rules | readable | overfits | auditability |
+
+> **Special note:** on very sparse, high-dimensional text with skewed classes, Multinomial NB often *beats* logistic regression — its per-class word statistics stay robust where LR's global optimization suffers from sparse gradients. That's the one place naive Bayes genuinely wins.
+
+---
+
+## 26. Real-World Workflow
+
+```text
+BUSINESS PROBLEM:  auto-tag incoming support emails as "complaint" or "inquiry"
+DATA:              5000 historical emails + labels
+FEATURES:          bag-of-words counts (or TF-IDF)
+TARGET:            complaint? 1/0
+MODEL:             MultinomialNB(alpha=1.0)
+TRAIN:             CountVectorizer → split → fit
+EVALUATE:          F1 + confusion matrix; sanity-check priors
+DEPLOY:            serialize with joblib, serve via API
+MONITOR:           as vocabulary drifts, retrain; streaming updates are cheap
+```
+
+> Same skeleton powers spam filters, sentiment, topic labeling, and insurance auto-routing.
+
+---
+
+## 27. Practice
+
+8 levels:
+
+1. **Recall:** state Bayes' theorem.
+2. **Understand:** what does "naive" mean, and why doesn't it always hurt?
+3. **Calculate:** compute the posterior for Aman's message by hand with α=1.
+4. **Apply:** which variant for word counts? for heart-rate? for symptom presence?
+5. **Debug:** probabilities are ~0/1 always. Likely cause and fix?
+6. **Experiment:** vary α across [0, 0.1, 1, 5]; observe when zeros/overconfidence appear.
+7. **Build:** spam filter mini-project — clean, vectorize, MultinomialNB, report precision/recall, choose a threshold.
+8. **Explain:** explain Naive Bayes to a friend in 60 seconds using the quiz-show story.
+
+---
+
+## 28. Interview
 
 ### Beginner
-
-**Q1: What is Bayes' theorem?**
-A: P(A\|B) = P(B\|A)·P(A)/P(B). It computes conditional probability in the "reverse" direction.
-
-**Q2: Why is it called "naive"?**
-A: Because it assumes all features are conditionally independent given the class — a naive (unrealistic) assumption.
-
-**Q3: What is Laplace smoothing and why is it needed?**
-A: Adding a small constant α to counts prevents any probability from being zero, which would otherwise zero out the entire product.
-
-**Q4: What are the three NB variants?**
-A: Gaussian (continuous), Multinomial (counts), Bernoulli (binary).
-
-**Q5: Where is Naive Bayes most commonly used?**
-A: Text classification — spam filtering and sentiment analysis.
+- **State Bayes' theorem.** `P(A|B) = P(B|A)·P(A)/P(B)`.
+- **Why "naive"?** Assumes features are conditionally independent given the class.
+- **What is Laplace smoothing and why?** Adds α to counts so no probability is 0 (zero-frequency).
+- **Three variants?** Gaussian (continuous), Multinomial (counts), Bernoulli (binary).
 
 ### Intermediate
-
-**Q6: Why does Naive Bayes work well for text despite words being correlated?**
-A: For classification, only the relative ordering of class scores matters. Correlations often affect all classes similarly, so the argmax decision remains correct even when probabilities are misestimated.
-
-**Q7: What's the difference between generative and discriminative models?**
-A: Generative models model P(x \| c)·P(c) (how data is produced) and use Bayes to get P(c \| x). Discriminative models model P(c \| x) directly (logistic regression, SVM).
-
-**Q8: Why do we use log instead of the raw product?**
-A: Multiplying many small probabilities underflows to zero in floating point. Summing log-probabilities is stable and preserves ordering (monotonic).
-
-**Q9: What is the zero-frequency problem?**
-A: If a feature value never appears in class c during training, its MLE probability is 0, which makes the entire product 0 regardless of other evidence. Smoothing fixes it.
-
-**Q10: How would you use NB for incremental/online learning?**
-A: Parameter estimates (counts, means) are cumulative statistics. Keep running counts/means and update them as new data arrives — no need to retrain.
+- **Why does it work despite violating independence?** Only the relative ordering of class scores matters; correlations that affect all classes similarly cancel out.
+- **Generative vs discriminative?** NB models P(x|c)·P(c) then flips via Bayes; logistic models P(c|x) directly.
+- **Why log instead of product?** Underflow; summing logs is stable and preserves the argmax.
+- **What's the zero-frequency problem?** An unseen value → 0 probability → whole product 0. Smoothing fixes it.
 
 ### Advanced
-
-**Q11: What is calibration and why do NB probabilities need it?**
-A: Calibration makes predicted probabilities match true frequencies. NB is often overconfident due to the independence assumption; Platt scaling or isotonic regression can correct it.
-
-**Q12: When does Naive Bayes beat logistic regression?**
-A: With very few samples, highly skewed class priors, or when features include many that are irrelevant per class. LR maximizes likelihood globally; NB's per-class statistics are more robust under sparse data.
-
-**Q13: What is the Bayes optimal classifier and how does NB relate to it?**
-A: If P(c\|x) were known exactly, classifying to argmax_c P(c\|x) minimizes expected zero-one loss. NB approximates this by estimating P via the independence assumption — it's optimal only if the assumption holds.
-
-**Q14: What is the independence structure of Multinomial NB (mixture-of-unigrams assumption)?**
-A: Naive Bayes treats the document as a bag of words drawn independently from a single class-specific multinomial distribution. This ignores word order entirely.
+- **Why are NB probabilities overconfident?** Correlated features are counted as independent, so evidence is double-counted; calibrate with Platt/isotonic.
+- **When does NB beat logistic regression?** Very few samples, skewed priors, or many irrelevant/sparse features — LR's global MLE wobbles where NB's per-class statistics stay stable.
+- **Relation to Bayes-optimal classifier?** NB approximates the Bayes-optimal rule (argmax P(c|x)); it's optimal only if independence truly holds.
+- **Incremental learning?** Estimation uses cumulative counts/means — update them as data arrives, no retrain.
 
 ---
 
-## 39. GATE / Exam Perspective
+## 29. GATE / Exam
 
-**Key formulas:**
-1. Bayes' theorem: P(A\|B) = P(B\|A)·P(A)/P(B)
-2. Naive rule: P(c\|x) ∝ P(c)·Πᵢ P(xᵢ\|c)
-3. Laplace smoothing: P(xᵢ\|c) = (count + α)/(total + α·V)
+**Formulas worth memorizing:**
 
-**Key concepts:**
-- Generative model (models P(x\|c)·P(c)).
-- Conditional independence assumption.
-- MLE estimation (frequencies/means) — closed-form, no iteration.
-- Zero-frequency problem and smoothing.
-- Gaussian PDF: P(x) = (1/√(2πσ²))·e^(-(x-μ)²/(2σ²)).
+```text
+Bayes:         P(A|B) = P(B|A)·P(A)/P(B)
+Naive rule:    P(c|x) ∝ P(c)·Πᵢ P(xᵢ|c)
+Log form:      ŷ = argmax_c [ log P(c) + Σᵢ log P(xᵢ|c) ]
+Smoothing:     P(xᵢ|c) = (count + α)/(total + α·V)
+Gaussian PDF:  P(x) = (1/√(2πσ²))·exp(−(x−μ)²/(2σ²))
+```
 
 **Common traps:**
-- Forgetting the prior P(c) term.
-- Confusing Gaussian NB with general "normal distribution data" requirement.
-- Dropping P(x) without understanding why (constant across classes).
-- Treating the zero problem as harmless.
+- Forgetting the **prior** P(c) term.
+- Confusing Gaussian-NB (a model) with "assume the data is Normal."
+- Dropping P(x) without knowing why — it's constant across classes.
+- Treating the zero-frequency problem as harmless.
+- Thinking "naive" means "wrong" — it's a deliberate assumption.
 
-*(The above are representative concept patterns, not past GATE PYQs.)*
-
----
-
-## 40. Coding Practice
-
-**Level 1 — Basic:**
-Implement Bayes' theorem on a 2-class, 1-feature dataset by hand.
-
-**Level 2 — Gaussian NB from scratch:**
-Implement GaussianNB (as in section 18) and test on Iris.
-
-**Level 3 — Text classification:**
-Build a spam filter with MultinomialNB and CountVectorizer; evaluate with F1-score.
-
-**Level 4 — Laplace smoothing experiment:**
-Vary α = [0, 0.1, 0.5, 1, 5, 10] and observe accuracy change. Show why α=0 fails.
-
-**Level 5 — Bernoulli vs Multinomial:**
-Compare BernoulliNB (binary presence) vs MultinomialNB (counts) on text data.
-
-**Level 6 — Calibration:**
-Fit NB, compute predicted probabilities, apply isotonic calibration, compare Brier score.
-
-**Level 7 — Real-world case study:**
-Classify news articles into topics (20 Newsgroups dataset). Preprocess with TF-IDF, try NB vs Linear SVM, report per-class F1.
+> **Representative pattern question (NOT a past GATE PYQ):** "P(disease)=0.02, P(positive|disease)=0.99, P(positive|healthy)=0.05. Find P(disease|positive)." → numerator = 0.99·0.02 = 0.0198; denominator = 0.0198 + 0.05·0.98 = 0.0688 → **≈ 0.288**. The classic "false-positive paradox."
 
 ---
 
-## 41. Practical ML Workflow
+## 30. Deep Dive (gated — optional)
 
-```
-Problem Definition → "Classify news headlines as factual or clickbait"
-Data Collection → "20K headlines with labels"
-EDA → "Word frequency distributions; class balance 60/40"
-Cleaning → "Lowercase, strip punctuation, remove stopwords, stem"
-Feature Engineering → "Bag-of-words, TF-IDF, bigrams"
-Split → "80/20 stratified"
-Preprocessing → "CountVectorizer (min_df=2, max_features=10000)"
-Train → "MultinomialNB(alpha=1.0)"
-Tune → "GridSearchCV over alpha"
-Evaluate → "F1-macro: 0.84, most confusion on short headlines"
-Error Analysis → "False negatives are short factual headlines; add length feature"
-Deploy → "Serialize with joblib, serve via API"
+<details>
+<summary>Click to open derivation, log trick & variants</summary>
+
+### From Bayes to naive
+
+Start with the exact chain rule:
+
+```text
+P(x₁,…,x_d|c) = P(x₁|c)·P(x₂|x₁,c)·P(x₃|x₁,x₂,c)·…
 ```
 
----
+Exact, but requires modeling all dependencies. The naive assumption replaces each conditional with the marginal:
 
-## 42. Complexity
-
-| Aspect | Complexity |
-|---|---|
-| Training time | O(n·d) — one pass over data (extremely fast) |
-| Prediction time | O(d) per query (d multiplications of probabilities) |
-| Space | O(V·K) for text (vocabulary × classes) or O(d·K) |
-| Scaling with n | Linear — each sample processed once |
-| Scaling with d | Linear — depends only on size, no pairwise terms |
-| Incremental learning | Trivial — update counts/means only |
-
----
-
-## 43. Advanced Concepts
-
-1. **TAN (Tree Augmented Naive Bayes):** Relaxes independence by allowing each feature to depend on at most one other feature — selected greedily.
-
-2. **AODE (Averaged One-Dependence Estimators):** Averages many NB models, each with one shared dependency. Better accuracy than NB, still fast.
-
-3. **Semi-naive Bayes:** Jointly estimates small groups of interacting features.
-
-4. **Complement Naive Bayes:** Reverses the roles — computes a weight using counts of features in the *complement* class. Better for imbalanced text data.
-
-5. **Out-of-Core & Streaming NB:** Because estimation uses cumulative statistics, NB can train on data that doesn't fit in memory.
-
-6. **Probability Calibration:** Platt scaling (logistic on scores) or isotonic regression to fix overconfident posteriors.
-
----
-
-## 44. Connections to Other Algorithms
-
-```
-                    Bayes' Theorem
-                        │
-                ┌───────┴────────┐
-                │                │
-        Generative           Discriminative
-        (P(x|c)·P(c))        (P(c|x) direct)
-                │                │
-        Naive Bayes     Logistic Regression
-        (independence)  (logistic + BCE)
-                │
-     ┌──────────┼──────────┐
-     │          │          │
- Gaussian    Multinomial  Bernoulli
- (continuous)  (counts)   (binary)
+```text
+P(x₁,…,x_d|c) ≈ Πᵢ P(xᵢ|c)
 ```
 
-- **NB → Logistic Regression:** Both apply Bayes-derived logic; LR is the discriminative counterpart. Research shows NB converges to the correct boundary with O(log n) samples vs O(d) for LR — NB needs fewer samples per class, but its asymptotic error is worse when independence fails.
+Huge simplification — from exponential data needs down to per-feature estimates.
 
----
+### Why logs, formally
 
-## 45. If You Remember Only 5 Things
+A product of d probabilities each ~0.1 is ~10⁻ᵈ. For large d, this underflows to 0.0. Since `log` is strictly increasing, `argmax_c` is unchanged if we maximize sums of logs. Safe and exact-in-ordering.
 
-1. **Bayes' theorem P(c\|x) ∝ P(c)·Πᵢ P(xᵢ\|c)** — multiply priors and per-feature likelihoods.
-2. **The "naive" assumption is conditional independence** — often wrong, but still gives surprisingly good class decisions.
-3. **Use log-probabilities and Laplace smoothing** — never let a zero probability kill the product.
-4. **Pick the right variant** — Gaussian (continuous), Multinomial (counts), Bernoulli (binary).
-5. **It's a low-variance, fast, small-data champion** — always try it as a baseline, especially for text.
+### Variants in one table
 
----
-
-## 46. Cheat Sheet
-
-| Item | Detail |
-|---|---|
-| Algorithm | Naive Bayes |
-| Category | Supervised, Generative, Probabilistic |
-| Goal | Compute P(c\|x) and choose the best class |
-| Input | Features X, labels y, smoothing α |
-| Output | Posterior probabilities + class label |
-| Core Formula | ŷ = argmax_c P(c)·Πᵢ P(xᵢ\|c) |
-| Loss / Objective | Maximize likelihood (MLE); equivalently minimize zero-one loss |
-| Optimization | Closed-form parameter estimation (no iteration) |
-| Parameters | Priors P(c), per-class likelihood parameters (μ,σ² or counts) |
-| Hyperparameters | α (smoothing), variant type |
-| Assumptions | Conditional independence; assumed distribution per feature |
-| Advantages | Fast, scalable, few samples needed, probabilistic, generative |
-| Disadvantages | Independence assumption; overconfident probabilities; limited expressiveness |
-| Use When | Text classification, small data, high-dim sparse data |
-| Avoid When | Strongly correlated features + need max accuracy |
-| Related | Logistic Regression, Bayes Decision Theory, Generative models |
-| Key Exam Points | Bayes' theorem, independence assumption, Laplace smoothing, generative model |
-| Key Interview Points | Why it works despite violation, calibration, zero-frequency, log trick |
-
----
-
-## 47. Final Mental Model
-
-```
-Training:
-  X, y ──→ Scratchpad of per-class statistics:
-            priors P(c), means/variances or counts per class
-            (one pass, storage of a compact probability table)
-
-Prediction:
-  x ──→ for each class c:
-           score(c) = log P(c) + Σᵢ log P(xᵢ | c)
-  ──→ ŷ = argmax_c score(c)
-
-    "Multiply evidence per feature, turn into a log-sum,
-     pick the class with the highest total score."
-```
-
----
-
-## 48. Knowledge Check
-
-### Recall (5)
-
-1. State Bayes' theorem.
-2. What independence assumption does NB make?
-3. What is Laplace smoothing?
-4. Name the three NB variants.
-5. What does "generative" mean for NB?
-
-### Understanding (5)
-
-6. Why is the evidence term P(x) dropped in classification?
-7. Why do we sum log-likelihoods rather than multiply probabilities?
-8. Why does NB often work even when features are correlated?
-9. What is the zero-frequency problem?
-10. How does NB differ from logistic regression philosophically?
-
-### Application (5)
-
-11. Which NB variant for word counts? For heart-rate values? For presence/absence of symptoms?
-12. You observe P(w \| spam) = 0 for a test word. What do you do in code?
-13. Your NB posteriors are always near 0 or 1. What's likely happening?
-14. How would you build an online spam filter with NB?
-15. When would you choose NB over Random Forest?
-
-### Mathematical (5)
-
-16. Given P(disease)=0.02, P(positive test \| disease)=0.99, P(positive test \| no disease)=0.05, compute P(disease \| positive test).
-17. Why does multiplying many small probabilities underflow?
-18. With Laplace α=1 and a vocabulary of 10, how would you compute P(word \| class) for a word with count 2 in a class with total 30 words?
-19. What is the Gaussian PDF formula?
-20. Compute P(c=1\|x) when P(c=1)=0.4, P(x\|c=1)=0.02, P(c=2)=0.6, P(x\|c=2)=0.01.
-
-### Interview (5)
-
-21. Explain NB to a product manager.
-22. What happens to NB when you add many irrelevant features?
-23. Difference between Multinomial and Bernoulli NB.
-24. How to fix NB's overconfident probabilities?
-25. When does NB outperform logistic regression?
-
-### Problem Solving (5)
-
-26. Design a comment-moderation (toxic-detection) system with NB. What preprocessing?
-27. Your NB model outputs extremely poor probabilities on a new domain. Steps?
-28. Features include several highly correlated duplicates (e.g., tf and tf²). How does it affect NB?
-29. You have 1M documents. How do you train NB without loading all into memory?
-30. Compare NB on balanced vs highly imbalanced text data. Will priors help?
-
-### Answers
-
-**1.** P(A\|B) = P(B\|A)·P(A)/P(B).
-
-**2.** P(x₁,...,x_d \| c) = Πᵢ P(xᵢ \| c) — features are independent given the class.
-
-**3.** Adding a small constant α to counts so no probability becomes zero.
-
-**4.** Gaussian, Multinomial, Bernoulli.
-
-**5.** It models P(x\|c)·P(c) (the data-generating process) and derives P(c\|x) via Bayes.
-
-**6.** P(x) is identical for all classes; it doesn't affect argmax_c.
-
-**7.** Products of many small probabilities underflow to zero; sums of logs are stable and preserve ordering.
-
-**8.** For decision purposes, only relative ordering of class scores matters; correlations that affect classes similarly cancel out.
-
-**9.** When a feature value unseen in class c gets a 0 probability, the whole product becomes 0, ignoring all other evidence.
-
-**10.** NB is generative (models the mechanism), LR is discriminative (models the boundary directly).
-
-**11.** Multinomial for word counts; Gaussian for continuous heart-rate; Bernoulli for presence/absence.
-
-**12.** Apply Laplace smoothing (never allow raw 0 probabilities).
-
-**13.** Correlated features double-count evidence, pushing posteriors to extremes. Calibrate or account for dependence.
-
-**14.** Keep running word-count statistics per class and reclassify as new emails arrive — NB updates are incremental.
-
-**15.** On small datasets or text/high-dimensional sparse data, and when speed matters.
-
-**16.** Numerator = 0.99·0.02 = 0.0198. Denominator = 0.0198 + 0.05·0.98 = 0.069. Result ≈ 0.287.
-
-**17.** Each factor < 1; the product shrinks exponentially with more factors until it hits the floating-point minimum (~10⁻³⁰⁸).
-
-**18.** P = (2+1)/(30+1·10) = 3/40 = 0.075.
-
-**19.** P(x) = (1/√(2πσ²))·exp(-(x-μ)²/(2σ²)).
-
-**20.** Score(1)=0.4·0.02=0.008; Score(2)=0.6·0.01=0.006. Normalize: P(1) = 0.008/0.014 ≈ 0.571.
-
-**21–30.** Open-ended; review relevant sections for reference.
-
----
-
-## 49. Final Learning Checklist
-
-- [ ] I can state Bayes' theorem and explain every term
-- [ ] I understand the conditional independence assumption
-- [ ] I know why NB is called "naive"
-- [ ] I can compute posteriors by hand with a small dataset
-- [ ] I understand why smoothing is necessary (zero-frequency)
-- [ ] I know the log-trick and why it's used
-- [ ] I can implement Gaussian NB from scratch
-- [ ] I can use sklearn GaussianNB, MultinomialNB, BernoulliNB
-- [ ] I know which variant to use for which data type
-- [ ] I can build a spam filter / text classifier
-- [ ] I understand NB is a generative model
-- [ ] I understand why NB works despite violated assumptions
-- [ ] I can explain the bias-variance profile of NB
-- [ ] I know the complexity (training O(n·d), prediction O(d))
-- [ ] I can apply Laplace smoothing correctly
-- [ ] I understand probability calibration for NB
-- [ ] I know when NB beats more complex models
-- [ ] I can compare NB with logistic regression
-- [ ] I have completed at least one NB project
-- [ ] I can explain NB to a non-technical person
-- [ ] I know how to handle missing values for NB
-- [ ] I can apply NB for streaming/online data
-
----
-
-## 50. Quality Control Note
-
-| Criterion | Status | Notes |
+| Variant | Data | Likelihood P(xᵢ\|c) |
 |---|---|---|
-| Accuracy | ✅ | Bayes' theorem, Gaussian PDF, smoothing math hand-verified |
-| Beginner-friendliness | ✅ | Beach weather analogy, worked 4-document example |
-| Math depth | ✅ | Derivation from Bayes' theorem via chain rule to naive assumption |
-| Practical depth | ✅ | Text classification workflow, sklearn usage, calibration |
-| Exam depth | ✅ | Key formulas and traps covered, no invented PYQs |
-| Code quality | ✅ | Clean vectorized Gaussian NB, sklearn examples |
-| Structure compliance | ✅ | All 50 sections present in order |
+| Gaussian | continuous | 1/√(2πσc²)·exp(−(x−μc)²/2σc²) |
+| Multinomial | word counts | (count(xᵢ,c)+α)/(total_c+α·V) |
+| Bernoulli | binary | P(present\|c), P(absent\|c) |
+
+### MLE estimation
+
+The parameters are just the empirical frequencies (Multinomial) or sample mean/variance (Gaussian). These are the maximum-likelihood estimates — Th no iteration needed, which is why training is instant.
+
+### Calibration
+
+Because of double-counting, posteriors are overconfident. Platt scaling (fit a logistic on the scores) or isotonic regression correct this for reliable probability estimates.
+
+### Complexity
+
+```text
+training:  O(n·d)     prediction/sample: O(d·K)      stored: O(K·d) or O(K·V)
+```
+
+Linear in everything — one of the fastest classifiers that exists.
+
+</details>
+
+---
+
+## 31. Teach Back
+
+Try all four.
+
+> **Explain in 30 seconds:** "Naive Bayes predicts a class by multiplying how common the class is with how well each clue fits it, then picks the class with the biggest score. It assumes clues are independent."
+
+> **Explain to a 12-year-old:** "Ask every clue for its opinion — 'this smells like spam' or 'this smells like a real note' — then combine all the opinions and go with whichever side has more total belief."
+
+> **Explain in an interview:** add: Bayes' theorem, conditional-independence assumption, log trick, smoothing, generative vs discriminative, calibration.
+
+> **Explain the mathematics:** derive the product rule from Bayes and show why P(x) is dropped; show the log form preserves argmax.
+
+---
+
+## 32. Mastery Test
+
+**Without looking at notes:**
+
+1. State Bayes' theorem and define prior/likelihood/posterior.
+2. Explain the naive assumption with the quiz-show story.
+3. Compute a posterior by hand on tiny data (with smoothing).
+4. Explain the zero-frequency problem and the smoothing fix.
+5. Explain the log trick and why it's needed.
+6. Give the three variants and their data types.
+7. Explain why NB often works despite violating independence.
+8. Discuss overconfidence and how to fix it.
+9. Choose it for a real problem; defend the choice.
+10. State one counter-example where you WOULDN'T use it.
+
+---
+
+## 33. Cheat Sheet
+
+```text
+Algorithm : Naive Bayes · Supervised → Classification · Generative
+Core      : ŷ = argmax_c P(c)·Πᵢ P(xᵢ|c)   (use log-sum form)
+Bayes     : P(c|x) ∝ P(c)·P(x|c)            (evidence P(x) dropped)
+Assumption: conditional independence (the "naive" part)
+Trick     : sum logs instead of multiplying  ·  add α (Laplace) to avoid 0
+Variants  : Gaussian (continuous) · Multinomial (counts) · Bernoulli (binary)
+Learn     : priors + per-class likelihood params (closed-form, no iteration)
+Tune      : α (smoothing) · variant · class_prior · var_smoothing
+Scaling   : NOT needed
+Fails     : not zero-smooth → -inf; correlated dup features → overconfident
+Use when  : text, small data, high-dim sparse, speed
+Avoid when: strongly correlated features + need calibrated probabilities
+Related   : Logistic Regression (discriminative twin) · Bayes decision theory
+```
+
+---
+
+## 34. What Next?
+
+You've met the probability-first classifier — the third distinct style of thinking.
+
+```text
+Naive Bayes
+   ├── Decision Tree   (rules / if-then)   → next note (04)
+   └── (after trees)   Random Forest, Boosted trees
+```
+
+> Next recommended: **04. Decision Tree (Classification)** — it replaces "combine probability votes" with "ask a sequence of if-then questions."

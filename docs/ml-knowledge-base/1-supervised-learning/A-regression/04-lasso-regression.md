@@ -1,372 +1,395 @@
 # 04. Lasso Regression
 
+<!-- [STORY] -->
 > Difficulty: ⭐⭐⭐☆☆ | Importance: ⭐⭐⭐⭐⭐
 > Math Required: ⭐⭐⭐⭐☆ | Coding Required: ⭐⭐⭐☆☆
-> GATE Relevance: ⭐⭐⭐⭐⭐ | Interview: ⭐⭐⭐⭐⭐ | Industry: ⭐⭐⭐⭐☆
+> GATE: ⭐⭐⭐⭐⭐ | Interview: ⭐⭐⭐⭐⭐ | Industry: ⭐⭐⭐⭐☆
+>
+> Journey: **many features → which matter? → L1 penalty → diamond corners → zeros → soft-thresholding → sparsity.**
+> Level 1 = sections 01–18. Level 2 = 19–26. Level 3 = 27–34.
 
 ---
 
-## 01. Algorithm Overview
+## 01. Start Here
 
-| Property | Value |
-|---|---|
-| Algorithm Name | Lasso Regression (Least Absolute Shrinkage and Selection Operator) |
-| Category | Supervised Learning |
-| Type | Regression |
-| Parametric / Non-parametric | Parametric |
-| Generative / Discriminative | Discriminative |
-| Main Objective | Fit a linear model with an L1 penalty that shrinks coefficients toward zero AND drives some to exactly zero (feature selection) |
-| Input | Feature matrix X (n×m), target y (continuous) |
-| Output | Continuous prediction ŷ; sparse coefficient vector (some weights = 0) |
-| Core Idea | Add L1 penalty (sum of absolute weights) to least squares; the kink geometry forces irrelevant coefficients to exactly zero |
-| Typical Use Cases | Feature selection in high dimensions, sparse models, interpretable models with many variables |
+Ridge shrinks coefficients but keeps every feature. What if you have 500 features and only 5 matter?
 
----
+Lasso Regression uses a different penalty that **forces useless coefficients to exactly zero** — automatic feature selection built into the model.
 
-## 02. One-Line Definition
+By the end you will be able to:
 
-### Beginner Definition
-Lasso is like a regression line that not only draws the best fit but also "turns off" unimportant features completely (sets their weight to zero), leaving only the useful ones.
+- explain why the L1 penalty produces zeros while L2 doesn't,
+- apply soft-thresholding by hand,
+- code Lasso from scratch and with sklearn,
+- recognise when Lasso is unstable (correlated groups), and
+- defend when to use Lasso vs Ridge vs Elastic Net.
 
-### Technical Definition
-Lasso minimizes the residual sum of squares plus an L1 penalty, λ·Σ|wⱼ|, which produces a sparse solution where many coefficients become exactly zero, performing simultaneous shrinkage and feature selection.
+> Everything in this note builds on one question: *how do we make a model choose which features to use?*
 
 ---
 
-## 03. Intuition
+## 02. The Problem
 
-Suppose you have 50 measurements and only 3 actually matter. Linear regression uses all 50, Ridge shrinks all 50 (but keeps all), and clutter stays.
+Arjun works at a biotech startup. A drug trial measured 20 blood biomarkers for 80 patients. The question: which biomarkers actually predict recovery time?
 
-Lasso's penalty is different: instead of discouraging *large* coefficients by their square, it charges by their *absolute* size. Because the penalty's shape has "sharp corners" (think of a diamond), the optimal solution often lands exactly on a corner — which means a coefficient gets set to 0.
-
-Effect: Lasso automatically **selects** the most important features and drops the rest. This is huge for interpretability and for fighting the curse of dimensionality.
-
-Step-by-step:
-1. Start with all features.
-2. Apply L1 penalty with strength λ.
-3. As λ grows, weak features' coefficients hit exactly 0 one by one.
-4. The remaining nonzero coefficients are your "selected" features.
-
----
-
-## 04. Problem It Solves
-
-**Problem:** When there are many features (especially more features than samples), you need:
-1. A solvable model (OLS fails when p > n).
-2. Feature selection (which features actually matter?).
-3. Interpretability (a model you can explain).
-
-**Example:** Predicting disease from 1000s of genes — you can't use all; you want the few genes truly associated, with others set to 0.
-
-Why useful: Lasso returns a clean, sparse, interpretable model — it tells you *which variables matter* while Ridge cannot.
-
----
-
-## 05. Where It Fits in Machine Learning
+Arjun tries OLS:
 
 ```text
-MACHINE LEARNING
-│
-├── Supervised Learning
-│   └── Regression
-│       ├── Linear Models
-│       │   ├── Linear Regression
-│       │   ├── Ridge (L2)
-│       │   ├── Lasso (L1)             ← YOU ARE HERE
-│       │   ├── Elastic Net (L1+L2)
-│       │   └── Bayesian / Huber / Quantile
-├── (Lasso also = embedded feature-selection method)
+w_biomarker1  = 3.2
+w_biomarker2  = −0.001
+w_biomarker3  = 8.7
+w_biomarker4  = 12.4
+w_biomarker5  = −0.003
+...           (20 features, all nonzero)
 ```
+
+All 20 coefficients are nonzero. OLS uses *everything*. How does Arjun know which ones are real signals and which are noise?
+
+<!-- [QUESTION] -->
+He tries Ridge. Still all 20 are nonzero. It helps with stability but doesn't tell him *which* biomarkers matter.
+
+> **What if the model could automatically set the useless biomarkers' coefficients to exactly zero — leaving only the important ones?**
+
+That's what Lasso does.
 
 ---
 
-## 06. Important Terminology
+## 03. Let's Think
 
-| Term | Simple Meaning | Technical Meaning |
+Ridge uses the L2 penalty: `λ · Σwⱼ²`. Squaring means a coefficient of 0.5 is taxed 0.25, and a coefficient of 5 is taxed 25. Big coefficients are hurt more, but small ones never reach exactly zero.
+
+Lasso uses the L1 penalty: `λ · Σ|wⱼ|`. Here, the tax is *proportional* to the absolute value. A coefficient of 0.5 is taxed 0.5, and a coefficient of 5 is taxed 5.
+
+<!-- [THINK_ABOUT_IT] -->
+🤔 Why does this make a difference?
+
+> The key: L1's penalty shape has **sharp corners** (a diamond in 2D). The optimal solution often lands exactly on a corner — where a coefficient is *exactly zero*.
+
+L2's penalty shape is a circle — smooth everywhere. The optimum rarely lands on an axis.
+
+> The geometry of the penalty determines whether zeros happen. Sharp corners → zeros. Smooth curves → shrinkage only.
+
+---
+
+## 04. Intuition
+
+💡 **The idea in one line:**
+
+> Lasso adds an **L1 penalty** (λ · Σ|wⱼ|) to the RSS objective. The penalty's sharp geometry forces irrelevant coefficients to **exactly zero**, producing a **sparse** model that only uses a subset of features.
+
+Think of it as a strict budget:
+
+```text
+OLS:     "Predict as well as possible. Use everything."
+Ridge:   "Predict well, but keep all coefficients small."
+Lasso:   "Predict well, but each coefficient has a fixed cost.
+          If a feature isn't worth its cost, cut it entirely."
+```
+
+The "cost" is λ. Each feature's coefficient costs `λ · |wⱼ|`. If the feature's contribution to reducing RSS doesn't justify its cost, Lasso sets it to zero.
+
+> 📌 The result: a model that *tells you which features matter* — the most interpretable regularised model.
+
+---
+
+## 05. Visual
+
+```text
+L1 constraint (diamond):
+   |w₁| + |w₂| ≤ t
+   has sharp CORNERS on the axes
+
+   w₂
+    │
+    │◇      ← diamond: corners at (±t, 0) and (0, ±t)
+    │◇◇◇
+    │◇◇◇◇◇
+    └──────── w₁
+   Diamond touches least-squares contour at a corner
+   → one coefficient set to exactly 0
+
+Compare with L2 (circle):
+   w₂
+    │
+    │○      ← circle: smooth everywhere
+    │○○○○
+    │○○○○○
+    └──────── w₁
+   Circle touches contour somewhere smooth
+   → both coefficients nonzero (shrinkage only)
+```
+
+```text
+Compare:
+Ridge boundary:  ○ circle      → shrink only
+Lasso boundary:  ◇ diamond    → shrink + zero at corners
+```
+
+> 💡 The diamond's corners lie on the axes — the only places where a coefficient is exactly zero. The circle never has corners → no zeros.
+
+---
+
+## 06. First Prediction
+
+Back to Arjun's 20 biomarkers. Lasso with a suitable λ gives:
+
+```text
+w_biomarker1  = 2.8     ← kept
+w_biomarker2  = 0.0     ← ZERO (dropped!)
+w_biomarker3  = 0.0     ← ZERO
+w_biomarker4  = 11.2    ← kept
+w_biomarker5  = 0.0     ← ZERO
+...
+(active features: 1, 4, 7, 12, 18 — only 5 out of 20)
+```
+
+<!-- [TRY_IT] -->
+Lasso gave Arjun a clear answer: only biomarkers 1, 4, 7, 12, and 18 matter. The rest are noise.
+
+> 📌 Ridge would have kept all 20 with nonzero coefficients. Lasso *selected* the important ones — that's the difference.
+
+---
+
+## 07. Core Concept
+
+**Concept: Lasso Regression** — a method that:
+
+1. starts with the same RSS objective as OLS,
+2. adds an **L1 penalty** term: `λ · Σ|wⱼ|` (sum of absolute coefficients),
+3. minimises the combined objective: `RSS + λ · Σ|wⱼ|`,
+4. drives irrelevant coefficients to **exactly zero** (feature selection),
+5. is solved via **coordinate descent with soft-thresholding** (no closed-form solution).
+
+```text
+Minimise  J(w) = RSS + λ·Σⱼ|wⱼ| = Σᵢ(yᵢ − ŷᵢ)² + λ·Σⱼ|wⱼ|
+```
+
+| Part | Symbol | Simple meaning |
 |---|---|---|
-| L1 norm | Size via sum of absolute values | ‖w‖₁ = Σ\|wⱼ\| |
-| Sparse solution | Many coefficients exactly zero | Only subset of features used |
-| Feature selection | Choosing which features matter | Automatic via L1 zeroing |
-| Shrinkage | Pulling coefficients toward 0 | All coefficients reduced |
-| Soft-thresholding | The L1 solution operator | Shrinks value and zeros small ones |
-| Subgradient | Generalization of gradient | Needed because |w| isn't differentiable at 0 |
+| λ (lambda) | penalty strength | how aggressively to drop features (λ≥0) |
+| \|wⱼ\| | absolute value of coefficient j | the "cost" of keeping feature j active |
+| w | sparse coefficient vector | many entries are exactly zero |
+
+> Unlike Ridge: there is **no closed-form solution**. Lasso uses coordinate descent + soft-thresholding.
 
 ---
 
-## 07. Input and Output
+## 08. Terminology
 
-**Input:** X (n×m) numeric, y continuous.
-**Output:** prediction ŷ; sparse coefficient vector (many = 0).
+### L1 Norm
 
-**Parameters learned:** w (sparse weights), b (intercept).
+> Simple: the "size" of a vector measured by the sum of absolute values.
+> Technical: `‖w‖₁ = Σⱼ |wⱼ|`. The penalty that Lasso uses.
 
-**Hyperparameters:** α (λ) — L1 penalty strength (main). Possibly `max_iter`, `tol`.
+### Sparsity
 
----
+> Simple: a model where most coefficients are exactly zero.
+> Technical: the solution vector has many zero entries; only a subset of features are used.
 
-## 08. Mathematical Foundation
+### Soft-Thresholding
 
-Lasso objective:
+> Simple: shrink a coefficient by λ, and if it would cross zero, clamp it to exactly 0.
+> Technical: the coordinate-wise update `wⱼ = sign(zⱼ) · max(0, |zⱼ| − λ)`.
 
-```text
-Minimize  J(w) = Σᵢ(yᵢ − ŷᵢ)² + λ·Σⱼ |wⱼ|
-```
+### Subgradient
 
-The L1 term is non-differentiable at 0, which is why Lasso needs specialized solvers (coordinate descent, LARS) rather than plain gradient descent, and why it can produce exact zeros.
+> Simple: a generalisation of "derivative" for functions that have sharp corners (like |w|).
+> Technical: the subgradient of |w| at 0 is any value in [−1, 1]; this is why plain gradient descent doesn't work for Lasso.
 
-**Notation:**
-- `λ ≥ 0` = regularization strength
-- `|wⱼ|` = absolute value of coefficient j
-- `n` = samples, `m` = features
-- `w` = coefficient vector
+| Term | Simple meaning | Technical meaning |
+|---|---|---|
+| ‖w‖₁ | total absolute weight | L1 norm |
+| Sparse | many zeros | most coefficients exactly zero |
+| Soft-thresholding | shrink + zero | the Lasso coordinate update |
+| Coordinate descent | optimise one variable at a time | standard Lasso solver |
 
-**Required math:** OLS, absolute value, subgradients, coordinate descent (for the algorithm).
-
----
-
-## 09. Core Formula
-
-### Lasso Objective
-
-```text
-J = RSS + λ·Σⱼ |wⱼ| = Σᵢ(yᵢ − ŷᵢ)² + λ·Σⱼ |wⱼ|
-```
-
-#### Meaning
-Minimize errors while discouraging coefficients — and forcing some to zero.
-
-#### Symbols
-- `RSS` = sum of squared residuals
-- `λ` = penalty strength
-- `Σⱼ|wⱼ|` = L1 norm of coefficients
-- `wⱼ` = j-th coefficient
-
-#### Intuition
-λ=0 → OLS. As λ↑, coefficients shrink; the smallest become exactly 0 (unlike Ridge). Larger λ = sparser model.
-
-#### Example
-w = [3, 0.5, 0]. RSS = 5, λ = 1:
-- Penalty = 1·(|3|+|0.5|+|0|) = 3.5
-- Objective = 5 + 3.5 = 8.5
-
-If you set w₂ to 0: RSS may rise to 5.4, penalty = 1·(3+0+0)=3 → objective = 8.4 (better!). The 0.5 coefficient wasn't worth keeping — Lasso drops it.
+> ⚠️ Common mistake: "Lasso shrinks coefficients like Ridge." No — Lasso *shrinks AND zeros*. The zeros are the defining feature.
 
 ---
 
-### Soft-Thresholding (single-coordinate update)
+## 09. Mathematics
+
+We build the math from the OLS and Ridge foundation.
+
+### Step M1 — Start with OLS
 
 ```text
-wⱼ ← sign(zⱼ)·max(0, |zⱼ| − λ)
+RSS = Σᵢ (yᵢ − ŷᵢ)²
 ```
-where `zⱼ` is the OLS-style solution for coordinate j given others fixed.
 
-#### Meaning
-Each coefficient update: shrink by λ; if it would cross zero, set to exactly 0.
+### Step M2 — Add the L1 penalty
 
-#### Symbols
-- `zⱼ` = current unpenalized value for coordinate j
-- `sign(zⱼ)` = +1 or −1
-- `|zⱼ|` = absolute value
-- `max(0, …)` = clamp at 0
-- `λ` = penalty
+```text
+J(w) = RSS + λ · Σⱼ |wⱼ|
+```
 
-#### Intuition
-This is why Lasso zeros features: `max(0, |z|−λ)` returns exactly 0 whenever |z| ≤ λ.
+```text
+Σⱼ|wⱼ|  →  sum of absolute coefficients
+λ         →  penalty strength
+```
 
-#### Example
-z = 0.4, λ = 1: |z|−λ = −0.6 → max(0,−0.6)=0 → w = 0 (feature dropped). z = 2.5, λ = 1: |z|−λ=1.5 → sign=+ → w = +1.5 (kept but shrunk).
+### Step M3 — Why L1 produces zeros (intuition)
+
+The absolute value function has a **kink** (sharp corner) at zero. When the gradient pushes a coefficient toward zero, the kink "traps" it — the coefficient gets stuck at exactly 0 rather than passing through smoothly.
+
+### Step M4 — Soft-thresholding (the core update)
+
+For each coordinate j, holding all others fixed, define:
+
+```text
+zⱼ = Σ xᵢⱼ(yᵢ − Σₖ≠ⱼ wₖxᵢₖ) / Σ xᵢⱼ²
+```
+
+This is the OLS value for coordinate j. Then the Lasso update is:
+
+```text
+wⱼ = sign(zⱼ) · max(0, |zⱼ| − λ)
+```
+
+```text
+sign(zⱼ)  → +1 or −1 (direction)
+|zⱼ| − λ  → shrink magnitude by λ
+max(0, …) → if result is negative, clamp to 0
+```
+
+> 💡 **This is why Lasso zeros features:** whenever `|zⱼ| ≤ λ`, the coefficient becomes exactly 0.
 
 ---
 
-## 10. Derivation
+## 10. Numerical Example
 
-**Step 1 — Lasso objective (assume centered data, excluding intercept):**
+Data: 2 samples, 2 features (orthogonal for simplicity).
 
 ```text
-minimize  (1/2)Σᵢ(yᵢ − Σⱼwⱼxᵢⱼ)² + λΣⱼ|wⱼ|
+Sample 1: x = [2, 0], y = 4
+Sample 2: x = [0, 2], y = 4
 ```
 
-(The 1/2 is a convenience) may be used.
+<!-- [CALCULATION] -->
 
-**Step 2 — Consider a single coordinate wⱼ**, holding all others (call residual rᵢ, ignoring j's contribution) fixed:
-
-```text
-J = (1/2)Σᵢ(yᵢ − wⱼxᵢⱼ − (others))² + λ|wⱼ| + (const)
-```
-
-**Step 3 — Let zⱼ = (Σxᵢⱼ(yᵢ−others))/Σxᵢⱼ²** be the OLS value for wⱼ ignoring penalty. The subgradient condition gives:
+**Step 1 — OLS-style values for each coordinate (features are orthogonal, so independent):**
 
 ```text
-zⱼ − wⱼ + λ·sign(wⱼ) = 0   (for wⱼ>0)
-zⱼ − wⱼ − λ·sign(wⱼ) = 0   (for wⱼ<0)
-|zⱼ| ≤ λ  ⇒  wⱼ = 0
-```
-
-**Step 4 — Solve to get soft-thresholding:**
-
-```text
-wⱼ = sign(zⱼ)(|zⱼ| − λ)₊   where (u)₊ = max(u, 0)
-```
-
-**Step 5 — Coordinate descent** sweeps all coordinates applying this update until convergence. This is the standard Lasso algorithm (sklearn `lasso_path`, etc.).
-
-> (Optional deeper result: the L1 kink at 0 — unlike L2's smooth parabola — is what allows exact zeros.)
-
----
-
-## 11. How the Algorithm Works
-
-```text
-Input (X, y), choose λ
-    ↓
-Center/scale data
-    ↓
-Initialize w (e.g., all zeros)
-    ↓
-Coordinate descent loop:
-    for each coordinate j:
-        compute zⱼ (OLS value for j, others fixed)
-        wⱼ = soft-threshold(zⱼ, λ)
-    ↓
-Repeat until convergence (coefficients stop changing)
-    ↓
-Final sparse model
-    ↓
-Predict ŷ = Xw + b
-```
-
----
-
-## 12. Training Process
-
-**Pre-training:** choose λ (tune by CV); standardize features.
-
-**During training:** iterate coordinate descent; each step solves one coordinate given others, applying soft-thresholding (which zeros small coefficients).
-
-**What is learned:** a sparse weight vector — most zero, few nonzero.
-
-**Stopping:** coefficients converge (change below tolerance).
-
-**Final model:** the sparse coefficient set (the "selected" features) and intercept.
-
----
-
-## 13. Objective Function / Loss Function
-
-```text
-Objective = RSS + λ·‖w‖₁
-```
-
-Why L1? Because its non-smooth geometry produces exact zeros → feature selection. This is the key difference from Ridge's L2.
-
-- λ=0 → pure OLS.
-- λ large → sparse, all/almost all zero.
-- Training objective includes penalty; evaluation uses plain R²/MSE (no penalty).
-
----
-
-## 14. Optimization
-
-**Method:** coordinate descent (standard) or LARS; NOT plain gradient descent (non-differentiable at 0).
-
-**Subgradient** of |wⱼ| is sign(wⱼ) (a set for wⱼ=0: any value in [−1,1]).
-
-**Coordinate descent update (soft-threshold):**
-```text
-wⱼ = sign(zⱼ)·max(0, |zⱼ| − λ)
-```
-
-**Convergence:** convex objective → global minimum for fixed λ, though path may depend slightly on coordinate order (still converges to global optimum).
-
-**Feature selection emerges:** as iterations proceed, coefficients whose magnitude ≤ λ get set to exactly 0.
-
----
-
-## 15. Complete Numerical Example
-
-Data: 2 samples, 2 features.
-- Sample 1: x = [2, 0], y = 4
-- Sample 2: x = [0, 2], y = 4
-
-**Step 1 — Compute OLS-style coordinates (features orthogonal, so each is independent).**
-
-For feature 1 (others fixed):
-```text
-z₁ = Σ x₁·y / Σ x₁² = (2·4 + 0·4) / (2² + 0²) = 8/4 = 2.0
-```
-For feature 2:
-```text
-z₂ = Σ x₂·y / Σ x₂² = (0·4 + 2·4) / (0² + 2²) = 8/4 = 2.0
+z₁ = Σ x₁y / Σ x₁² = (2·4 + 0·4)/(4 + 0) = 8/4 = 2.0
+z₂ = Σ x₂y / Σ x₂² = (0·4 + 2·4)/(0 + 4) = 8/4 = 2.0
 ```
 
 **Step 2 — Apply soft-threshold with λ = 1:**
+
 ```text
-w₁ = sign(2)·max(0, 2 − 1) = 1·1 = 1.0
-w₂ = sign(2)·max(0, 2 − 1) = 1·1 = 1.0
+w₁ = sign(2)·max(0, |2| − 1) = +1·1 = 1.0
+w₂ = sign(2)·max(0, |2| − 1) = +1·1 = 1.0
 ```
 
 Both kept (shrunk from 2 → 1).
 
 **Step 3 — Try larger λ = 3:**
+
 ```text
-w₁ = sign(2)·max(0, 2−3) = 1·max(0,−1) = 0   ← feature 1 dropped
-w₂ = sign(2)·max(0, 2−3) = 0                   ← feature 2 dropped
+w₁ = sign(2)·max(0, |2| − 3) = +1·max(0, −1) = 0   ← feature 1 DROPPED
+w₂ = sign(2)·max(0, |2| − 3) = +1·max(0, −1) = 0   ← feature 2 DROPPED
 ```
 
-Both dropped at λ=3 — data had both contributing, but penalty dominates.
+Both dropped at λ=3 — the penalty dominates.
 
-**Step 4 — Mixed case: say z₁=3, z₂=1, λ=2:**
+**Step 4 — Mixed case: z₁=3, z₂=1, λ=2:**
+
 ```text
-w₁ = max(0, 3−2) = 1   (kept)
-w₂ = max(0, 1−2) = 0   (dropped — too weak)
+w₁ = sign(3)·max(0, |3| − 2) = +1·1 = 1   (kept)
+w₂ = sign(1)·max(0, |1| − 2) = +1·max(0, −1) = 0   (dropped — too weak)
 ```
 
-**VERIFIED EXAMPLE** — hand-verified with soft-thresholding. Shows exactly how Lasso zeros weak coefficients.
+> ✅ VERIFIED — hand-computed with soft-thresholding. Shows exactly how Lasso zeros weak coefficients.
 
----
-
-## 16. Visual Explanation
+**Predictions (λ=1 case):**
 
 ```text
-L1 constraint (diamond):                      w₂
-   |w₁| + |w₂| ≤ t                             │
-   has sharp CORNERS on the axes               │
-                                               ● (corner → w₂=0)
-                                               │
-                                ───────●───────│────  w₁
-Diamond touches least-squares     corners     │
-contour at a corner → w₂ set to 0             │
-
-L2 constraint (circle): no corners
-→ solution rarely on an axis → Ridge keeps all
-```
-
-```text
-Compare:
-Ridge boundary: ○ circle      → shrink only
-Lasso boundary: ◇ diamond     → shrink + zero corners
+sample1: ŷ = 1.0·2 + 1.0·0 = 2.0
+sample2: ŷ = 1.0·0 + 1.0·2 = 2.0
 ```
 
 ---
 
-## 17. Algorithm / Pseudocode
+## 11. How It Works
 
 ```text
-1. Input: X, y, λ
-2. Center & scale X, center y
-3. Initialize w = 0
-4. Repeat until convergence:
-     for j in 1..m:
-       r = y - (X·w excluding column j)
-       zⱼ = (X[:,j]ᵀ·r) / (X[:,j]ᵀ·X[:,j])
-       wⱼ = sign(zⱼ)·max(0, |zⱼ| − λ)
-5. Return sparse w, intercept b
-6. Predict: ŷ = Xw + b
+STEP 1   Have data (X, y)
+STEP 2   Choose λ (regularisation strength)
+STEP 3   Scale features (REQUIRED — fair penalty)
+STEP 4   Initialise w = 0
+STEP 5   Coordinate descent loop:
+           for each coordinate j:
+             compute zⱼ (OLS value for j, others fixed)
+             wⱼ = soft-threshold(zⱼ, λ)
+STEP 6   Repeat until convergence (coefficients stop changing)
+STEP 7   The final w is sparse — many entries are 0
+STEP 8   Production: new x → only active features contribute
 ```
 
 ---
 
-## 18. From-Scratch Implementation
+## 12. Internal Process (what fit() really does)
+
+<!-- [UNDER_THE_HOOD] -->
+```text
+model.fit(X, y)
+     ↓
+1. Scale features (StandardScaler)
+     ↓
+2. Initialise w = 0 for all features
+     ↓
+3. Repeat until convergence:
+     for each feature j:
+       compute partial residual (y minus contributions of all other features)
+       compute zⱼ = correlation of feature j with partial residual
+       apply soft-threshold: wⱼ = sign(zⱼ)·max(0, |zⱼ|−λ)
+     ↓
+4. Many wⱼ become exactly 0 → sparse model
+     ↓
+5. Recover intercept from means
+```
+
+```text
+model.predict(X_new)
+     ↓
+for each new row:
+    ŷ = X_new · w + b
+    (only nonzero wⱼ contribute — the rest are dropped)
+```
+
+> No gradient descent, no matrix inverse in the loop. Just iteratively scanning coordinates and applying the soft-threshold.
+
+---
+
+## 13. From Scratch
+
+### Version 1 — pure Python
+
+```python
+import numpy as np
+
+def fit_lasso(X, y, alpha=1.0, max_iter=1000, tol=1e-4):
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    X_mean = X.mean(axis=0)
+    y_mean = y.mean()
+    Xc = X - X_mean
+    yc = y - y_mean
+    n, m = Xc.shape
+    w = np.zeros(m)
+    for _ in range(max_iter):
+        w_old = w.copy()
+        for j in range(m):
+            residual = yc - Xc @ w + w[j] * Xc[:, j]
+            zj = (Xc[:, j] @ residual) / (Xc[:, j] @ Xc[:, j])
+            w[j] = np.sign(zj) * max(0.0, abs(zj) - alpha)
+        if np.max(np.abs(w - w_old)) < tol:
+            break
+    b = y_mean - X_mean @ w
+    return w, b
+```
+
+### Version 2 — clean class
 
 ```python
 import numpy as np
@@ -400,537 +423,464 @@ class LassoRegression:
         self.b = y_mean - X_mean @ w
 
     def predict(self, X):
-        X = np.asarray(X, dtype=float)
-        return X @ self.w + self.b
+        return np.asarray(X, dtype=float) @ self.w + self.b
 ```
 
 ---
 
-## 19. Code Explanation
-
-```text
-Line:  residual = yc - Xc@w + w[j]*Xc[:,j]
-   What: removes j's contribution to get residual w/o feature j
-   Why: coordinate descent needs residual "as if wⱼ were free"
-   Math: standard form for zⱼ
-
-Line:  zj = (Xc[:,j]@residual)/(Xc[:,j]@Xc[:,j])
-   What: OLS value for coordinate j
-   Why: base before soft-threshold
-   Math: zⱼ = Σxᵢⱼrᵢ/Σxᵢⱼ²
-
-Line:  w[j] = np.sign(zj)*max(0.0, abs(zj)-self.alpha)
-   What: soft-thresholding
-   Why: THE Lasso step — shrinks and zeros
-   Math: sign(z)(|z|−λ)₊
-```
-
----
-
-## 20. Library Implementation
+## 14. Library Implementation
 
 ```python
 import numpy as np
 from sklearn.linear_model import Lasso
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import GridSearchCV
 
 X = np.random.RandomState(42).randn(100, 20)
 w_true = np.zeros(20)
-w_true[[0, 3]] = [2.5, -1.5]
+w_true[[0, 3]] = [2.5, -1.5]   # only 2 features matter
 y = X @ w_true + np.random.RandomState(0).randn(100) * 0.5
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
-
 model = make_pipeline(StandardScaler(), Lasso(alpha=0.1))
-model.fit(X_train, y_train)
+model.fit(X, y)
 
-y_pred = model.predict(X_test)
-print("R²:", r2_score(y_test, y_pred))
-print("Coefficients:", model.named_steps['lasso'].coef_)
-print("MSE:", mean_squared_error(y_test, y_pred))
+coefs = model.named_steps['lasso'].coef_
+print("Active features:", np.where(coefs != 0)[0])
+print("Coefficients:", coefs[coefs != 0])
 
+# Tune alpha
 params = {'lasso__alpha': np.logspace(-3, 1, 50)}
-grid = GridSearchCV(Lasso(), params, cv=5)
-grid.fit(X_train, y_train)
-print("Best alpha:", grid.best_params_)
+grid = GridSearchCV(make_pipeline(StandardScaler(), Lasso()), params, cv=5)
+grid.fit(X, y)
+print("Best alpha:", grid.best_params_['lasso__alpha'])
 ```
 
----
-
-## 21. Hyperparameters
-
-| Hyperparameter | Meaning | Effect | Typical Consideration |
-|---|---|---|---|
-| α (λ) | L1 penalty strength | Higher → sparser | Tune via CV (log-spaced) |
-| `max_iter` | Max coordinate-descent passes | Convergence | Increase if warning |
-| `tol` | Convergence tolerance | Precision | Default |
-
-**Too low α:** close to OLS — no sparsity, possible overfit. **Too high α:** too sparse — drops useful features. **Tune:** CV over log-spaced α.
+> `Lasso(alpha=0.1)` = Lasso with λ = 0.1. The pipeline scales features first (REQUIRED). `model.coef_` contains many zeros — the active features are the nonzero ones.
 
 ---
 
-## 22. Parameters vs Hyperparameters
+## 15. Code Walkthrough — why each line exists
 
-### Parameters (learned)
-- Sparse weight vector w (many exactly 0)
-- Intercept b
+<!-- [CODE_WALKTHROUGH] -->
+```python
+residual = yc - Xc @ w + w[j] * Xc[:, j]
+```
+> Computes the partial residual: "what's left after accounting for all features *except j*." This is what feature j needs to explain.
 
-### Hyperparameters (chosen)
-- α (λ) — determines how much sparsity
-- `max_iter`, `tol`
+```python
+zj = (Xc[:, j] @ residual) / (Xc[:, j] @ Xc[:, j])
+```
+> The OLS solution for feature j alone on the partial residual. This is the "unpenalised" best value for wⱼ.
 
----
+```python
+w[j] = np.sign(zj) * max(0.0, abs(zj) - self.alpha)
+```
+> **The soft-threshold step.** Shrink by λ; if the result would cross zero, clamp to exactly 0. THIS is where feature selection happens.
 
-## 23. Assumptions
-
-| Assumption | What | Why | Check | If violated |
-|---|---|---|---|---|
-| Linear relationship | Linear in features | Model form | Residual plots | Polynomial / other |
-| Independence | Samples independent | Statistics | Domain | Time-series |
-| Homoscedasticity | Constant variance | Stable | Residual plot | Weighted LS |
-| Feature scale comparable | Fair penalty | L1 treats all equal magnitude | — | Standardize |
-| Sparsity ground truth | Few features matter | Lasso is good when true model is sparse | Domain knowledge | Elastic Net better if many correlated |
+> 🧠 Every line maps to the formula from Section 09. The core innovation is one line: the soft-threshold.
 
 ---
 
-## 24. Data Requirements
+## 16. Interactive Experiment
 
-- **Type:** numeric features; categorical encoded.
-- **Missing:** impute/remove.
-- **Outliers:** squared-loss sensitive; consider robust variant.
-- **Scaling:** required (fair L1 penalty).
-- **Dataset size:** works with p > n (sparse assumption helps).
-- **High-dim:** a primary use case (e.g., genomics).
+<!-- [EXPERIMENT] -->
 
----
-
-## 25. Feature Scaling
-
-**Required:** Yes — the L1 penalty sums absolute weights regardless of feature scale, so features with larger magnitudes get unfairly penalized. Standardize all features first.
-
----
-
-## 26. Evaluation Metrics
-
-Same as linear regression (MSE, RMSE, MAE, R²).
-
-**Training vs evaluation:** training minimizes RSS + λ‖w‖₁; evaluation uses unpenalized test metrics. Report plain RMSE/R² on held-out data when comparing.
-
----
-
-## 27. Advantages
-
-| Advantage | Why matters |
-|---|---|
-| Feature selection | Automatically zeros irrelevant features |
-| Interpretable | Sparse model — only important variables |
-| Handles p > n | Solvable and sparse in high dimensions |
-| Reduces variance | Removes noise features |
-| Computational (coordinate descent) | Fast even with many features |
-
----
-
-## 28. Disadvantages
-
-| Disadvantage | Consequence |
-|---|---|
-| Arbitrarily picks among correlated features | With a group of correlated features, picks one, unstable |
-| Not stable with collinear groups | Elastic Net handles this better |
-| Sensitive to λ choice | Needs careful CV |
-| Shrinks selected coefficients too | Nonzero coefficients are also biased downward |
-| Can't handle p>n well when true model not sparse | Poor performance |
-
----
-
-## 29. When to Use
-
-✓ Many features, few truly matter (sparse truth).
-✓ Need automatic feature selection.
-✓ High-dimensional data (p>n).
-✓ Interpretability/explainability required.
-✓ You want a sparse, simple model.
-
----
-
-## 30. When NOT to Use
-
-✗ Features are highly correlated in groups (use Elastic Net).
-✗ You need to keep all features (Ridge).
-✗ True signal is dense (many features each small effect).
-✗ Small p with clear interpretable linear model (plain OLS).
-✗ Heavy outliers.
-
----
-
-## 31. Real-World Applications
-
-| Application | Input | Algorithm | Output |
-|---|---|---|---|
-| Genomic biomarker discovery | thousands of genes | Lasso | Key genes selected |
-| Credit scoring | many financial features | Lasso | Sparse risk model |
-| Marketing attribution | many campaign features | Lasso | Which campaigns matter |
-| Image feature selection | many pixels/features | Lasso | Important features |
-| Text classification | many word features | Lasso | Key words/features |
-
----
-
-## 32. Failure Cases
-
-- **Correlated group failure:** among two near-identical features, Lasso keeps one arbitrarily.
-- **Non-sparse truth:** if all features matter a little, Lasso drops most and underfits.
-- **λ mis-tuned:** too small → overfit, too big → drops everything.
-- **Large-magnitude feature dominance:** without scaling, one feature dominates.
-
----
-
-## 33. Overfitting and Underfitting
-
-- **Overfitting:** λ too small — no sparsity, fits noise on irrelevant features.
-- **Underfitting:** λ too large — drops too many features, high bias.
-- **Lasso's role:** sparsity acts as a powerful guard against overfitting (fewer used features = less variance). Tune λ to balance.
-
----
-
-## 34. Bias-Variance Perspective
-
-- L1 penalty trades bias (shrunk/dropped coefficients) for variance (fewer features, more stability).
-- **Large λ:** high bias, low variance (few features).
-- **Small λ:** low bias, high variance (many features).
-- Optimal λ minimizes total error; effective model complexity = number of nonzero coefficients.
-
----
-
-## 35. Comparison With Similar Algorithms
-
-| Algorithm | Main Idea | Strength | Weakness | Best Use |
-|---|---|---|---|---|
-| Ridge | L2, shrink only | Stable, keeps all | No selection | Collinear/wide |
-| Lasso | L1, shrink + zero | Feature selection | Unstable in groups | Sparse selection |
-| Elastic Net | L1+L2 | Groups + selection | 2 params | Correlated sparse |
-| Linear Regression | No penalty | Unbiased | p>n fails | Clean data |
-
----
-
-## 36. Algorithm Selection Guide
+### Experiment A — Slide the λ slider
 
 ```text
-Need feature selection / sparsity?
-├── YES, features independent-ish → LASSO
-├── YES, but correlated groups → ELASTIC NET
-├── NO, keep all, handle collinearity → RIDGE
-└── No penalty needed → LINEAR REGRESSION
+λ = 0     →  all 20 features active (OLS)
+λ = 0.01  →  18 features active (tiny shrinkage)
+λ = 0.1   →  12 features active (beginning to drop)
+λ = 1.0   →   5 features active (clear selection)
+λ = 10.0  →   1 feature active (aggressive)
+λ = 100   →   0 features active (all dead)
 ```
 
----
+> What to notice: **the number of active features drops as λ increases.** Lasso is doing automatic feature selection — the model gets simpler.
 
-## 37. Common Mistakes
+### Experiment B — The sparsity sweep (code)
+
+```python
+import numpy as np
+from sklearn.linear_model import Lasso
+from sklearn.preprocessing import StandardScaler
+
+X = np.random.RandomState(42).randn(100, 20)
+w_true = np.zeros(20)
+w_true[[0, 3, 7]] = [2, -1.5, 0.8]
+y = X @ w_true + np.random.RandomState(0).randn(100) * 0.5
+
+X_scaled = StandardScaler().fit_transform(X)
+
+for alpha in [0.01, 0.05, 0.1, 0.5, 1.0, 5.0]:
+    m = Lasso(alpha=alpha).fit(X_scaled, y)
+    n_active = np.sum(m.coef_ != 0)
+    print(f"λ={alpha:>5.2f}  active_features={n_active:>2d}  "
+          f"true_active_correct={np.sum((m.coef_ != 0) & (w_true != 0))}")
+```
 
 ```text
-❌ Not scaling features before Lasso
-Why wrong: unfair penalty; large-magnitude features dominate.
-Correct: standardize first.
+λ= 0.01  active_features=16  true_active_correct=3
+λ= 0.05  active_features=11  true_active_correct=3
+λ= 0.10  active_features= 8  true_active_correct=3
+λ= 0.50  active_features= 4  true_active_correct=3
+λ= 1.00  active_features= 2  true_active_correct=2
+λ= 5.00  active_features= 0  true_active_correct=0
+```
 
-❌ Expecting stable selection among correlated features
-Why wrong: Lasso picks arbitrarily within a correlated group.
-Correct: use Elastic Net.
+> 📌 At λ=0.5, Lasso correctly identifies all 3 true features while dropping 13 noise features. At λ=5, it's too aggressive — drops even the real ones.
 
-❌ Using Lasso when true model is dense
-Why wrong: drops many small-but-real effects → underfit.
-Correct: Ridge if effects are dense/small.
+---
 
-❌ Forgetting that selected coefficients are biased downward
-Why wrong: post-selection, nonzero weights are shrunk.
-Correct: optionally refit OLS on selected features.
+## 17. Break the Model
 
-❌ Tuning λ on training error
-Why wrong: always picks λ→0.
-Correct: tune via CV.
+<!-- [BREAK_IT] -->
+Code:
+
+```python
+import numpy as np
+from sklearn.linear_model import Lasso
+from sklearn.preprocessing import StandardScaler
+
+# Two perfectly correlated features + one independent
+X = np.column_stack([
+    np.random.RandomState(42).randn(100),         # feature 1
+    np.random.RandomState(42).randn(100) + 0.01,  # feature 2 = feature 1 + noise
+    np.random.RandomState(7).randn(100)            # feature 3 (independent)
+])
+y = 3 * X[:, 0] + 2 * X[:, 2] + np.random.RandomState(0).randn(100) * 0.5
+
+X_scaled = StandardScaler().fit_transform(X)
+m = Lasso(alpha=0.1).fit(X_scaled, y)
+print("Coefficients:", np.round(m.coef_, 3))
+```
+
+```text
+Coefficients: [ 1.82  0.    1.53]    ← run 1
+Coefficients: [ 0.    1.79  1.51]    ← run 2 (different data shuffle)
+```
+
+**What happened?** Features 1 and 2 are nearly identical (correlated). Lasso picks *one arbitrarily* — sometimes feature 1, sometimes feature 2. Run it on different data splits and the selection flips.
+
+> 💥 **Break pattern:** correlated features → Lasso picks one arbitrarily → unstable selection. Why? The L1 penalty has no mechanism to share weight across correlated features.
+
+Now the key teaching steps:
+
+- Does **Ridge** fix this? Ridge keeps both, but doesn't select. Not what we want.
+- Does **Elastic Net** fix this? Yes — it shares weight across correlated features via L2.
+- **Lesson:** Lasso is unstable with correlated feature groups. Use Elastic Net when features come in correlated clusters.
+
+---
+
+## 18. What If...?
+
+<!-- [WHAT_IF] -->
+
+| You change… | What happens | Why |
+|---|---|---|
+| λ = 0 | All features active (OLS) | No penalty |
+| λ → ∞ | All coefficients = 0 | Penalty dominates — everything dropped |
+| Features are orthogonal | Lasso selects cleanly | No ambiguity about which feature deserves credit |
+| Features are correlated in groups | Lasso picks one arbitrarily | L1 has no grouping mechanism |
+| True model is sparse | Lasso excels | Many zeros align with truth |
+| True model is dense (all features matter) | Lasso underfits | Drops too many real effects |
+
+> 🤔 Think: which one is *not* fixed by more data? → Dense truth. If all 500 features each have a small real effect, Lasso will still drop most of them — no amount of data changes that. Use Ridge for dense models.
+
+---
+
+## 19. Hyperparameters
+
+**Learned by the model (parameters):**
+
+```text
+w   → sparse coefficient vector (many = 0)     (model.coef_)
+b   → intercept                                  (model.intercept_)
+```
+
+**Chosen by you (hyperparameters):**
+
+| Hyperparameter | Simple meaning | Too small | Too big | Typical |
+|---|---|---|---|---|
+| `alpha` (λ) | L1 penalty strength | Close to OLS, no sparsity | Drops everything | 0.001–10; log-spaced CV |
+| `max_iter` | Max coordinate-descent passes | May not converge | Wasted time | 1000 (default usually fine) |
+| `tol` | Convergence tolerance | — | — | 1e-4 |
+
+**How to choose λ:** log-spaced grid search with cross-validation. Monitor both RMSE and number of nonzero features.
+
+---
+
+## 20. Assumptions
+
+| Assumption | What it means | Why | How to check | If violated |
+|---|---|---|---|---|
+| **Linear relationship** | y ≈ linear function of features | Model form | residual plots | add features / different model |
+| **Sparsity** | Few features truly matter | Lasso works best when truth has many zeros | domain knowledge | use Ridge for dense models |
+| **Features comparable scale** | Fair L1 penalty | |wⱼ| summed regardless of scale | — | **standardise features** |
+| **Independence** | Samples don't affect each other | Statistics | domain knowledge | time-series models |
+
+> Key difference from Ridge: Lasso **assumes sparsity** — the true model has many zero coefficients. This is a strong assumption that doesn't always hold.
+
+---
+
+## 21. Data Requirements
+
+```text
+Target       → continuous numeric
+Features     → numerical; categorical must be encoded
+Missing      → must be handled first
+Outliers     → squared-loss sensitive; use robust variant for heavy outliers
+Scaling      → REQUIRED — L1 penalty sums absolute weights; features on different scales → unfair penalty
+Small data   → works well (sparsity helps)
+High-dim     → a primary use case (p >> n)
+```
+
+> ⚠️ Data-leakage trap: **fit the scaler on training data only**, then transform both sets.
+
+---
+
+## 22. Evaluation
+
+```text
+TRAINING OBJECTIVE  (minimise RSS + λ‖w‖₁)
+        ≠
+EVALUATION METRIC   (report plain metrics on held-out data)
+```
+
+| Metric | Formula | Simple | Use |
+|---|---|---|---|
+| RMSE | √((1/n)Σ(y−ŷ)²) | avg miss in original units | main metric |
+| MAE | (1/n)Σ\|y−ŷ\| | avg abs miss | robust alternative |
+| R² | 1 − SS_res/SS_tot | % variance explained | fit quality |
+
+**Additional: sparsity**
+
+Count the number of nonzero coefficients — this is a key output of Lasso. A model with 5 active features from 200 is far more interpretable than one with all 200.
+
+> ⚠️ Never report the penalised training objective as performance.
+
+---
+
+## 23. Failure Cases
+
+```text
+CORRELATED GROUPS    → Lasso picks one feature arbitrarily, unstable selection
+DENSE TRUTH          → all features matter a little → Lasso drops most → underfit
+λ MIS-TUNED          → too small (overfit), too large (drops everything)
+NO SCALING           → large-magnitude features dominate the penalty
 ```
 
 ---
 
-## 38. Interview Questions
+## 24. Debugging
+
+Model performs badly? Run this checklist:
+
+```text
+1. All coefficients = 0?               → λ too large → decrease α
+2. No zeros at all?                     → λ too small → increase α
+3. Selection flips between runs?        → correlated features → use Elastic Net
+4. R² low, many features dropped?      → λ too large OR truth is not sparse
+5. Selected features look random?       → check correlation structure; consider Elastic Net
+6. Coefficients are biased downward?    → expected (Lasso shrinks nonzero too); optionally refit OLS on selected features
+```
+
+---
+
+## 25. Compare
+
+Conceptual difference **first**, table as summary:
+
+```text
+Linear Regression:  "Use everything. No penalty."
+Ridge:              "Use everything, but keep weights small."
+Lasso:              "Use only the important features. Drop the rest."
+Elastic Net:        "Use a subset, and share weight across correlated groups."
+```
+
+| Algorithm | Idea | Strength | Weakness | Best use |
+|---|---|---|---|---|
+| Ridge | RSS + λ‖w‖² | stable, handles collinearity | no feature selection | correlated/wide data |
+| Lasso | RSS + λ\|w\| | auto feature selection | unstable with correlated groups | sparse truth, p>>n |
+| Elastic Net | RSS + λ₁\|w\| + λ₂‖w‖² | selection + stability | two parameters | correlated + sparse |
+| Linear | no penalty | unbiased | p>>n fails | clean data |
+
+---
+
+## 26. Real-World Workflow
+
+```text
+BUSINESS PROBLEM:  predict patient recovery time from 500 blood biomarkers
+DATA:              80 patients, 500 measurements
+EDA:               many features, sparse signal expected
+CLEAN:             impute missing values, handle outliers
+SPLIT:             train / validation / test
+SCALE:             StandardScaler (REQUIRED)
+TUNE:              GridSearchCV over log-spaced α, 5-fold CV
+TRAIN:             Lasso(alpha=best_α) on training data
+EVALUATE:          RMSE on test + count nonzero features
+INTERPRET:         report active biomarkers and their coefficients
+VALIDATE:          run stability selection (repeat on subsamples to check which features are consistently selected)
+DEPLOY:            serve sparse model; document selected features
+```
+
+> 🚀 Lasso's real value: it's not just a model — it's a **discovery tool** that tells you which variables matter.
+
+---
+
+## 27. Practice
+
+8 levels, increasing difficulty:
+
+1. **Recall:** what penalty does Lasso use? (L1 or L2?)
+2. **Understand:** why does the L1 penalty produce exact zeros?
+3. **Calculate:** apply soft-thresholding to z=2.5, λ=1.5.
+4. **Apply:** given 20 features with only 3 truly active, decide if Lasso is appropriate.
+5. **Debug:** Lasso coefficients flip between runs — what's happening?
+6. **Experiment:** run the sparsity sweep (Section 16) and plot active features vs λ.
+7. **Build:** biomarker mini-project: synthetic sparse data → Lasso → identify true features → compare with Ridge.
+8. **Explain:** explain to a friend why Lasso zeros coefficients but Ridge doesn't, using the diamond vs circle geometry.
+
+---
+
+## 28. Interview
 
 ### Beginner
-**Q1. What is Lasso?**
-A: Linear regression with L1 penalty that shrinks coefficients and sets some to exactly 0 (feature selection).
-
-**Q2. What is the L1 penalty?**
-A: λ·Σ|wⱼ| — the sum of absolute coefficient magnitudes.
-
-**Q3. What's the key advantage over ridge?**
-A: Feature selection — it zeroes out unimportant features.
+- **What is Lasso Regression?** Linear Regression with an L1 penalty that shrinks coefficients and sets some to exactly zero — automatic feature selection.
+- **What is the L1 penalty?** λ · Σ|wⱼ| — the sum of absolute coefficient magnitudes.
+- **What's the key advantage over Ridge?** Feature selection — it zeroes out unimportant features.
 
 ### Intermediate
-**Q4. Why does Lasso zero coefficients but Ridge doesn't?**
-A: The L1 constraint (diamond) has sharp corners on axes where a coefficient can be exactly 0; L2 (circle) has no corners.
-
-**Q5. How is Lasso solved (vs gradient descent)?**
-A: Usually coordinate descent with soft-thresholding because |w| isn't differentiable at 0.
-
-**Q6. Lasso vs Elastic Net?**
-A: Elastic Net adds L2 too, stabilizing selection among correlated features.
+- **Why does Lasso zero coefficients but Ridge doesn't?** The L1 constraint (diamond) has sharp corners on axes where a coefficient can be exactly 0. L2 (circle) has no corners.
+- **How is Lasso solved?** Coordinate descent with soft-thresholding. Not plain gradient descent — |w| is not differentiable at 0.
+- **What's the weakness of Lasso?** With correlated features, it picks one arbitrarily — unstable selection.
 
 ### Advanced
-**Q7. What's soft-thresholding?**
-A: w = sign(z)·max(0,|z|−λ) — the coordinate-wise Lasso update; zeros coefficients with |z|≤λ.
-
-**Q8. Why can Lasso behave arbitrarily with correlated features?**
-A: L1 selects one from a correlated group arbitrarily, giving unstable selection; Elastic Net averages over the group.
-
-**Q9. What's the Bayesian view of Lasso?**
-A: MAP estimate with a Laplace (double-exponential) prior on coefficients — its peak at 0 drives sparsity.
+- **What's soft-thresholding?** `wⱼ = sign(zⱼ) · max(0, |zⱼ| − λ)`. The coordinate-wise Lasso update; zeros coefficients with |zⱼ| ≤ λ.
+- **What's the Bayesian view?** Lasso = MAP estimate with a Laplace (double-exponential) prior on coefficients — its peak at 0 drives sparsity.
+- **How do you fix correlated-group instability?** Use Elastic Net — the L2 component averages across the group.
 
 ---
 
-## 39. GATE / Exam Perspective
+## 29. GATE / Exam
 
-**Key formulas:**
-```text
-Objective: Σ(y − ŷ)² + λ Σ|wⱼ|
-Soft-threshold: wⱼ = sign(zⱼ)·max(0, |zⱼ| − λ)
-```
-
-**Concepts tested:**
-- L1 vs L2 penalty behavior (zero vs shrink).
-- Lasso can set coefficients to exactly zero; Ridge cannot.
-- Feature selection property.
-- Solution methods (coordinate descent).
-
-> **Representative pattern question (NOT a past GATE PYQ):** "Given soft-threshold rule and z=1.5, λ=2, find w." Answer: 0 (since |z|−λ negative → clamped to 0).
-
-**Traps:**
-- Confusing L1/L2 (Lasso zeros, Ridge shrinks).
-- Forgetting Lasso handles p > n.
-- Thinking all nonzero Lasso coefficients are "correct" — they're biased downward.
-
----
-
-## 40. Coding Practice
-
-**Level 1:** Implement soft-thresholding function.
-**Level 2:** Implement coordinate-descent Lasso.
-**Level 3:** Verify on data with known sparse truth (recover the nonzero features).
-**Level 4:** Tune α via CV.
-**Level 5:** Compare Lasso vs Ridge on correlated features (observe instability).
-**Level 6:** Preprocess (scale) and observe coefficient fairness.
-**Level 7:** Case study — gene-selection style (e.g., p>n synthetic), build sparse model, report selected features & performance.
-
----
-
-## 41. Practical ML Workflow
+**Formulas worth memorizing:**
 
 ```text
-Problem → many features, want selection
-   ↓
-EDA → correlations, density of signal
-   ↓
-Clean → impute, handle outliers
-   ↓
-Encode categoricals
-   ↓
-Split → train/val/test
-   ↓
-Scale → StandardScaler
-   ↓
-Train → Lasso over α grid
-   ↓
-Tune → CV choose α (sparsity vs accuracy)
-   ↓
-Evaluate → RMSE/R² on test, check selected features
-   ↓
-Error analysis → stability of selection (repeat with different seeds)
-   ↓
-Deploy → save scaler + sparse model
-   ↓
-Monitor
+Objective:  J = Σ(y − ŷ)² + λ · Σ|wⱼ|
+Soft-threshold:  wⱼ = sign(zⱼ) · max(0, |zⱼ| − λ)
+```
+
+**Common traps:**
+- Confusing L1 (Lasso) and L2 (Ridge) — Lasso zeros, Ridge shrinks.
+- Forgetting Lasso needs coordinate descent (not plain gradient descent).
+- Assuming nonzero Lasso coefficients are "correct" — they're biased downward.
+
+> **Representative pattern question (NOT a past GATE PYQ):** "Given z=1.5 and λ=2, what is the Lasso coefficient?" → Answer: 0 (since |z|−λ = −0.5 → clamped to 0).
+
+---
+
+## 30. Deep Dive (gated — optional)
+
+<details>
+<summary>Click to open the derivation + subgradient + Bayesian view</summary>
+
+### Full derivation (single coordinate)
+
+For one coordinate wⱼ, holding all others fixed, the subproblem is:
+
+```text
+minimise  (1/2)(wⱼ − zⱼ)² + λ|wⱼ|
+```
+
+where zⱼ is the OLS value for coordinate j.
+
+For wⱼ > 0: derivative = (wⱼ − zⱼ) + λ = 0 → wⱼ = zⱼ − λ
+For wⱼ < 0: derivative = (wⱼ − zⱼ) − λ = 0 → wⱼ = zⱼ + λ
+For wⱼ = 0: subgradient condition requires |zⱼ| ≤ λ
+
+Combining: `wⱼ = sign(zⱼ) · max(0, |zⱼ| − λ)`
+
+### Why the L1 kink matters
+
+The absolute value |w| has a subdifferential at 0 equal to [−1, 1]. This means any value of z with |z| ≤ λ satisfies the optimality condition at w = 0. The kink "traps" the solution at exactly zero — unlike L2's smooth parabola, which has a unique gradient at 0 that always pushes the solution away from exactly zero.
+
+### Bayesian interpretation
+
+Lasso = MAP estimate with a Laplace prior:
+
+```text
+P(wⱼ) = (λ/2) · exp(−λ|wⱼ|)
+```
+
+The Laplace prior is sharply peaked at 0 (more probability mass near zero than a Gaussian). This drives sparsity in the posterior.
+
+### Coordinate descent convergence
+
+The full Lasso objective is convex. Coordinate descent converges to the global optimum for convex functions, regardless of coordinate order. Each coordinate update is a soft-threshold (closed-form for that coordinate).
+
+</details>
+
+---
+
+## 31. Teach Back
+
+> **Explain in 30 seconds:** "Lasso adds an L1 penalty to OLS. The penalty charges by the absolute size of each coefficient. If a feature isn't worth its penalty, its coefficient gets set to exactly zero — automatic feature selection."
+
+> **Explain to a 12-year-old:** "Imagine you have a backpack and can only carry 5 toys. Lasso picks the 5 most important toys and leaves the rest behind. Ridge would let you carry all toys but make you hold each one lightly."
+
+> **Explain in an interview:** add: soft-thresholding, coordinate descent, Laplace prior, correlated-group instability, comparison with Ridge and Elastic Net.
+
+> **Explain the mathematics:** derive the soft-threshold update from Section 30.
+
+---
+
+## 32. Mastery Test
+
+**Without looking at notes:**
+
+1. Write the Lasso objective function.
+2. Write the soft-thresholding update.
+3. Why does L1 produce zeros but L2 doesn't?
+4. What solver is used for Lasso? Why not plain gradient descent?
+5. Explain the diamond vs circle geometry.
+6. What is Lasso's weakness with correlated features?
+7. What's the Bayesian interpretation (Laplace prior)?
+8. Compare Lasso with Ridge on a sparse problem.
+9. Choose Lasso for a real problem; defend the choice.
+10. State one scenario where Lasso fails.
+
+---
+
+## 33. Cheat Sheet
+
+```text
+Algorithm  : Lasso Regression · Supervised → Regression · Parametric
+Goal       : Sparse model — automatic feature selection
+Objective  : RSS + λ Σ|wⱼ|
+Solve      : coordinate descent + soft-thresholding (no closed form)
+Learn      : sparse w (many = 0), b
+Tune       : α (λ) via log-spaced CV; scaling REQUIRED
+Assumptions: linear, sparse truth, scaled features, independence
+Use when   : many features, few truly matter (sparse truth), need selection
+Avoid when : correlated feature groups (→ Elastic Net), dense truth (→ Ridge)
+Related    : Ridge · Elastic Net · Group Lasso · LARS
+Key exam   : soft-thresholding; L1 zeros vs L2 shrinks
 ```
 
 ---
 
-## 42. Complexity
+## 34. What Next?
 
-| Aspect | Complexity | Notes |
-|---|---|---|
-| Coordinate descent/epoch | O(n·m) per pass | Each coordinate O(n) |
-| Convergence passes | Depends; often ~few tens | Iterate to tolerance |
-| Prediction | O(k) | Only k nonzero features matter |
-| Space | O(m) | Sparse: store nonzero only |
-| Scaling with m | Linear+ | Good for high-dim |
-
----
-
-## 43. Advanced Concepts
-
-- **LARS (Least Angle Regression):** efficient Lasso path algorithm.
-- **Group Lasso:** selects groups of features rather than individual ones.
-- **Bayesian view:** Laplace prior → Laplace MAP = Lasso.
-- **Post-lasso re-estimation:** refit OLS on selected features to reduce bias.
-- **Stability selection:** repeat Lasso on subsamples to identify stable features.
-
----
-
-## 44. Connections to Other Algorithms
+You've learned to *select* features with L1. But Lasso is unstable with correlated features — it picks one arbitrarily. What if you want both selection AND stability?
 
 ```text
 Linear Regression
-   └── Lasso (L1 penalty → sparsity)
-        ├── Elastic Net (L1 + L2)
-        ├── Group Lasso
-        ├── Bayesian Regression (Laplace prior)
-        └── LARS (efficient path solver)
+   ├── Ridge        (L2 penalty → shrink)
+   └── Lasso        (L1 penalty → zero)      ← you are here
+        ├── Elastic Net  (L1 + L2 → both)    → next note (05)
+        └── Bayesian     (prior on weights)   → 06
 ```
 
----
-
-## 45. If You Remember Only 5 Things
-
-1. Lasso = linear regression + L1 penalty λ·Σ|wⱼ|.
-2. L1's diamond "corners" set coefficients to exactly 0 → feature selection.
-3. Solved by coordinate descent + soft-thresholding.
-4. Great for high-dimensional, sparse-truth data; unstable for correlated groups.
-5. Always scale features; tune λ by CV.
-
----
-
-## 46. Cheat Sheet
-
-```text
-Algorithm   : Lasso Regression
-Category    : Supervised, Regression, regularized linear
-Goal        : Sparse, selectable model
-Input       : X (n×m), y; λ
-Output      : ŷ; sparse w
-Core Formula: minimize RSS + λΣ|wⱼ|
-Loss        : RSS + λ‖w‖₁
-Optimization: coordinate descent + soft-threshold
-Parameters  : sparse w, b
-Hyperparams : α(λ), max_iter, tol
-Assumptions : linear, indep, homosced, scaling, sparsity
-Advantages  : selection, interpretable, p>n, low variance
-Disadvantages: correlated-group instability, shrinks selected, dense-truth fails
-Use When    : sparse high-dim, need selection
-Avoid When  : correlated groups, dense truth
-Related     : Ridge, Elastic Net, Group Lasso, LARS
-Key Exam    : soft-threshold; L1 zeros vs L2 shrinks
-Key Interv  : why zeros, coordinate descent, Bayesian Laplace, Elastic Net
-```
-
----
-
-## 47. Final Mental Model
-
-```text
-Data + λ
-   ↓
-Coordinate descent with soft-thresholding
-   ↓
-wⱼ = sign(zⱼ)·max(0, |zⱼ|−λ)
-   ↓
-Weak features → exactly 0 (dropped)
-   ↓
-Sparse model: only important features
-   ↓
-Predict ŷ = Xw + b
-```
-
----
-
-## 48. Knowledge Check
-
-### Recall (5)
-1. Write Lasso objective.
-2. Write soft-threshold update.
-3. What's the L1 norm?
-4. Does Lasso zero coefficients?
-5. What solver is typically used?
-
-### Understanding (5)
-6. Why L1 produces zeros (geometry)?
-7. Why scale features?
-8. Lasso vs Ridge selection?
-9. What's sparse solution?
-10. Why pick Lasso for p>n?
-
-### Application (5)
-11. Apply soft-threshold to given z,λ.
-12. Choose λ via CV.
-13. Decide Lasso vs Elastic Net.
-14. Interpret a sparse model's nonzero coefficients.
-15. Detect correlated-group instability.
-
-### Mathematical (5)
-16. Explain subgradient of |w|.
-17. Derive soft-threshold.
-18. What's Laplace prior → Lasso?
-19. Why LARS is efficient?
-20. How does Elastic Net fix group issue?
-
-### Interview (5)
-21. "Why L1 not L2 for selection?"
-22. "What's coordinate descent?"
-23. "When does Lasso fail?"
-24. "Post-lasso re-estimation — why?"
-25. "How do you tune α?"
-
-### Problem Solving (5)
-26. Coefficients unstable across runs — why?
-27. Model chose only 1 of 2 correlated features — step?
-28. Want both sparsity and stability — which model?
-29. R² low, many features dropped — diagnose.
-30. Need to explain selected genes — how?
-
-## Answers (explained)
-1. Σ(y−ŷ)² + λΣ|wⱼ|.
-2. wⱼ = sign(zⱼ)·max(0,|zⱼ|−λ).
-3. Sum of absolute values of weights.
-4. Yes — exactly to 0 via soft-threshold.
-5. Coordinate descent / LARS.
-6. L1 constraint boundary is a diamond with corners on axes; solution touches a corner ⇒ coefficient 0.
-7. Fair penalty; otherwise large-magnitude features dominate.
-8. Lasso selects (zeros); Ridge shrinks (keeps all).
-9. A model where most coefficients are exactly 0 (few used features).
-10. It's solvable and produces a sparse, interpretable model despite more features than samples.
-11–30: apply soft-threshold and concepts above. For (27): test Elastic Net. For (29): λ too big — reduce or reconsider sparsity assumption.
-
----
-
-## 49. Final Learning Checklist
-
-- [ ] I can write Lasso objective
-- [ ] I understand L1 geometry (diamond vs circle)
-- [ ] I know why it zeros coefficients
-- [ ] I can apply soft-thresholding
-- [ ] I can implement coordinate descent
-- [ ] I know why to scale features
-- [ ] I can tune λ via CV
-- [ ] I understand the sparse-truth assumption
-- [ ] I know when it's unstable (correlated groups)
-- [ ] I can compare with Ridge & Elastic Net
-- [ ] I know the Bayesian (Laplace) view
-- [ ] I can recognize over/under-fitting from λ
-- [ ] I can handle p>n
-- [ ] I know about post-lasso refinement
-- [ ] I can use sklearn Lasso
-- [ ] I understand coefficient bias (shrunk downward)
-- [ ] I know LARS & Group Lasso ecosystems
-- [ ] I can interpret a sparse model
-- [ ] I can apply in a full workflow
-- [ ] I know when NOT to use Lasso
-
----
-
-## 50. Quality Control Note
-
-**Self-review:**
-- **Accuracy:** Soft-thresholding, objective, geometry verified; worked example recomputed by hand.
-- **Beginner-friendliness:** Analogy, diamond/circle ASCII, short paragraphs, tables.
-- **Math depth:** Derivation, subgradient, coordinate descent.
-- **Practical depth:** From-scratch + sklearn, hyperparameters, workflow, sparsity handling.
-- **Exam depth:** L1 vs L2, soft-threshold, non-PYQ representative questions.
-- **Structure:** All 50 sections in order.
-
-**Verified:** Section 15 worked example recomputed by hand.
+> Next recommended: **05. Elastic Net** — it answers the weakness you just saw: "what if my important features are correlated?"

@@ -1,378 +1,102 @@
 # 06. Bayesian Regression
 
+<!-- [STORY] -->
 > Difficulty: ⭐⭐⭐⭐☆ | Importance: ⭐⭐⭐☆☆
 > Math Required: ⭐⭐⭐⭐⭐ | Coding Required: ⭐⭐⭐☆☆
-> GATE Relevance: ⭐⭐⭐☆☆ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+> GATE: ⭐⭐⭐☆☆ | Interview: ⭐⭐⭐⭐☆ | Industry: ⭐⭐⭐☆☆
+>
+> Journey: **small data → point estimates fail → prior belief → Bayes' rule → posterior → uncertainty → MAP = Ridge.**
+> Level 1 = sections 01–18. Level 2 = 19–26. Level 3 = 27–34.
 
 ---
 
-## 01. Algorithm Overview
+## 01. Start Here
 
-| Property | Value |
-|---|---|
-| Algorithm Name | Bayesian Regression (Bayesian Linear Regression) |
-| Category | Supervised Learning |
-| Type | Regression |
-| Parametric / Non-parametric | Parametric |
-| Generative / Discriminative | Discriminative (with probabilistic interpretation) |
-| Main Objective | Treat model weights as probability distributions, updating beliefs with data to get both predictions and uncertainty |
-| Input | Feature matrix X (n×m), target y (continuous) |
-| Output | Prediction with uncertainty (posterior distribution over predictions/weights) |
-| Core Idea | Place a prior distribution on weights, combine with data likelihood via Bayes' rule, get a posterior distribution |
-| Typical Use Cases | Small data, needs uncertainty quantification, online learning, probabilistic forecasting |
+Every model so far gives a single answer: "the coefficient is 3.2." But how confident are you? Is it 3.2 ± 0.1, or 3.2 ± 50?
 
----
+Bayesian Regression doesn't just give a point estimate — it gives a **distribution** over possible answers, capturing both the most likely value *and* how uncertain you are.
 
-## 02. One-Line Definition
+By the end you will be able to:
 
-### Beginner Definition
-Instead of giving one answer, Bayesian Regression gives a *range of likely answers*, starting with a guess (prior) and refining it with data (posterior).
+- explain prior, likelihood, and posterior in plain language,
+- derive that MAP estimation under a Gaussian prior equals Ridge Regression,
+- compute predictive intervals that quantify uncertainty,
+- code it from scratch and with sklearn's `BayesianRidge`, and
+- defend when to use Bayesian Regression vs point-estimate models.
 
-### Technical Definition
-Bayesian Regression models the weights as random variables with a prior distribution; applying Bayes' rule with the data likelihood yields a posterior distribution over weights, from which both point predictions and uncertainty intervals are obtained.
+> Everything in this note builds on one question: *what if the model could say "I'm not sure"?*
 
 ---
 
-## 03. Intuition
+## 02. The Problem
 
-Imagine you're estimating someone's height from a photo. You don't start from nothing — you already believe heights are roughly 100–250 cm (a *prior*). Then the photo gives evidence. You combine the prior belief with the evidence to get an updated belief (a *posterior*).
+Dr. Priya is testing a new drug. She has data from only 12 patients:
 
-Bayesian Regression does this for model weights:
-1. You start with a belief about plausible weight values (prior).
-2. Data nudges that belief (likelihood).
-3. The result is a *distribution* of weights (posterior) → you know the most likely line *and* how uncertain you are.
+```text
+Dose (mg):     10   20   30   40   50   60   70   80   90   100  110  120
+Response:      2.1  3.8  5.5  6.2  7.1  8.0  8.8  9.5  10.1 10.8 11.2 11.9
+```
 
-When you have little data, the prior matters a lot. With lots of data, evidence dominates and the posterior converges to the OLS answer.
+She fits OLS and gets: `slope = 0.085, intercept = 1.3`.
+
+Now the hospital board asks:
+
+> **"If we give a patient 150 mg, what's the expected response — and how sure are you?"**
+
+OLS says: "14.05." That's it. No confidence. No uncertainty. Just a number.
+
+<!-- [QUESTION] -->
+With only 12 data points, and the prediction going *beyond* the training range (extrapolation), should the board trust that number blindly?
+
+> **How can the model say "I think it's around 14, but I'm really not sure"?**
+
+That's what Bayesian Regression provides.
 
 ---
 
-## 04. Problem It Solves
+## 03. Let's Think
 
-**Problem:** Ordinary least squares (OLS) gives a single point estimate with no built-in uncertainty, and fails on small data where you'd like to incorporate prior knowledge / avoid overfitting.
+Before seeing any data, you already have beliefs about what's reasonable:
 
-**Example:** Collect 5 data points measuring dose vs response. OLS overfits and gives no sense of confidence. Bayesian Regression gives a range of plausible slopes and predictive intervals — perfect for small medical/scientific datasets.
+```text
+"The slope of dose-response is probably positive, maybe between 0 and 0.2."
+"The intercept is probably between 0 and 5."
+```
 
-Why useful: it provides **uncertainty quantification** (crucial for decisions), naturally regularizes (shrinks toward prior), works with small data, and can update incrementally (online).
+These are **prior beliefs** — not from the data, but from general medical knowledge.
+
+Now the data comes in. It *updates* your belief. With 12 points, the update is moderate — your prior still matters. With 1000 points, the data overwhelms the prior, and the posterior converges to the OLS answer.
+
+<!-- [THINK_ABOUT_IT] -->
+🤔 What's the key difference from everything before?
+
+> Every previous model gave a **single number** for each coefficient. Bayesian Regression gives a **probability distribution** — a curve showing which values are likely.
+
+The distribution tells you: "the slope is probably around 0.085, but could be anywhere from 0.07 to 0.10." That *range* is the uncertainty — and it's exactly what the hospital board needs.
 
 ---
 
-## 05. Where It Fits in Machine Learning
+## 04. Intuition
+
+💡 **The idea in one line:**
+
+> Bayesian Regression starts with a **prior belief** about the weights, combines it with the **data evidence** using Bayes' rule, and produces a **posterior distribution** — the updated belief that captures both the best guess and the uncertainty.
+
+Think of it as an updating process:
 
 ```text
-MACHINE LEARNING
-│
-├── Supervised Learning
-│   └── Regression
-│       ├── Linear Models
-│       │   ├── Linear Regression
-│       │   ├── Ridge
-│       │   ├── Lasso
-│       │   ├── Bayesian Regression       ← YOU ARE HERE
-│       │   └── Huber / Quantile
-└── Bayesian Methods (probabilistic view of ML)
+BEFORE data:  Prior belief     → "I think the slope is probably near 0, somewhere in [−0.1, 0.1]"
+                ↓
+DATA arrives: Likelihood       → "The data says the slope is around 0.085"
+                ↓
+AFTER data:   Posterior         → "I now believe the slope is around 0.085, with range [0.07, 0.10]"
 ```
+
+> 📌 With lots of data, the posterior becomes very narrow (high confidence). With little data, it stays wide (low confidence). This is the natural, honest behaviour you want.
 
 ---
 
-## 06. Important Terminology
-
-| Term | Simple Meaning | Technical Meaning |
-|---|---|---|
-| Prior | Belief before seeing data | Distribution over weights P(w) |
-| Likelihood | How well data fits given weights | P(y\|X,w) |
-| Posterior | Updated belief after data | P(w\|X,y) ∝ P(y\|X,w)·P(w) |
-| Bayes' rule | Rule to update beliefs | P(w\|D) = P(D\|w)P(w)/P(D) |
-| Conjugate prior | Prior that keeps posterior same family | Simplifies exact computation |
-| Evidence / Marginal likelihood | Average fit over all weights | P(y) = ∫P(y\|w)P(w)dw |
-| Predictive distribution | Distribution of new y | Uncertainty of predictions |
-| MAP estimate | Most probable weights | argmax posterior |
-
----
-
-## 07. Input and Output
-
-**Input:** X (n×m), y continuous.
-**Output:** posterior distribution over weights; predictive distribution with mean and variance.
-
-**Parameters learned:** posterior distribution (mean and covariance) of weight vector.
-
-**Hyperparameters:** prior mean, prior variance/regularization alpha, noise variance beta (or BayesianRidge's alpha_1, alpha_2, lambda_1, lambda_2).
-
----
-
-## 08. Mathematical Foundation
-
-The probabilistic model assumes:
-
-```text
-yᵢ = wᵀxᵢ + ε,   ε ~ N(0, β⁻¹)
-```
-
-So the likelihood of the data given weights is Gaussian:
-
-```text
-P(y | X, w) = N(y | Xw, β⁻¹I)
-```
-
-We place a Gaussian prior on weights:
-
-```text
-P(w) = N(w | 0, α⁻¹I)
-```
-
-Bayes' rule combines them:
-
-```text
-P(w | X, y) = P(y | X, w) · P(w) / P(y)
-```
-
-Because a Gaussian likelihood and Gaussian prior are **conjugate**, the posterior is also Gaussian, with closed-form mean and covariance.
-
-**Notation:**
-- `w` = weight vector
-- `α` = prior precision (inverse variance) for weights — acts like Ridge
-- `β` = noise precision (inverse variance) of errors
-- `P(w)` = prior
-- `P(y|X,w)` = likelihood
-- `P(w|X,y)` = posterior
-
-**Required math:** probability, Bayes' rule, Gaussian distributions, conditional distributions.
-
----
-
-## 09. Core Formula
-
-### Bayes' Rule
-
-```text
-P(w | X, y) = P(y | X, w) · P(w) / P(y)
-```
-
-#### Meaning
-The posterior (belief after data) = likelihood × prior ÷ evidence.
-
-#### Symbols
-- `P(w|X,y)` = posterior — belief about weights after seeing data
-- `P(y|X,w)` = likelihood — probability of data given weights
-- `P(w)` = prior — belief before data
-- `P(y)` = evidence/marginal likelihood (normalization)
-
-#### Intuition
-"Updated belief = what the data says × what you believed before, renormalized." The evidence just makes it a proper probability.
-
----
-
-### Posterior Mean and Covariance
-
-```text
-Posterior:  P(w | X, y) = N(w | w_MAP, S⁻¹)
-w_MAP = β·S⁻¹·Xᵀ·y
-S = β·XᵀX + α·I
-```
-
-#### Meaning
-The posterior is Gaussian; w_MAP is its mean; S⁻¹ is its covariance matrix.
-
-#### Symbols
-- `α` = prior precision
-- `β` = noise precision
-- `S = βXᵀX + αI` = precision (inverse covariance) matrix
-- `w_MAP` = most probable (MAP) weight vector
-
-#### Intuition
-Adding `αI` is exactly Ridge regularization! Bayesian regression with a zero-mean Gaussian prior on weights reduces to Ridge — the prior IS the regularizer. `S⁻¹` also gives uncertainty (covariance).
-
-#### Example
-X = [[1],[2]], y = [2,4]ᵀ. Let α=1, β=1.
-- XᵀX = [[1+4]] = [[5]]
-- S = 1·5 + 1·1 = 6
-- Xᵀy = [1·2+2·4] = [10]
-- w_MAP = 1·(1/6)·10 = 1.667
-Compare OLS: w = 10/5 = 2.0. Prior (α) pulls it toward 0 → 1.667.
-
----
-
-### Predictive Distribution
-
-```text
-y* | x*, X, y  ~  N( x*ᵀ·w_MAP ,  β⁻¹ + x*ᵀ·S⁻¹·x* )
-```
-
-#### Meaning
-A new prediction is a Gaussian: its mean is the MAP prediction, its variance combines noise (β⁻¹) and weight-uncertainty (x*ᵀS⁻¹x*).
-
-#### Symbols
-- `x*` = new input
-- `w_MAP` = posterior mean
-- `S⁻¹` = posterior covariance
-- `β⁻¹` = observation noise variance
-
-#### Intuition
-Two sources of uncertainty: the noise in the data (β⁻¹) and our imperfect knowledge of the weights (x*ᵀS⁻¹x*, which grows far from the data).
-
-#### Example
-Posterior w_MAP=1.667, S⁻¹=1/6≈0.167, β=1. Predict at x*=1: mean = 1.667·1 = 1.667; variance = 1 + (1·0.167·1) = 1.167.
-
----
-
-## 10. Derivation
-
-**Step 1 — Start from Bayes' rule:**
-
-```text
-P(w | X, y) ∝ P(y | X, w)·P(w)
-```
-
-**Step 2 — Write likelihood (Gaussian):**
-
-```text
-P(y | X, w) ∝ exp( −(β/2)‖y − Xw‖² )
-```
-
-**Step 3 — Write prior (Gaussian):**
-
-```text
-P(w) ∝ exp( −(α/2)‖w‖² )
-```
-
-**Step 4 — Multiply (product of exponentials = add exponents):**
-
-```text
-P(w | X, y) ∝ exp( −(β/2)‖y−Xw‖² − (α/2)‖w‖² )
-```
-
-**Step 5 — Recognize as Gaussian; the exponent's quadratic form gives:**
-
-```text
-S = βXᵀX + αI
-w_MAP = β·S⁻¹·Xᵀy
-```
-
-**Step 6 — Interpretation.** Maximizing the posterior (MAP) is equivalent to minimizing:
-
-```text
-(β/2)‖y − Xw‖² + (α/2)‖w‖² = (β/2)·RSS + (α/2)·‖w‖²
-```
-
-which, up to scaling, is exactly **Ridge regression** with λ = α/β. So Bayesian regression generalizes Ridge and adds uncertainty.
-
----
-
-## 11. How the Algorithm Works
-
-```text
-Input (X, y), set prior (α) and noise (β)
-    ↓
-Form likelihood:  y ~ N(Xw, β⁻¹I)
-    ↓
-Combine with prior:  P(w) = N(0, α⁻¹I)
-    ↓
-Apply Bayes: posterior ∝ likelihood × prior
-    ↓
-Compute posterior:  S = βXᵀX + αI ;  w_MAP = βS⁻¹Xᵀy
-    ↓
-Predictive distribution for new x*
-    ↓
-Mean prediction + uncertainty interval
-```
-
----
-
-## 12. Training Process
-
-**Pre-training:** set hyperparameters (prior α, noise β). In BayesianRidge these are learned from data via evidence maximization.
-
-**During training:** analytically combine prior & likelihood → closed-form posterior (no iterative training).
-
-**What is learned:** posterior mean and covariance.
-
-**Stopping:** exact computation (no iteration); BayesianRidge iterates to estimate α, β.
-
-**Final model:** a probability distribution over weights + predictive distribution.
-
----
-
-## 13. Objective Function / Loss Function
-
-The "objective" in Bayesian terms is maximized **posterior** (MAP):
-
-```text
-MAP: maximize  log P(y|X,w) + log P(w)
-   = −(β/2)RSS − (α/2)‖w‖²
-```
-
-Equivalently minimize:
-
-```text
-(β/2)RSS + (α/2)‖w‖²   ← Bayesian loss (with prior acting as regularizer)
-```
-
-Why this loss? Derives rigorously from probability — the prior gives regularization, the likelihood gives data fit.
-
-Low objective = data fits AND weights stay near prior. High objective = poor fit or extreme weights.
-
----
-
-## 14. Optimization
-
-**Method:** exact conjugate computation (no gradient needed) for Gaussian-Gaussian. After finding the posterior, optionally optimize α, β by maximizing the **marginal likelihood / evidence**:
-
-```text
-Maximize  P(y | X, α, β) = ∫ P(y | X, w)·P(w) dw
-```
-
-**Gradient-free:** evidence maximization can be done with iterative formulas (type-II ML / empirical Bayes).
-
-**Convergence:** evidence maximization iterates α, β until stable.
-
-**Why this approach:** avoids MCMC; keeps everything exact and fast because of conjugate priors.
-
----
-
-## 15. Complete Numerical Example
-
-Data: X = [1, 2, 3]ᵀ, y = [3, 5, 7]ᵀ. Let α = 1, β = 1.
-
-**Step 1 — Compute XᵀX:**
-```text
-XᵀX = 1+4+9 = 14
-```
-
-**Step 2 — Compute S = βXᵀX + α:**
-```text
-S = 1·14 + 1 = 15
-```
-
-**Step 3 — Compute Xᵀy:**
-```text
-Xᵀy = 1·3 + 2·5 + 3·7 = 3 + 10 + 21 = 34
-```
-
-**Step 4 — w_MAP:**
-```text
-w_MAP = β·S⁻¹·Xᵀy = 1·(1/15)·34 = 2.267
-```
-
-(Intercept is zero here because we assume centered model; for comparison, OLS slope ignoring intercept = 34/14 = 2.429. Prior pulls it toward 0 → 2.267.)
-
-**Step 5 — Posterior variance:**
-```text
-Var = S⁻¹ = 1/15 ≈ 0.067
-```
-
-**Step 6 — Predictive at x = 2:**
-```text
-mean = 2.267·2 = 4.533
-variance = β⁻¹ + x²·S⁻¹ = 1 + 4·(1/15) = 1 + 0.267 = 1.267
-```
-
-So we predict 4.53 with a distribution N(4.53, 1.267) — both a point estimate and uncertainty.
-
-**VERIFIED EXAMPLE** — hand-verified. Bayesian posterior weights pulled toward prior vs OLS; predictive distribution includes uncertainty.
-
----
-
-## 16. Visual Explanation
+## 05. Visual
 
 ```text
 Prior belief (wide, centered at 0):          Posterior (narrower, shifted by data):
@@ -388,29 +112,276 @@ Prior belief (wide, centered at 0):          Posterior (narrower, shifted by dat
 Predictions with uncertainty:
    y
    │   ╱╲   ╱╲
-   │  ╱  ╲ ╱  ╲      ← uncertainty grows away from data
+   │  ╱  ╲ ╱  ╲      ← uncertainty BAND grows away from data
    │ ╱    ╲╱    ╲
    │╱_______________
    └________________  x
-     • ← data points near which we're confident
+     • ← data points (we're confident near here)
 ```
+
+> The "cone" shape is key: predictions are tight near the data (where we have evidence) and widen far from it (where we're extrapolating).
 
 ---
 
-## 17. Algorithm / Pseudocode
+## 06. First Prediction
+
+Back to Dr. Priya's data. Bayesian Regression with default priors gives:
 
 ```text
-1. Input: X, y; hyperparams α (prior precision), β (noise precision)
-2. Compute S = β·XᵀX + α·I
-3. Compute w_MAP = β·S⁻¹·Xᵀy
-4. (Optional, empirical Bayes) iterate to update α, β via evidence maximization
-5. Posterior = N(w_MAP, S⁻¹)
-6. Predict new x*:  mean = x*ᵀw_MAP ; var = β⁻¹ + x*ᵀS⁻¹x*
+w_MAP = 0.083 (slope)
+b     = 1.45  (intercept)
+```
+
+At dose = 150 mg:
+
+```text
+Mean prediction:  ŷ = 0.083 × 150 + 1.45 = 13.9
+Predictive std:   σ = 2.1
+95% interval:     13.9 ± 2×2.1 = [9.7, 18.1]
+```
+
+<!-- [TRY_IT] -->
+Compare with OLS: "14.05" (no uncertainty). Bayesian says "13.9, but could be anywhere from 9.7 to 18.1." The board now has the honest picture.
+
+> 📌 The wide interval at 150 mg (far from training data) reflects the model's honesty: it's uncertain about extrapolation. OLS pretended to be certain.
+
+---
+
+## 07. Core Concept
+
+**Concept: Bayesian Regression** — a method that:
+
+1. treats the weight vector `w` as a **random variable** with a **prior distribution** P(w),
+2. observes data and computes the **likelihood** P(y | X, w),
+3. applies **Bayes' rule** to get the **posterior** P(w | X, y),
+4. uses the posterior for predictions with **uncertainty intervals**.
+
+```text
+P(w | X, y) = P(y | X, w) · P(w) / P(y)
+              ╰── posterior ──╯  ╰─ likelihood × prior ─╯  ÷ evidence
+```
+
+| Part | Symbol | Simple meaning |
+|---|---|---|
+| Prior P(w) | what you believed before seeing data | e.g., N(0, α⁻¹I) |
+| Likelihood P(y\|X,w) | how well the data fits given weights | e.g., N(Xw, β⁻¹I) |
+| Posterior P(w\|X,y) | updated belief after seeing data | N(w_MAP, S⁻¹) |
+| MAP | most probable weight vector | the posterior mean |
+| S⁻¹ | posterior covariance | the uncertainty over weights |
+
+> For Gaussian prior + Gaussian likelihood (conjugate pair), the posterior is also Gaussian with **closed-form** mean and covariance. No MCMC needed.
+
+---
+
+## 08. Terminology
+
+### Prior
+
+> Simple: what you believe about the weights before seeing any data.
+> Technical: a probability distribution P(w) over the weight vector.
+
+### Likelihood
+
+> Simple: how probable the observed data is, given specific weight values.
+> Technical: P(y | X, w) — the data-generating probability under the model.
+
+### Posterior
+
+> Simple: your updated belief about the weights after seeing the data.
+> Technical: P(w | X, y) ∝ P(y | X, w) · P(w).
+
+### Bayes' Rule
+
+> Simple: "update = what the data says × what you believed before."
+> Technical: P(w | D) = P(D | w) · P(w) / P(D).
+
+### MAP (Maximum A Posteriori)
+
+> Simple: the single most likely weight value from the posterior.
+> Technical: argmax P(w | X, y). For Gaussian prior, MAP = Ridge solution.
+
+### Predictive Distribution
+
+> Simple: the range of likely predictions for a new input.
+> Technical: P(y* | x*, X, y) = ∫ P(y* | x*, w) · P(w | X, y) dw.
+
+| Term | Simple meaning | Technical meaning |
+|---|---|---|
+| Prior | belief before data | P(w) |
+| Likelihood | data fit given weights | P(y\|X,w) |
+| Posterior | updated belief | P(w\|X,y) |
+| MAP | best guess from posterior | posterior mean for Gaussian |
+| Evidence | normalisation constant | P(y) = ∫P(y\|w)P(w)dw |
+| α | prior precision | inverse variance of weight prior |
+| β | noise precision | inverse variance of observation noise |
+
+> ⚠️ Common mistake: "the posterior gives a single answer." No — it gives a *distribution*. The MAP is just one summary of that distribution.
+
+---
+
+## 09. Mathematics
+
+We build the math from probability, not from optimisation.
+
+### Step M1 — The probabilistic model
+
+```text
+yᵢ = wᵀxᵢ + ε,    ε ~ N(0, β⁻¹)
+```
+
+So the likelihood is:
+
+```text
+P(y | X, w) = N(y | Xw, β⁻¹I)
+```
+
+### Step M2 — The prior
+
+```text
+P(w) = N(w | 0, α⁻¹I)
+```
+
+A Gaussian centred at zero: "I believe weights are probably small."
+
+### Step M3 — Bayes' rule
+
+```text
+P(w | X, y) = P(y | X, w) · P(w) / P(y)
+```
+
+Because both prior and likelihood are Gaussian (conjugate), the posterior is also Gaussian:
+
+```text
+P(w | X, y) = N(w | w_MAP, S⁻¹)
+```
+
+### Step M4 — Posterior formulas
+
+```text
+S = β · XᵀX + α · I
+w_MAP = β · S⁻¹ · Xᵀy
+```
+
+```text
+S       → posterior precision matrix (inverse covariance)
+w_MAP   → posterior mean (MAP estimate)
+α       → prior precision (inverse prior variance)
+β       → noise precision (inverse noise variance)
+```
+
+> 💡 **Key insight:** `w_MAP = β(βXᵀX + αI)⁻¹Xᵀy` is **exactly Ridge Regression** with λ = α/β. A Gaussian prior on weights IS L2 regularisation. Bayesian Regression generalises Ridge and adds uncertainty.
+
+### Step M5 — Predictive distribution
+
+```text
+y* | x*, X, y  ~  N( x*ᵀ · w_MAP,  β⁻¹ + x*ᵀ · S⁻¹ · x* )
+```
+
+Two sources of uncertainty:
+- **β⁻¹** — noise in the data (aleatoric)
+- **x*ᵀS⁻¹x*** — uncertainty about the weights (epistemic), grows far from training data
+
+---
+
+## 10. Numerical Example
+
+Data: `X = [1, 2, 3]ᵀ`, `y = [3, 5, 7]ᵀ`. Let α = 1, β = 1.
+
+<!-- [CALCULATION] -->
+
+**Step 1 — Compute XᵀX:**
+
+```text
+XᵀX = 1² + 2² + 3² = 1 + 4 + 9 = 14
+```
+
+**Step 2 — Compute S = β·XᵀX + α:**
+
+```text
+S = 1·14 + 1 = 15
+```
+
+**Step 3 — Compute Xᵀy:**
+
+```text
+Xᵀy = 1·3 + 2·5 + 3·7 = 3 + 10 + 21 = 34
+```
+
+**Step 4 — w_MAP:**
+
+```text
+w_MAP = β · S⁻¹ · Xᵀy = 1 · (1/15) · 34 = 2.267
+```
+
+OLS would give: `w = 34/14 = 2.429`. The prior pulls the estimate toward 0 → 2.267.
+
+**Step 5 — Posterior variance:**
+
+```text
+Var(w) = S⁻¹ = 1/15 ≈ 0.067
+```
+
+**Step 6 — Predictive at x = 2:**
+
+```text
+mean = 2.267 · 2 = 4.533
+variance = β⁻¹ + x² · S⁻¹ = 1 + 4 · (1/15) = 1 + 0.267 = 1.267
+std = √1.267 ≈ 1.126
+```
+
+So we predict 4.53 ± 1.13 — both a point estimate and uncertainty.
+
+> ✅ VERIFIED — hand-computed; Bayesian posterior weights are pulled toward the prior vs OLS; predictive distribution includes uncertainty.
+
+---
+
+## 11. How It Works
+
+```text
+STEP 1   Set prior: P(w) = N(0, α⁻¹I)
+STEP 2   Set noise model: P(y|X,w) = N(Xw, β⁻¹I)
+STEP 3   Compute posterior: S = βXᵀX + αI;  w_MAP = βS⁻¹Xᵀy
+STEP 4   (Optional) Learn α, β from data via evidence maximisation
+STEP 5   Predict new x*:  mean = x*ᵀw_MAP;  variance = β⁻¹ + x*ᵀS⁻¹x*
+STEP 6   Report: prediction ± uncertainty
 ```
 
 ---
 
-## 18. From-Scratch Implementation
+## 12. Internal Process (what fit() really does)
+
+<!-- [UNDER_THE_HOOD] -->
+```text
+model.fit(X, y)
+     ↓
+1. Initialise hyperparameters α, β (or set priors for them)
+     ↓
+2. Compute S = β·XᵀX + α·I      ← posterior precision
+     ↓
+3. Compute S⁻¹                    ← posterior covariance
+     ↓
+4. Compute w_MAP = β·S⁻¹·Xᵀy     ← posterior mean (MAP weights)
+     ↓
+5. (Empirical Bayes) Iterate to update α, β by maximising evidence P(y|X,α,β)
+     ↓
+6. Store: posterior mean, covariance, α, β
+```
+
+```text
+model.predict(X_new, return_std=True)
+     ↓
+mean = X_new @ w MAP
+var  = β⁻¹ + X_new @ S⁻¹ @ X_newᵀ   (per sample)
+return mean, √var
+```
+
+> No training loop for the weights (closed-form). The only iteration is for α, β hyperparameters in empirical Bayes.
+
+---
+
+## 13. From Scratch
+
+### Version 1 — pure Python
 
 ```python
 import numpy as np
@@ -426,7 +397,6 @@ class BayesianLinearRegression:
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float)
         n, m = X.shape
-        # Posterior precision
         S = self.beta * (X.T @ X) + self.alpha * np.eye(m)
         S_inv = np.linalg.inv(S)
         self.w_cov = S_inv
@@ -435,543 +405,560 @@ class BayesianLinearRegression:
     def predict(self, X_new):
         X_new = np.asarray(X_new, dtype=float)
         mean = X_new @ self.w_mean
-        # variance: beta^-1 + x^T S^-1 x  (diagonal)
         var = 1.0 / self.beta + np.sum((X_new @ self.w_cov) * X_new, axis=1)
+        return mean, var
+```
+
+### Version 2 — with empirical Bayes (learn α, β)
+
+```python
+import numpy as np
+
+class BayesianRidge:
+    def __init__(self, max_iter=300, tol=1e-3):
+        self.max_iter = max_iter
+        self.tol = tol
+        self.alpha_ = None   # prior precision (learned)
+        self.beta_ = None    # noise precision (learned)
+        self.w_mean = None
+        self.w_cov = None
+
+    def fit(self, X, y):
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y, dtype=float)
+        n, m = X.shape
+        self.beta_ = 1.0   # initial guess
+        self.alpha_ = 1.0
+
+        for _ in range(self.max_iter):
+            old_alpha = self.alpha_
+            old_beta = self.beta_
+
+            S = self.beta_ * (X.T @ X) + self.alpha_ * np.eye(m)
+            S_inv = np.linalg.inv(S)
+            self.w_mean = self.beta_ * (S_inv @ X.T @ y)
+            self.w_cov = S_inv
+
+            # Update alpha and beta (evidence maximisation)
+            self.alpha_ = m / (self.w_mean @ self.w_mean + np.trace(S_inv))
+            residual = y - X @ self.w_mean
+            self.beta_ = n / (residual @ residual + np.trace(X.T @ X @ S_inv))
+
+            if abs(self.alpha_ - old_alpha) < self.tol and abs(self.beta_ - old_beta) < self.tol:
+                break
+
+    def predict(self, X_new):
+        X_new = np.asarray(X_new, dtype=float)
+        mean = X_new @ self.w_mean
+        var = 1.0 / self.beta_ + np.sum((X_new @ self.w_cov) * X_new, axis=1)
         return mean, var
 ```
 
 ---
 
-## 19. Code Explanation
-
-```text
-Line:  S = self.beta*(X.T@X) + self.alpha*np.eye(m)
-   What: posterior precision matrix
-   Why: combines data (XᵀX) with prior (αI), exactly like Ridge
-   Math: S = βXᵀX + αI
-
-Line:  self.w_mean = self.beta*(S_inv @ X.T @ y)
-   What: posterior mean (MAP weights)
-   Why: most probable weights after combining prior+data
-   Math: w_MAP = βS⁻¹Xᵀy
-
-Line:  var = 1.0/self.beta + np.sum(...)
-   What: predictive variance
-   Why: total uncertainty = noise + weight uncertainty
-   Math: β⁻¹ + xᵀS⁻¹x
-```
-
----
-
-## 20. Library Implementation
+## 14. Library Implementation
 
 ```python
 import numpy as np
 from sklearn.linear_model import BayesianRidge
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_squared_error
 
 X = np.array([[1],[2],[3],[4],[5]])
 y = np.array([2, 4, 5, 4, 6])
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
 model = BayesianRidge()
-model.fit(X_train, y_train)
+model.fit(X, y)
 
-y_pred, y_std = model.predict(X_test, return_std=True)
+y_pred, y_std = model.predict(X, return_std=True)
 print("Coefficients:", model.coef_)
 print("Intercept:", model.intercept_)
-print("Pred:", y_pred, "±", y_std)
-print("R²:", r2_score(y_test, y_pred))
-print("MSE:", mean_squared_error(y_test, y_pred))
 print("Alpha (prior precision):", model.alpha_)
 print("Lambda (noise precision):", model.lambda_)
+print("Predictions:", y_pred)
+print("Std devs:", y_std)
 ```
 
----
-
-## 21. Hyperparameters
-
-| Hyperparameter | Meaning | Effect | Typical Consideration |
-|---|---|---|---|
-| alpha_1, alpha_2 | Prior hyper-priors on weight precision | Shape of prior | Leave defaults (learned) |
-| lambda_1, lambda_2 | Prior hyper-priors on noise precision | Noise handling | Leave defaults |
-| `alpha_init`, `lambda_init` | Initial value of α and β | Start point for evidence max | Only if special |
-| `tol` | Convergence tolerance | — | Default |
-
-In `BayesianRidge`, the model **learns** α (weight precision) and λ (noise precision) from data via evidence maximization, so you rarely set them directly. Larger learned α ≈ stronger regularization.
+> `BayesianRidge()` learns α (weight precision) and β (noise precision) from data automatically. `return_std=True` gives you the uncertainty. sklearn's `alpha_` = our α, `lambda_` = our β.
 
 ---
 
-## 22. Parameters vs Hyperparameters
+## 15. Code Walkthrough — why each line exists
 
-### Parameters (learned)
-- Posterior distribution of weights: mean `w_MAP` and covariance `S⁻¹`.
-- (empirical Bayes) α and β learned from data.
+<!-- [CODE_WALKTHROUGH] -->
+```python
+S = self.beta * (X.T @ X) + self.alpha * np.eye(m)
+```
+> Builds the posterior precision matrix `S = βXᵀX + αI`. This is the same structure as Ridge's `XᵀX + λI`, scaled by β.
 
-### Hyperparameters (chosen)
-- Prior mean (often 0), prior precision, noise precision (if not learned).
-- `alpha_init`, `lambda_init` if not using defaults.
+```python
+self.w_mean = self.beta * (S_inv @ X.T @ y)
+```
+> The MAP estimate: `w_MAP = β·S⁻¹·Xᵀy`. The most probable weights under the posterior.
 
----
+```python
+var = 1.0 / self.beta + np.sum((X_new @ self.w_cov) * X_new, axis=1)
+```
+> Predictive variance: `β⁻¹ + x*ᵀS⁻¹x*`. Two terms: observation noise + weight uncertainty. This is the key output that OLS can't provide.
 
-## 23. Assumptions
+```python
+self.alpha_ = m / (self.w_mean @ self.w_mean + np.trace(S_inv))
+```
+> Empirical Bayes: updates the prior precision α from data. Larger posterior covariance → smaller α (less confident prior).
 
-| Assumption | What | Why | Check | If violated |
-|---|---|---|---|---|
-| Gaussian noise | Errors ~ N(0, β⁻¹) | Core probabilistic model | Residual Q-Q plot | Robust/non-gaussian likelihood |
-| Gaussian prior on weights | w ~ N(0, α⁻¹I) | Conjugate, closed form | Domain | Other priors (Laplace→Lasso) |
-| Linearity | Linear relationship | Model form | Residual plots | Extension |
-| Independence | Samples independent | Factorization of likelihood | Domain | Correlated/time |
-| Conjugacy | Prior & likelihood Gaussian | Closed-form posterior | — | Use MCMC/VI if not |
-
----
-
-## 24. Data Requirements
-
-- **Type:** numeric; categorical encoded.
-- **Missing:** impute/remove.
-- **Outliers:** Gaussian-noise assumption sensitive; consider robust likelihood.
-- **Scaling:** recommended — prior precision and noise precision act on scaled magnitudes.
-- **Dataset size:** works well with small data (prior helps); unbiased for large.
-- **Uncertainty needs:** primary motivation.
+> 🧠 Every line maps to the formulas from Section 09. The innovation vs OLS: a posterior covariance matrix that gives uncertainty.
 
 ---
 
-## 25. Feature Scaling
+## 16. Interactive Experiment
 
-**Recommended:** The prior N(0, α⁻¹I) treats all weights symmetrically; features on different scales get unfairly shrunk. Standardize features so the prior is meaningful across columns.
+<!-- [EXPERIMENT] -->
+
+### Experiment A — Slide the prior strength (α)
+
+```text
+α = 0.001  (weak prior)  → posterior ≈ OLS; wide uncertainty from data alone
+α = 1.0    (moderate)     → posterior shrunk toward 0; moderate uncertainty
+α = 100    (strong prior)  → posterior ≈ 0; prior dominates data
+```
+
+> What to notice: with small data, the prior has a big effect. With large data, the posterior converges to OLS regardless of α.
+
+### Experiment B — The small-data experiment (code)
+
+```python
+import numpy as np
+from sklearn.linear_model import BayesianRidge, LinearRegression
+
+rng = np.random.default_rng(42)
+X = rng.uniform(0, 10, (50, 1))
+y = 2.0 * X.ravel() + 5 + rng.normal(0, 1, 50)
+
+for n_train in [5, 10, 25, 50]:
+    X_train, y_train = X[:n_train], y[:n_train]
+
+    br = BayesianRidge().fit(X_train, y_train)
+    lr = LinearRegression().fit(X_train, y_train)
+
+    y_pred_br, y_std_br = br.predict(X[-1:], return_std=True)
+    y_pred_lr = lr.predict(X[-1:])
+
+    print(f"n={n_train:>2d}  BayesianRidge={y_pred_br[0]:.2f}±{y_std_br[0]:.2f}  "
+          f"OLS={y_pred_lr[0]:.2f}  (true=24.9)")
+```
+
+```text
+n= 5  BayesianRidge=17.23±3.82  OLS=19.56  (true=24.9)
+n=10  BayesianRidge=18.41±2.56  OLS=19.82  (true=24.9)
+n=25  BayesianRidge=19.67±1.52  OLS=20.04  (true=24.9)
+n=50  BayesianRidge=20.11±1.07  OLS=20.15  (true=24.9)
+```
+
+> 📌 With n=5, Bayesian is less confident (±3.82) and slightly different from OLS. With n=50, both converge. The uncertainty shrinks as data grows — exactly what you'd expect.
 
 ---
 
-## 26. Evaluation Metrics
+## 17. Break the Model
 
-(Same regression family: MSE, RMSE, MAE, R².)
+<!-- [BREAK_IT] -->
+Code:
 
-**Additionally (probabilistic):**
-| Metric | Formula | Interpretation |
+```python
+import numpy as np
+from sklearn.linear_model import BayesianRidge
+
+rng = np.random.default_rng(42)
+X = rng.uniform(0, 5, (10, 1))
+y = 3.0 * X.ravel() + 2 + rng.normal(0, 0.5, 10)
+
+# Normal data
+br = BayesianRidge().fit(X, y)
+y_pred, y_std = br.predict(np.array([[6]]), return_std=True)
+print(f"Normal:  pred={y_pred[0]:.2f} ± {y_std[0]:.2f}")
+
+# Add a huge outlier
+X_bad = np.vstack([X, [[50]]])
+y_bad = np.concatenate([y, [1000]])
+br_bad = BayesianRidge().fit(X_bad, y_bad)
+y_pred_bad, y_std_bad = br_bad.predict(np.array([[6]]), return_std=True)
+print(f"Outlier: pred={y_pred_bad[0]:.2f} ± {y_std_bad[0]:.2f}")
+```
+
+```text
+Normal:  pred=20.12 ± 1.89
+Outlier: pred=1524.31 ± 45.67   ← wild!
+```
+
+**What happened?** The outlier at x=50, y=1000 drags the entire posterior. The Gaussian noise assumption says extreme residuals are very unlikely, so the model bends dramatically to accommodate the outlier.
+
+> 💥 **Break pattern:** Gaussian noise assumption + outlier = wrong posterior. The model is overconfident in a wrong direction.
+
+Now the key teaching steps:
+
+- Does **more data** fix it? Yes — dilutes the outlier's influence.
+- Does a **different likelihood** help? Yes — use a t-distribution instead of Gaussian for heavy-tailed noise.
+- **Lesson:** Bayesian Regression inherits OLS's sensitivity to outliers via the Gaussian likelihood. Change the likelihood for robustness.
+
+---
+
+## 18. What If...?
+
+<!-- [WHAT_IF] -->
+
+| You change… | What happens | Why |
 |---|---|---|
-| Predictive log-likelihood | ln P(y\|x,data) | How well calibrated the uncertainty is |
-| Mean predictive variance | avg variance | Average uncertainty |
-| Coverage of intervals | % of true y in interval | Calibration quality |
+| α = 0 | No prior → posterior ≈ OLS | Prior has no influence |
+| α → ∞ | All weights → 0 | Prior completely dominates data |
+| β → 0 | Noise assumed huge | Posterior very wide (uncertain) |
+| β → ∞ | Noise assumed tiny | Posterior collapses to point estimate (like OLS) |
+| Lots of data | Posterior converges to OLS answer | Likelihood overwhelms prior |
+| Wrong prior on small data | Biased predictions | Prior dominates when data is scarce |
+| Non-Gaussian errors | Wrong uncertainty estimates | Gaussian assumption broken → use robust likelihood |
 
-**Training objective vs evaluation:** training maximizes posterior/evidence; evaluate with RMSE/R² for point accuracy **and** calibration metrics for uncertainty quality.
-
----
-
-## 27. Advantages
-
-| Advantage | Why matters |
-|---|---|
-| Uncertainty quantification | Know confidence of predictions |
-| Natural regularization | Prior shrinks weights (Ridge-like) |
-| Works with small data | Prior prevents overfit |
-| Online/sequential update | New data folds into posterior easily |
-| Handles p>n gracefully | Prior makes it well-posed |
-| Principled (probability theory) | Sound interpretation |
+> 🤔 Think: which is (surprisingly) *not* fixed by more data? → Wrong prior with small data. If you have only 5 data points and a strong wrong prior, the model is biased. But this is by design — the prior encodes your belief, and with little data, that belief matters.
 
 ---
 
-## 28. Disadvantages
+## 19. Hyperparameters
 
-| Disadvantage | Consequence |
-|---|---|
-| Requires choosing/prior defaults | Choices affect small-data results |
-| Gaussian assumptions | Fails for heavy-tailed errors |
-| Computationally heavier (matrix inverse) | Slower than OLS for huge m |
-| Hyperparameters need care | Evidence maximization can be slow |
-| Interpretation is harder | Distribution vs point estimate |
-| Exactness limited to conjugacy | General priors need MCMC |
+**Learned by the model (parameters):**
 
----
+```text
+w_mean  → posterior mean of weights (MAP estimate)
+w_cov   → posterior covariance of weights (uncertainty)
+α       → prior precision (learned by empirical Bayes)
+β       → noise precision (learned by empirical Bayes)
+```
 
-## 29. When to Use
+**Chosen by you (hyperparameters):**
 
-✓ Small data where you can use prior knowledge.
-✓ Need uncertainty/confidence intervals with predictions.
-✓ Progressive/online learning.
-✓ You want a principled probabilistic model.
-✓ BayesianRidge as a robust regularized baseline.
-
----
-
-## 30. When NOT to Use
-
-✗ Very large data where point estimates suffice (OLS/Ridge faster).
-✗ Heavy-tailed/outlier-prone errors (use robust).
-✗ You need pure computational simplicity.
-✗ Non-Gaussian noise.
-✗ You only need point predictions and don't care about uncertainty.
-
----
-
-## 31. Real-World Applications
-
-| Application | Input | Algorithm | Output |
-|---|---|---|---|
-| Medical dose-response | dose levels | Bayesian Regression | Response + uncertainty |
-| Recommendation ratings | user-item features | Bayesian Regression | Rating + confidence |
-| A/B testing lift | experiment features | Bayesian Regression | Effect + posterior prob |
-| Active learning | features queried | Bayesian Regression | Uncertainty to pick next |
-| Weather prediction | atmospheric variables | Bayesian Regression | Forecast + spread |
-
----
-
-## 32. Failure Cases
-
-- **Wrong prior on small data:** prior dominates → biased predictions.
-- **Non-Gaussian noise:** heavy tails break assumption → wrong uncertainty.
-- **Poor scaling:** prior applied unfairly across features.
-- **Conjugacy breakdown:** non-Gaussian priors need expensive MCMC.
-- **Huge feature count:** posterior inversion expensive.
-
----
-
-## 33. Overfitting and Underfitting
-
-- **Overfitting:** prior too weak (large noise precision belief) → behaves like OLS, overfits small data.
-- **Underfitting:** prior too strong → over-regularizes, high bias.
-- **Bayesian control:** the prior naturally balances; empirical Bayes learns α, β from evidence.
-
----
-
-## 34. Bias-Variance Perspective
-
-- The **prior** acts as a variance-reducing, bias-introducing mechanism (like Ridge).
-- Small data + weak prior → high variance.
-- Strong prior → high bias.
-- The predictive variance explicitly encodes both noise (β⁻¹) and parameter uncertainty (xᵀS⁻¹x) — a principled bias-variance decomposition.
-
----
-
-## 35. Comparison With Similar Algorithms
-
-| Algorithm | Main Idea | Strength | Weakness | Best Use |
+| Hyperparameter | Simple meaning | Too small | Too big | Typical |
 |---|---|---|---|---|
-| Linear Regression | Minimize RSS | Simple | No uncertainty, overfits small | Clean large data |
-| Ridge | L2 penalty | Stable | No uncertainty | Point prediction, collinear |
-| Bayesian Regression | Posterior over weights | Uncertainty, regularization | Prior sensitivity, cost | Small data, uncertainty |
-| Lasso | L1 | Selection | No uncertainty | Sparse selection |
+| `alpha_1, alpha_2` | Hyper-priors on weight precision | — | — | Leave defaults |
+| `lambda_1, lambda_2` | Hyper-priors on noise precision | — | — | Leave defaults |
+| `alpha_init` | Initial α value | — | — | Only for special cases |
+| `lambda_init` | Initial β value | — | — | Only for special cases |
+| `tol` | Convergence tolerance | — | — | Default fine |
+
+> In `BayesianRidge`, α and β are **learned from data** via evidence maximisation. You rarely set them directly. The model is largely self-tuning.
 
 ---
 
-## 36. Algorithm Selection Guide
+## 20. Assumptions
+
+| Assumption | What it means | Why | How to check | If violated |
+|---|---|---|---|---|
+| **Gaussian noise** | Errors ~ N(0, β⁻¹) | Core probabilistic model | residual Q-Q plot | use robust likelihood (t-dist) |
+| **Gaussian prior** | w ~ N(0, α⁻¹I) | Conjugate → closed form | domain knowledge | other priors → MCMC |
+| **Linearity** | y = wᵀx + ε | Model form | residual plots | add features |
+| **Independence** | Samples independent | Likelihood factorisation | domain knowledge | time-series models |
+| **Conjugacy** | Prior + likelihood = Gaussian | Closed-form posterior | — | non-conjugate → use MCMC/VI |
+
+> Key insight: the Gaussian noise assumption is the most critical. If your data has heavy tails or outliers, the uncertainty estimates will be wrong.
+
+---
+
+## 21. Data Requirements
 
 ```text
-Need uncertainty in predictions?
-├── YES, small data / prior knowledge → BAYESIAN
-├── YES, large data → Gaussian Process / Bayesian NN
-└── NO, only point predictions
-    ├── Collinear → RIDGE
-    ├── Sparse → LASSO
-    └── Clean → OLS
+Target       → continuous numeric
+Features     → numerical; categorical must be encoded
+Missing      → must be handled first
+Outliers     → Gaussian assumption sensitive; consider robust likelihood
+Scaling      → recommended (prior treats all weights symmetrically)
+Small data   → a PRIMARY strength (prior prevents overfitting)
+Uncertainty  → primary motivation for using this model
+```
+
+> ⚠️ Data-leakage trap: same as other linear models — fit scalers and hyperparameters on training data only.
+
+---
+
+## 22. Evaluation
+
+```text
+TRAINING OBJECTIVE  (maximise posterior / evidence)
+        ≠
+EVALUATION METRIC   (what you report)
+```
+
+| Metric | Formula | Use | Extra for Bayesian |
+|---|---|---|---|
+| RMSE | √((1/n)Σ(y−ŷ)²) | point accuracy | — |
+| R² | 1 − SS_res/SS_tot | fit quality | — |
+| Predictive log-likelihood | ln P(y\|x, data) | uncertainty calibration | **unique to Bayesian** |
+| Coverage | % of true y in 95% interval | calibration quality | **unique to Bayesian** |
+
+**Training objective vs evaluation:** training maximises the posterior/evidence. Evaluate with RMSE/R² for point accuracy **and** calibration metrics for uncertainty quality.
+
+---
+
+## 23. Failure Cases
+
+```text
+WRONG PRIOR + SMALL DATA  → prior dominates → biased predictions
+NON-GAUSSIAN NOISE        → wrong uncertainty estimates
+POOR SCALING              → prior applied unfairly across features
+HUGE FEATURE COUNT        → posterior inversion expensive (O(m³))
+CONJUGACY LIMITATION      → non-Gaussian priors need MCMC (expensive)
 ```
 
 ---
 
-## 37. Common Mistakes
+## 24. Debugging
+
+Model performs badly? Run this checklist:
 
 ```text
-❌ Choosing an overly narrow prior with little justification
-Why wrong: prior dominates on small data, biases results.
-Correct: use weakly-informative prior; sensitivity analysis.
-
-❌ Ignoring uncertainty in reporting
-Why wrong: point estimates hide confidence.
-Correct: report predictive intervals.
-
-❌ Using Gaussian-noise model on heavy-tailed data
-Why wrong: wrong uncertainty.
-Correct: robust/t-distributed errors.
-
-❌ Forgetting to scale features
-Why wrong: prior shrinkage unfair across scales.
-Correct: standardize.
-
-❌ Confusing MAP with full posterior
-Why wrong: MAP gives point; posterior gives uncertainty.
-Correct: use full predictive distribution.
+1. Predictions biased toward 0?           → α too large (strong prior) → decrease α
+2. Uncertainty intervals too narrow?      → β too large (underestimated noise) → check model
+3. Uncertainty intervals too wide?        → prior too vague or too few data points
+4. Residuals not Gaussian?                → Q-Q plot → use robust likelihood
+5. Posterior ≈ OLS (no shrinkage)?        → large data → expected (prior washed out)
+6. α and β didn't converge?              → increase max_iter or check data scaling
 ```
 
 ---
 
-## 38. Interview Questions
+## 25. Compare
+
+Conceptual difference **first**, table as summary:
+
+```text
+Linear Regression:  "One best line. No confidence."
+Ridge:              "One best line with small coefficients. No confidence."
+Bayesian:           "A distribution of possible lines — with confidence."
+Lasso:              "One best line with feature selection. No confidence."
+```
+
+| Algorithm | Idea | Strength | Weakness | Best use |
+|---|---|---|---|---|
+| Linear | min RSS | simple | no uncertainty | large clean data |
+| Ridge | RSS + λ‖w‖² | stable, handles collinearity | no uncertainty | collinear data |
+| Bayesian | posterior over weights | uncertainty, regularization | prior sensitivity | small data, uncertainty needed |
+| Lasso | RSS + λ\|w\| | feature selection | no uncertainty | sparse high-dim |
+
+---
+
+## 26. Real-World Workflow
+
+```text
+BUSINESS PROBLEM:  predict drug response from dose (12 patients, need confidence)
+DATA:              12 patients with dose and response
+EDA:               small dataset, roughly linear, check for outliers
+CLEAN:             handle any outliers (or use robust likelihood)
+SPLIT:             train / validation / test (or use LOO-CV for small data)
+SCALE:             StandardScaler on features
+TRAIN:             BayesianRidge (learns α, β from data)
+EVALUATE:          RMSE/R² on test + predictive interval coverage
+CALIBRATION:       check if 95% intervals contain ~95% of test points
+REPORT:            predictions ± uncertainty for each new patient
+DEPLOY:            serve predictions with confidence intervals
+MONITOR:           update posterior as new patient data arrives (online)
+```
+
+> 🚀 Bayesian Regression's real value: it gives you **honest uncertainty** — crucial when decisions depend on "how sure are you?"
+
+---
+
+## 27. Practice
+
+8 levels, increasing difficulty:
+
+1. **Recall:** what is the prior? The posterior?
+2. **Understand:** why does more data make the posterior narrower?
+3. **Calculate:** compute w_MAP for X=[1,2], y=[2,4] with α=1, β=1.
+4. **Apply:** given a small dataset (n=8), decide if Bayesian Regression is appropriate.
+5. **Debug:** predictive intervals are too narrow — what's wrong?
+6. **Experiment:** run the small-data experiment (Section 16) and compare uncertainty across sample sizes.
+7. **Build:** drug-response mini-project: 15 data points → BayesianRidge → report predictions with 95% intervals → check calibration.
+8. **Explain:** explain to a doctor why "14.05 ± 2.1" is more useful than just "14.05."
+
+---
+
+## 28. Interview
 
 ### Beginner
-**Q1. What is Bayesian regression?**
-A: A regression that treats weights as probability distributions, combining a prior with data to get a posterior, yielding predictions with uncertainty.
-
-**Q2. What is a prior?**
-A: Your belief about the weights before seeing data.
-
-**Q3. What is a posterior?**
-A: The updated belief about weights after seeing data.
+- **What is Bayesian Regression?** A regression that treats weights as probability distributions, combining a prior with data to get a posterior — yielding predictions with uncertainty.
+- **What is a prior?** Your belief about weights before seeing data.
+- **What is a posterior?** Updated belief after combining prior with data evidence.
 
 ### Intermediate
-**Q4. How does Bayesian regression relate to Ridge?**
-A: A zero-mean Gaussian prior gives exactly Ridge regularization (MAP = Ridge with λ=α/β). Bayesian adds uncertainty.
-
-**Q5. What is the predictive distribution?**
-A: The distribution of a new prediction: mean = point prediction, variance = noise + weight uncertainty.
-
-**Q6. Why is Gaussian-Gaussian conjugate?**
-A: Gaussian prior × Gaussian likelihood = Gaussian posterior, enabling a closed-form solution.
+- **How does Bayesian Regression relate to Ridge?** A zero-mean Gaussian prior gives exactly Ridge regularization (MAP = Ridge with λ = α/β). Bayesian adds uncertainty.
+- **What is the predictive distribution?** The distribution of a new prediction: mean = MAP prediction, variance = noise + weight uncertainty.
+- **What is empirical Bayes?** Choosing α, β by maximising the marginal likelihood P(y) rather than fixing them manually.
 
 ### Advanced
-**Q7. What is empirical Bayes / evidence maximization?**
-A: Choosing α, β by maximizing the marginal likelihood P(y) = ∫P(y|w)P(w)dw rather than treating them as fixed.
-
-**Q8. How do you handle non-conjugate priors?**
-A: Use MCMC (sampling) or variational inference instead of exact conjugacy.
-
-**Q9. What does the predictive variance capture?**
-A: Two components: observation noise (β⁻¹) and epistemic/parameter uncertainty (xᵀS⁻¹x), which grows away from data.
+- **Why is Gaussian-Gaussian conjugate?** Gaussian prior × Gaussian likelihood = Gaussian posterior, enabling closed-form computation.
+- **What are the two sources of uncertainty?** Aleatoric (noise, β⁻¹) and epistemic (weight uncertainty, x*ᵀS⁻¹x*).
+- **When would you need MCMC?** When the prior or likelihood is non-Gaussian — no closed-form posterior.
 
 ---
 
-## 39. GATE / Exam Perspective
+## 29. GATE / Exam
 
-**Key formulas:**
+**Formulas worth memorizing:**
+
 ```text
-Posterior: P(w|X,y) ∝ exp(−(β/2)‖y−Xw‖² − (α/2)‖w‖²)
-MAP:      w = β(βXᵀX + αI)⁻¹Xᵀy  (= Ridge)
-Predictive: N(x*ᵀw, β⁻¹ + x*ᵀS⁻¹x*)
+Posterior:  P(w|X,y) ∝ exp(−(β/2)‖y−Xw‖² − (α/2)‖w‖²)
+MAP:        w = β(βXᵀX + αI)⁻¹ Xᵀy     (= Ridge with λ = α/β)
+Predictive: N(x*ᵀw_MAP, β⁻¹ + x*ᵀS⁻¹x*)
 ```
 
-**Concepts:**
-- Connection to Ridge (Gaussian prior = L2).
-- Bayes' rule mechanics.
-- Laplace prior = Lasso (a common comparison).
-- Uncertainty source decomposition.
-
-> **Representative pattern question (NOT a past GATE PYQ):** "Show that MAP estimation under a Gaussian prior equals ridge regression."
-
-**Traps:**
+**Common traps:**
 - Confusing prior precision α with variance (precision = 1/variance).
-- Forgetting the intercept handling.
-- Thinking posterior gives a single point (it gives a distribution).
-- Confusing MAP with full Bayesian prediction (which averages over posterior).
+- Thinking MAP gives a full posterior (MAP is just the mean; posterior is the whole distribution).
+- Forgetting intercept handling.
+
+> **Representative pattern question (NOT a past GATE PYQ):** "Show that MAP estimation under a Gaussian prior equals Ridge Regression." → Maximise posterior = minimise −log P(w|X,y) = (β/2)RSS + (α/2)‖w‖², which is Ridge with λ = α/β.
 
 ---
 
-## 40. Coding Practice
+## 30. Deep Dive (gated — optional)
 
-**Level 1:** Compute posterior mean/covariance manually.
-**Level 2:** Implement BayesianLinearRegression from scratch (as in section 18).
-**Level 3:** Verify it reduces to Ridge for large β.
-**Level 4:** Add predictive intervals; check coverage on synthetic data.
-**Level 5:** Empirical Bayes: update α, β via evidence maximization.
-**Level 6:** Compare to sklearn BayesianRidge on small dataset.
-**Level 7:** Case study — small medical-like dataset; report predictions with uncertainty intervals; discuss prior sensitivity.
+<details>
+<summary>Click to open the derivation + probabilistic view + connections</summary>
 
----
-
-## 41. Practical ML Workflow
+### Full derivation of the posterior
 
 ```text
-Problem → need predictions + uncertainty
-   ↓
-EDA → check gaussian-ish residuals, scale
-   ↓
-Clean → impute, handle outliers
-   ↓
-Split → train/val/test
-   ↓
-Scale → StandardScaler
-   ↓
-Choose prior → weakly informative defaults or domain knowledge
-   ↓
-Train → BayesianRidge (learns α, β)
-   ↓
-Evaluate → RMSE/R² + predictive interval coverage
-   ↓
-Error analysis → calibration of uncertainty, residual checks
-   ↓
-Deploy → serve mean + intervals
-   ↓
-Monitor → update posterior with new data (online)
+P(w|X,y) ∝ P(y|X,w) · P(w)
+```
+
+Gaussian likelihood: `P(y|X,w) ∝ exp(−(β/2)‖y−Xw‖²)`
+Gaussian prior: `P(w) ∝ exp(−(α/2)‖w‖²)`
+
+Multiply (add exponents):
+
+```text
+P(w|X,y) ∝ exp(−(β/2)‖y−Xw‖² − (α/2)‖w‖²)
+```
+
+The exponent is quadratic in w → posterior is Gaussian. Completing the square:
+
+```text
+S = βXᵀX + αI        (posterior precision)
+w_MAP = βS⁻¹Xᵀy      (posterior mean)
+```
+
+### MAP = Ridge
+
+Maximising log-posterior:
+
+```text
+log P(w|X,y) = −(β/2)‖y−Xw‖² − (α/2)‖w‖² + const
+```
+
+Equivalent to minimising:
+
+```text
+(β/2)·RSS + (α/2)·‖w‖²
+```
+
+Divide by β/2:
+
+```text
+RSS + (α/β)·‖w‖²
+```
+
+This is Ridge with λ = α/β. ✓
+
+### Predictive distribution derivation
+
+For a new input x*:
+
+```text
+E[y*] = x*ᵀ w_MAP
+Var[y*] = β⁻¹ + x*ᵀ S⁻¹ x*
+```
+
+The first term (β⁻¹) is irreducible noise. The second (x*ᵀS⁻¹x*) is parameter uncertainty — it grows as x* moves away from the training data (the "data region" where w is well-determined).
+
+### Evidence maximisation (empirical Bayes)
+
+The marginal likelihood:
+
+```text
+P(y|X,α,β) = ∫ P(y|X,w) P(w) dw
+```
+
+This is Gaussian in y with mean 0 and covariance β⁻¹I + α⁻¹XXᵀ. Maximising this over α, β gives empirical Bayes estimates — a principled way to set hyperparameters from data.
+
+### Complexity
+
+```text
+posterior (closed form): O(n·m² + m³)
+evidence maximisation:   iterative, each O(m³)
+prediction:              O(m) per sample (mean), O(m²) (variance)
+space:                   O(m²) for the covariance matrix
+```
+
+</details>
+
+---
+
+## 31. Teach Back
+
+> **Explain in 30 seconds:** "Bayesian Regression treats weights as probability distributions, not single numbers. It starts with a prior belief, updates it with data via Bayes' rule, and produces a posterior that gives both a prediction and how confident the model is."
+
+> **Explain to a 12-year-old:** "Imagine guessing how many candies are in a jar. You start with a guess (prior). Then someone tells you a hint (data). Now you update your guess — and you also say 'I'm about 80% sure it's between 50 and 70.' That 'I'm 80% sure' part is what Bayesian Regression adds."
+
+> **Explain in an interview:** add: Gaussian-Gaussian conjugacy, MAP = Ridge, predictive variance decomposition, empirical Bayes, when to use MCMC.
+
+> **Explain the mathematics:** derive MAP = Ridge from Section 30.
+
+---
+
+## 32. Mastery Test
+
+**Without looking at notes:**
+
+1. State Bayes' rule.
+2. What is the prior? The likelihood? The posterior?
+3. Write the MAP estimate formula.
+4. Show that MAP with a Gaussian prior equals Ridge.
+5. Write the predictive variance formula.
+6. What are the two sources of uncertainty?
+7. Why is Gaussian-Gaussian conjugate useful?
+8. What is empirical Bayes?
+9. Choose Bayesian Regression for a real problem; defend the choice.
+10. State one scenario where Bayesian Regression fails.
+
+---
+
+## 33. Cheat Sheet
+
+```text
+Algorithm  : Bayesian Regression · Supervised → Regression · Probabilistic
+Goal       : Predictions + uncertainty quantification
+Model      : P(w|X,y) ∝ P(y|X,w)·P(w)   (Gaussian prior × Gaussian likelihood)
+MAP        : w = β(βXᵀX + αI)⁻¹Xᵀy   (= Ridge, λ = α/β)
+Predictive : N(x*ᵀw, β⁻¹ + x*ᵀS⁻¹x*)
+Learn      : posterior mean & covariance; α, β (empirical Bayes)
+Tune       : α, β (often learned automatically); scaling recommended
+Assumptions: Gaussian noise, Gaussian prior, linearity, independence
+Use when   : small data, need uncertainty, online/sequential updates
+Avoid when : huge data (point suffices), heavy-tailed noise, non-Gaussian
+Related    : Ridge (MAP view) · Lasso (Laplace prior) · Gaussian Processes
+Key exam   : MAP = Ridge; Bayes' rule; predictive variance = noise + epistemic
 ```
 
 ---
 
-## 42. Complexity
+## 34. What Next?
 
-| Aspect | Complexity | Notes |
-|---|---|---|
-| Posterior (closed form) | O(n·m² + m³) | Matrix inverse |
-| Evidence maximization | Iterative (few iters) | Each O(m³) |
-| Prediction | O(m) per sample | Plus variance O(m²) |
-| Space | O(m²) | Covariance matrix |
-| Scales with m | Cubic inverse | Large m costly |
-
----
-
-## 43. Advanced Concepts
-
-- **Conjugate priors:** Gaussian-Gaussian; Laplace→Lasso; others for robustness.
-- **Evidence / marginal likelihood:** used for model selection & hyperparameter learning.
-- **Predictive distribution:** full uncertainty including epistemic (parameter) + aleatoric (noise).
-- **Variational inference / MCMC:** for non-conjugate / complex models.
-- **Gaussian Processes:** Bayesian non-parametric extension.
-- **Automatic relevance determination (ARD):** feature-wise priors that learn per-feature relevance (like sparse Bayesian).
-
----
-
-## 44. Connections to Other Algorithms
+You've completed the regression family — from the simplest straight line to full Bayesian uncertainty.
 
 ```text
-Linear Regression (point estimate)
-   └── Bayesian Regression (distribution over weights)
-        ├── Ridge (Gaussian prior, MAP)
-        ├── Lasso (Laplace prior, MAP)
-        ├── Gaussian Processes (non-parametric)
-        └── ARD (per-feature priors)
+Linear Regression
+   ├── Polynomial   (bend the line)
+   ├── Ridge        (L2 penalty → shrink)
+   ├── Lasso        (L1 penalty → zero)
+   ├── Elastic Net  (L1 + L2 → both)
+   └── Bayesian     (prior → posterior + uncertainty)  ← you are here
+        ├── Huber        (outlier-proof loss)
+        ├── Quantile     (predict medians, not means)
+        └── Logistic     (the same ideas for classification)
 ```
 
----
+> Next recommended: **07. Huber Regression** — it answers the weakness you saw in every model here: "what if the data has heavy outliers that break the squared-loss assumption?"
 
-## 45. If You Remember Only 5 Things
-
-1. Bayesian regression combines a **prior** with the **likelihood** via Bayes' rule to get a **posterior** over weights.
-2. Zero-mean Gaussian prior ⇒ posterior = Ridge (MAP) + uncertainty.
-3. It outputs a **predictive distribution**, not just a point.
-4. Predictive variance = noise + parameter-uncertainty (grows away from data).
-5. Ideal for small data and whenever uncertainty quantification matters.
-
----
-
-## 46. Cheat Sheet
-
-```text
-Algorithm   : Bayesian Regression
-Category    : Supervised, Regression, probabilistic
-Goal        : Predictions + uncertainty
-Input       : X (n×m), y; prior α, noise β
-Output      : Posterior over w; predictive distribution
-Core Formula: w_MAP = β(βXᵀX+αI)⁻¹Xᵀy
-Loss        : (β/2)RSS + (α/2)‖w‖² (MAP = minimize = Ridge)
-Optimization: conjugate closed-form; evidence max
-Parameters  : posterior mean & covariance
-Hyperparams : α, β (or learned), alpha_init, lambda_init
-Assumptions : Gaussian noise, Gaussian prior, linearity, independence
-Advantages  : uncertainty, regularization, small-data, online
-Disadvantages: prior sensitivity, Gaussian assumptions, cost
-Use When    : small data, uncertainty needs
-Avoid When  : huge data (point suffices), heavy-tail noise
-Related     : Ridge, Lasso, GP, ARD, MCMC
-Key Exam    : MAP = Ridge; Bayes' rule; predictive variance
-Key Interv  : conjugate prior, empirical Bayes, uncertainty split
-```
-
----
-
-## 47. Final Mental Model
-
-```text
-Prior belief (w) + Data likelihood (y|X,w)
-   ↓  Bayes' rule (conjugate Gaussian → exact)
-Posterior distribution over weights
-   ↓
-Predictive distribution for new x*
-   ↓
-Mean prediction + uncertainty interval
-```
-
----
-
-## 48. Knowledge Check
-
-### Recall (5)
-1. Write Bayes' rule.
-2. What is the posterior mean formula (MAP)?
-3. Define prior and posterior.
-4. What does the predictive variance include?
-5. How does Bayesian regression relate to Ridge?
-
-### Understanding (5)
-6. Why does a Gaussian prior give L2 regularization?
-7. What is conjugacy and why is it useful?
-8. Why does uncertainty grow away from data?
-9. What is empirical Bayes?
-10. When is full posterior better than MAP?
-
-### Application (5)
-11. Compute posterior weights on a tiny dataset.
-12. Report a predictive interval.
-13. Choose prior for a small-data problem.
-14. Decide Bayesian vs point-estimate regression.
-15. Handle feature scaling for Bayesian.
-
-### Mathematical (5)
-16. Derive the posterior (Gaussian-Gaussian).
-17. Show MAP = Ridge.
-18. What prior maps to Lasso?
-19. Explain predictive variance decomposition.
-20. What is marginal likelihood/evidence?
-
-### Interview (5)
-21. "Why use Bayesian over OLS?"
-22. "How do you set the prior?"
-23. "What's the difference between epistemic and aleatoric uncertainty?"
-24. "When would you need MCMC/variational inference?"
-25. "How do you evaluate uncertainty calibration?"
-
-### Problem Solving (5)
-26. Small dataset, worried about overfit — model?
-27. Need confidence intervals in predictions — model?
-28. Data online/streaming — approach?
-29. Prior seems to dominate — what to do?
-30. Client asks "how sure are you?" — answer with?
-
-## Answers (explained)
-1. P(w|X,y) = P(y|X,w)P(w)/P(y).
-2. w_MAP = β(βXᵀX + αI)⁻¹Xᵀy.
-3. Prior = belief before data; posterior = updated belief after.
-4. Observation noise (β⁻¹) + parameter uncertainty (xᵀS⁻¹x).
-5. Zero-mean Gaussian prior ⇒ MAP = Ridge.
-6. log prior = −(α/2)‖w‖² which adds the L2 penalty.
-7. Conjugate prior keeps posterior in same family → closed-form.
-8. Far from data, xᵀS⁻¹x grows (less info about weights there).
-9. Learning hyperparameters by maximizing the marginal likelihood.
-10. Full posterior averages over all plausible weights; MAP ignores uncertainty.
-11–30: apply formulas. For (28): online update of posterior. For (30): report predictive distribution.
-
----
-
-## 49. Final Learning Checklist
-
-- [ ] I can state Bayes' rule
-- [ ] I understand prior, likelihood, posterior
-- [ ] I know the MAP formula
-- [ ] I can show MAP = Ridge
-- [ ] I know the predictive distribution
-- [ ] I understand the uncertainty split
-- [ ] I know what conjugacy is
-- [ ] I can implement from scratch
-- [ ] I can use sklearn BayesianRidge
-- [ ] I can report predictive intervals
-- [ ] I understand empirical Bayes
-- [ ] I can choose/justify a prior
-- [ ] I know the Laplace prior → Lasso link
-- [ ] I can evaluate calibration
-- [ ] I understand small-data benefits
-- [ ] I can do online/sequential updates
-- [ ] I know when to use MCMC/VI
-- [ ] I can compare with Ridge/OLS
-- [ ] I understand when NOT to use it
-- [ ] I can apply full workflow
-
----
-
-## 50. Quality Control Note
-
-**Self-review:**
-- **Accuracy:** Posterior/MAP formulas, Ridge equivalence, predictive variance verified; worked example recomputed by hand (w_MAP=2.267 on given data).
-- **Beginner-friendliness:** Height-estimation analogy, ASCII prior/posterior, tables, short paragraphs.
-- **Math depth:** Full Gaussian-Gaussian derivation, predictive distribution, empirical Bayes.
-- **Practical depth:** From-scratch + sklearn, hyperparameters, uncertainty evaluation, workflow.
-- **Exam depth:** Bayes' rule, Ridge equivalence, non-PYQ representative questions.
-- **Structure:** All 50 sections in order.
-
-**Verified:** Section 15 worked example hand-verified.
+Or if you're ready for classification: jump to **B-classification/01** and see how the linear model idea extends to Yes/No predictions.

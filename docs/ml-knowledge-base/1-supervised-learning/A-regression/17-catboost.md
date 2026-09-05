@@ -6,934 +6,979 @@
 
 ---
 
-## 01. Algorithm Overview
+<!-- [STORY] -->
+## 01. Start Here
 
-| Property | Value |
-|---|---|
-| Algorithm Name | CatBoost (Categorical Boosting) |
-| Category | Supervised Learning (Ensemble — Gradient Boosting) |
-| Type | Regression (also classification) |
-| Parametric / Non-parametric | Non-parametric (additive trees) |
-| Generative / Discriminative | Discriminative |
-| Main Objective | Build an additive ensemble of oblivious (symmetric) trees with **ordered boosting** (permutation-based target statistics for categoricals and ordered leaf estimates) to control prediction shift and overfitting |
-| Input | Feature matrix X (n×m) with possible categorical features, target y |
-| Output | Sum of all trees' leaf scores |
-| Core Idea | Native, robust categorical encoding (ordered target statistics) + ordered boosting (no leakage) + symmetric trees → strong generalization especially on categorical-heavy data |
-| Typical Use Cases | Tabular data with many categorical features, competitions, robust default |
+Flipkart lists 50 million products. Every product has categories — brand, colour, size, material, seller_type, city. A price-prediction model must read these columns as-is. Naive one-hot encoding of `brand` (4,000 values) creates a 4,000-column sparse matrix; naïve target encoding leaks the answer back into the same row. CatBoost solves both problems at once: it encodes every category **leakage-free** using *ordered target statistics* and reduces **prediction shift** via *ordered boosting* — all while growing simple, stable symmetric trees.
+
+We will build this story by hand, step by step.
 
 ---
 
-## 02. One-Line Definition
+<!-- [QUESTION] -->
+## 02. Core Question
 
-### Beginner Definition
-CatBoost is a boosting library that's especially good with data containing categories (like colors, cities, categories in a column), because it handles them directly and safely without making tons of extra columns, and it's built to avoid overfitting.
-
-### Technical Definition
-CatBoost is a gradient-boosting framework that natively handles categorical features via **ordered target statistics** (with permutation-based leakage control) and reduces **prediction shift** using **ordered boosting**, growing symmetric (oblivious) trees.
+**If categories leak their own answer into their encoding, and gradient boosting accumulates biased leaf estimates round after round, how do you build a model that is both category-safe and shift-free?**
 
 ---
 
-## 03. Intuition
+<!-- [HINT] -->
+## 03. Intuition Before Math
 
-Imagine data with a "City" column. A naive model might encode each city as 0/1 or sort the city column by its average target — but sorting by average leaks the answer (a city with one lucky sample looks great). CatBoost's "ordered target statistics" fixes this: each sample's category value is encoded using only *other* samples (via random permutations), so no information from the sample itself leaks into its own encoding.
+You have a column `city` with values Mumbai, Delhi, Chennai, Kolkata.
 
-Separately, CatBoost grows **symmetric trees** — every node at the same depth must use the same split (it's like the tree is made by stacking the same decision at every branch). This keeps the model simple and stable, and speeds inference.
+**Naïve approach:** compute average price for each city and plug it in as a number.
+But wait — if Mumbai has only one product priced at ₹999, that ₹999 *is* the average. The model sees the answer for that exact product. That is **leakage**.
 
-Finally, **ordered boosting** trains each tree on a proper subset of data and uses the rest to evaluate it — this "out-of-fold" style prevents the prediction shift that other boosters exhibit (the model gradually having different error distribution than training). Together: robust, categorical-friendly, and less prone to overfitting.
+**CatBoost fix:** when encoding Mumbai for a particular product, look only at *other* products from Mumbai that appeared *earlier* in a random permutation. The current product's own price is never used. Add a global average (prior) to smooth cases where few earlier samples exist.
 
----
+**Prediction shift fix:** standard GBM computes residuals using a model already trained on those same rows. Each round's leaf estimates carry a small bias. Over hundreds of rounds, bias accumulates. CatBoost trains each tree using *only earlier samples in a permutation*, making each leaf estimate essentially out-of-fold.
 
-## 04. Problem It Solves
-
-**Problem:** Conventionally, boosting handles categorical features either by (a) one-hot encoding → explosion of dimensions and poor handling of high-cardinality, or (b) target encoding (mean target per category) → **target leakage** because the same sample's target is used to encode itself, and label noise overfits.
-
-**Also:** Standard gradient boosting shows "prediction shift" — the model trains on residuals computed with biased leaf estimates, drifting from the true distribution.
-
-**Example:** Predicting a house price from many categorical features (neighborhood, style, condition). CatBoost encodes these safely without leakage and avoids shift → often the best when categories dominate.
-
-**Why useful:** Best-in-class for categorical-heavy tabular data, robust default, fewer chances of leakage/overfit.
+Two simple ideas — zero leakage, zero shift. Everything else (symmetric trees, priors, smoothing) flows from these.
 
 ---
 
-## 05. Where It Fits in Machine Learning
+<!-- [MAP] -->
+## 04. Where It Fits
 
 ```text
-MACHINE LEARNING
-│
-└── Supervised Learning
-    └── Regression
-        └── Ensembles
-            └── Boosting
-                ├── AdaBoost
-                ├── Gradient Boosting
-                ├── XGBoost
-                ├── LightGBM
-                └── CATBOOST        ← YOU ARE HERE
+SUPERVISED LEARNING
+└── Regression
+    └── Ensembles
+        └── Boosting
+            ├── Gradient Boosting
+            ├── AdaBoost
+            ├── XGBoost
+            ├── LightGBM
+            └── CATBOOST        ← YOU ARE HERE
+
+CatBoost's classification counterpart → 17-catboost.md (B-classification folder)
 ```
 
 ---
 
-## 06. Important Terminology
+<!-- [TABLE] -->
+## 05. Key Vocabulary
 
-| Term | Simple Meaning | Technical Meaning |
+| Term | Plain English | Formal |
 |---|---|---|
-| Categorical feature | A column of categories | Non-numeric label column |
-| Ordered target statistics (ordered TS) | Encode category via other samples' targets | Permutation-based, leakage-free |
-| Ordered boosting | Train with out-of-fold style | Reduce prediction shift |
-| Prediction shift | Model drifting from true distribution | Biased gradient estimates |
-| Symmetric/oblivious tree | Same split at each level | Simple, stable, fast |
-| Target encoding | Replace category with mean target | Naive (leaky) vs ordered (safe) |
-| Permutation | Random reordering of data | Basis of ordered TS & boosting |
+| Categorical feature | Column with non-numeric labels | Discrete nominal variable |
+| Ordered target statistic (TS) | Encode a category using only *earlier* samples' targets | Permutation-based leakage-free encoding |
+| Prediction shift | Model's leaf estimates drift from the true gradient distribution | Accumulated bias in residual estimation |
+| Ordered boosting | Train each tree's leaves using only earlier samples in a permutation | Out-of-fold leaf estimation |
+| Symmetric (oblivious) tree | Every node at the same depth uses the *same* split | Depth-wise shared-split decision tree |
+| Prior (smoothing) | Global average blended into TS to avoid extreme values for rare categories | Regularisation constant in TS formula |
+| Permutation | A random reordering of the dataset | Random bijection σ : {1..n} → {1..n} |
 
 ---
 
-## 07. Input and Output
-
-**Input:** X (n×m) numeric + categorical features; y (continuous). Categorical columns can be passed directly (no manual encoding).
-
-**Output:** ŷ = Σ fₜ(x), additive tree ensemble.
-
-**Parameters learned:** tree structures + leaf weights (+ per-category encodings).
-
-**Hyperparameters:** iterations, learning_rate, depth, l2_leaf_reg, cat_features, bagging_temperature, border_count, random_strength.
-
----
-
-## 08. Mathematical Foundation
-
-CatBoost re-centers the classic boosting objective with two fixes:
-
-1. **Categorical encoding via ordered target statistics:** For a categorical feature, replace each value v of sample i with (roughly):
-```text
-TS(i) = (prior·a + count_y(i)) / (a + count(i))
-```
-computed over a random permutation of samples BEFORE i — so sample i's own target isn't used → no leakage.
-
-2. **Ordered boosting:** at round t, fit tree leaf estimates using only gradients of a subset Sₜ (a random permutation prefix), compute test-leaves' final weights on the "held-out" part — eliminates prediction shift.
-
-**Required math:** target statistics, combinatorial permutations, Newton-style leaf estimation, symmetric-tree splits (same split shared across leaves at a depth).
-
----
-
-## 09. Core Formula
-
-### Ordered Target Statistic (encoding)
+<!-- [INPUTS] -->
+## 06. Input → Process → Output
 
 ```text
-enc(xᵢ) = (prior + Σ_{j<i in permutation σ} [xⱼ = xᵢ]·yⱼ) / (a + count_{j<i}(xᵢ))
-```
-with a smoothing constant and prior (e.g., global mean of y).
-
-#### Meaning
-To encode sample i's category, average the targets of *earlier* samples in a permutation that share the same category (plus a prior for smoothing). Sample i's own target is excluded → no target leakage.
-
-#### Symbols
-- `σ` = random permutation of data
-- `prior` = global prior (often mean target)
-- `a` = smoothing strength
-- `count_{j<i}` = number of earlier samples with same category
-
-#### Intuition
-Leakage-free: the model can't "cheat" by reading the answer from the encoding. Works the same for training and test (test uses all training samples).
-
----
-
-### Ordered Boosting (leaf estimation)
-
-Instead of building each tree on the full data's residuals (leaky when the same leaves compute residuals and final prediction), CatBoost:
-```text
-For each permutation: leaf estimate uses only gradients from earlier samples
-```
-then combines over permutations. This removes **prediction shift**.
-
----
-
-## 10. Derivation (Why Ordered TS + Ordered Boosting)
-
-**Step 1 — Problem with naive target encoding:**
-```text
-target-encode value v as mean(v's targets)
-→ for a sample, its own target is included
-→ conditional expectation shifts (leakage)
-→ overfits noise, poor test
+INPUT                          PROCESS                           OUTPUT
+─────────────────────────────────────────────────────────────────────────
+X: n × m matrix               1. Encode categoricals via         ŷ = Σ η·fₜ(x)
+   (numeric + categorical)        ordered TS (permutation-based)
+y: continuous target           2. Compute gradient of loss
+                               3. Grow symmetric tree
+                                  (same split at every depth)
+                               4. Leaf values from earlier-sample gradients
+                               5. ŷ̂ += η · tree(x)
+                               6. Repeat steps 2-5
 ```
 
-**Step 2 — Fix: ordered target statistic.**
-For a permutation σ, encode sample i's category using only j < i in σ (and a prior):
-```text
-enc = (a·prior + Σ_{j<i} [cⱼ=cᵢ]·yⱼ) / (a + Σ_{j<i}[cⱼ=cᵢ])
-```
-No self-information → unbiased (per permutation).
+**Parameters learned:** tree structures, leaf weights, per-category ordered-TS encodings.
 
-**Step 3 — Problem with naive gradient boosting (prediction shift):**
-A tree's leaf values are computed with gradients that themselves depend on earlier leaf estimates trained on the same data. On new data this estimate is slightly off → "shift" accumulates over rounds, hurting generalization.
-
-**Step 4 — Fix: ordered boosting.**
-Maintain, for each permutation, separate model copies trained incrementally. For sample i, the gradient that builds a node/leaf only involves samples before i. Accumulating these "out-of-order" estimates averages out the shift.
-
-**Step 5 — Choice of trees:** symmetric (oblivious) trees share one split across all leaves at a level → reduces variance, simplifies, and is fast.
+**Key hyperparameters:** `iterations`, `learning_rate`, `depth`, `l2_leaf_reg`, `cat_features`, `border_count`, `bagging_temperature`, `random_strength`.
 
 ---
 
-## 11. How the Algorithm Works
+<!-- [DEFINITION] -->
+## 07. One-Line Definition
+
+**Beginner:** CatBoost is a boosting library that handles categorical columns directly — safely encoding them without leaking the answer — and uses symmetric trees to stay stable and fast.
+
+**Technical:** CatBoost is a gradient-boosting framework that replaces categorical features with ordered target statistics (leakage-free), reduces prediction shift via ordered boosting, and grows symmetric (oblivious) trees for stable, fast inference.
+
+---
+
+<!-- [SCENARIO] -->
+## 08. The Problem CatBoost Solves
+
+**The leakage trap:** you have a dataset with 20 categorical columns, some with thousands of unique values. You try target encoding — replace each category with the mean of its targets. But each product's own price feeds into its own encoding. The model memorises. Train accuracy is 99%. Test accuracy is 60%. You have no idea why.
+
+**The prediction shift trap:** you switch to XGBoost with one-hot encoding. Leakage is gone, but the model trains residuals computed from a model already fitted to those same rows. Each round's gradient estimate is slightly biased. After 500 rounds, bias accumulates, and generalisation plateaus early.
+
+**CatBoost attacks both traps simultaneously:** ordered TS eliminates leakage; ordered boosting eliminates shift. You can pass raw categorical columns without encoding, and the model just works.
+
+---
+
+<!-- [TREES] -->
+## 09. Taxonomy
 
 ```text
-Encode categorical features via ordered target statistics
-(over random permutations, with priors, leakage-free)
-    ↓
-Initialize prediction
-    ↓
-For each boosting round:
-    compute gradients (using ordered estimates → no shift)
-    ↓
-    build symmetric tree over permutations:
-        same split repeated across leaves at each depth
-    ↓
-    compute leaf increments from held-out gradients
-    ↓
-    ŷ̂ += learning_rate · tree(x)
-    ↓
-Repeat
-Final ŷ̂ = Σ η·fₜ(x)
+Ensemble Methods
+├── Bagging
+│   └── Random Forest
+├── Boosting                          ← CatBoost lives here
+│   ├── AdaBoost
+│   ├── Gradient Boosting (GBM)
+│   ├── XGBoost
+│   ├── LightGBM
+│   └── CatBoost
+└── Stacking
 ```
 
 ---
 
-## 12. Training Process
+<!-- [VOCAB] -->
+## 10. Terminology Deep Dive
 
-- Encode categoricals via ordered TS (per permutation).
-- Ordered boosting maintains per-permutation model copies.
-- Grow symmetric (oblivious) trees.
-- Shrinkage via learning_rate.
-- Early stopping/n_estimators.
+**Ordered Target Statistics (ordered TS):**
+For sample *i* in permutation σ, the encoding of its categorical value *c* is:
 
-**What is learned:** tree structures, leaf weights, per-category encodings.
-
----
-
-## 13. Objective Function / Loss Function
-
-Same additive boosted objective:
-```text
-Obj = Σ L(yᵢ, ŷ̂ᵢ) + Σ Ω(fₜ)
 ```
-Regression often L2 (RMSE). CatBoost supports L1 (MAE), quantile, Poisson, Huber, etc. The key novelty is not the loss but the **ordered/permutation machinery** and **categorical encoding** around the same additive objective.
-
----
-
-## 14. Optimization
-
-- **Ordered TS** — leakage-free categorical encoding.
-- **Ordered boosting** — prediction-shift reduction (out-of-fold leaves).
-- **Symmetric trees** — shared splits, lower variance, fast.
-- **Greedy best-split** with random_strength, border_count.
-- Parallel computation, GPU support.
-- Bayesian-style hyperparameter priors → good defaults (often works without much tuning).
-
----
-
-## 15. Complete Numerical Example
-
-Data: categorical feature C ∈ {A,B}, x (numeric) = [1,2,3,4], y = [0,5,5,10]. Model a simple ordered-TS encoding + one symmetric stump. Use prior = mean(y) = 5, smoothing a = 1.
-
-**Ordered TS encoding (permutation order = data order):**
-```text
-C: [A, B, A, B],  y: [0,5,5,10]
-
-sample1 (A, y=0): no earlier A → enc = (1·5 + 0)/1 = 5
-sample2 (B): no earlier B → enc = 5
-sample3 (A): earlier A = sample1 (y=0) → enc = (1·5 + 0)/2 = 2.5
-sample4 (B): earlier B = sample2 (y=5) → enc = (1·5 + 5)/2 = 5
-```
-Encoded C ≈ [5, 5, 2.5, 5]. Note: sample3's own y=5 is NOT used — only sample1's. Leakage-free.
-
-**Now use encoded feature + numeric x (say just encoded C) with a stump (split enc > 2.5 → but simpler: split on x).**
-Take x splits with symmetric depth-1 tree, loss squared, base=5, λ small.
-
-**Try split x≤2:**
-```text
-left (x=1,2): predicted? compute average minus base
-residuals (from base 5): r = y − 5 = [−5, 0]
-   leaf increment left  = mean([−5,0])  ≈ −2.5
-right (x=3,4): r = [0, 5] → increment ≈ 2.5
-pred: left 5−2.5=2.5, right 7.5
-err: |0−2.5|+|5−2.5|+|5−7.5|+|10−7.5| = 2.5+2.5+2.5+2.5=10
+enc(i) = (a · prior + Σ_{j < i in σ} [cⱼ = cᵢ] · yⱼ)
+          ─────────────────────────────────────────────────
+              a + |{j < i in σ : cⱼ = cᵢ}|
 ```
 
-**With ordered boosting**, each sample's gradient for leaf estimation excludes it (permutation), e.g., increment for sample using only prior samples — avoiding shift. Subsequent rounds refine.
+- `prior` = global mean of y (default)
+- `a` = smoothing strength (default = 1)
+- Sample *i*'s own y is **never** used → no leakage
 
-**VERIFIED EXAMPLE** — hand-verified. Shows ordered target statistics (leakage-free) and additive leaf increments.
+**Prediction shift:**
+In standard GBM, leaf value for row *i* is computed from the gradient at *i*, which depends on the current model's prediction at *i*. But the current model was trained using leaf values that also depended on *i*'s gradient. This circular dependency creates a systematic bias called **prediction shift**.
+
+**Ordered boosting:** maintain separate model copies per permutation. For sample *i*, only gradients from samples *j < i* in that permutation are used to compute *i*'s leaf value. The circular dependency is broken.
+
+**Symmetric (oblivious) trees:** at each depth level, every node uses the *same* split condition. A depth-3 tree has exactly 2³ = 8 leaves, and the path to each leaf is a sequence of the same three decisions applied in the same order. Simple, regularised, and very fast at inference.
 
 ---
 
-## 16. Visual Explanation
+<!-- [RECIPE] -->
+## 11. Step-by-Step Algorithm
 
 ```text
-Ordered TS — no leakage:
-   samples: [A, B, A, B]
-   encode sample3 (A): use only EARLIER A's target (sample1)
-            NOT its own
+INPUT: X (with categorical columns), y, iterations T, depth d, learning rate η
 
-Ordered boosting:
-   gradient for sample i uses only j<i (permutation)
-   → leaf estimates unbiased → less prediction shift
+STEP 1 — Encode categoricals:
+    For each categorical column, compute ordered TS using a random permutation σ
+    (run P independent permutations, average the encodings)
 
-Symmetric tree (same split at each level):
-      split: x ≤ 2      (applied on BOTH branches at depth 1)
-      root
-     /    \
-   L        R      <-- same threshold for deciding next split
-   (split same on both)
+STEP 2 — Initialise:
+    ŷ = prior  (global mean of y)
+
+STEP 3 — For each boosting round t = 1..T:
+    a) Compute gradients gᵢ = ∂L(yᵢ, ŷᵢ) / ∂ŷᵢ  using ordered estimates
+    b) Grow a symmetric tree of depth d:
+       - At each level, try all (feature, threshold) pairs
+       - Pick the ONE split that maximises total gain across ALL current leaves
+       - Both child nodes of every existing leaf use the same split
+    c) For each leaf, compute increment using only earlier-sample gradients (ordered)
+    d) ŷ̂ += η · tree(x)
+
+STEP 4 — Return ŷ̂ = Σ η · fₜ(x)
 ```
 
 ---
 
-## 17. Algorithm / Pseudocode
+<!-- [DEMO] -->
+## 12. Toy Example — Ordered TS Encoding
 
-```text
-Input: X (with categorical cols), y, rounds, depth, lr, permutations P
-Encode categoricals via ordered TS (average over permutations)
-ŷ̂ = base
-for t in 1..rounds:
-    # ordered boosting: for each permutation estimate gradients
-    g = gradient of loss at ŷ̂  (with ordered leaves)
-    build symmetric tree:
-        for each level: choose ONE split maximizing average gain over all leaves
-    leaf increments = ordered estimates (held-out)
-    ŷ̂ += lr * tree(x)
-end
-return ŷ̂
-```
+**Data:** Categorical column `colour` and target `price`.
+
+| Row | colour | price |
+|-----|--------|-------|
+| 1 | Red | ₹500 |
+| 2 | Blue | ₹800 |
+| 3 | Red | ₹600 |
+| 4 | Blue | ₹900 |
+| 5 | Red | ₹550 |
+
+Permutation order = row order. `prior` = mean(price) = ₹670. Smoothing `a` = 1.
+
+**Row 1 (Red, ₹500):** No earlier Red rows. enc = (1 × 670 + 0) / (1 + 0) = **₹670**
+
+**Row 2 (Blue, ₹800):** No earlier Blue rows. enc = (1 × 670 + 0) / (1 + 0) = **₹670**
+
+**Row 3 (Red, ₹600):** Earlier Red = Row 1 (₹500). enc = (1 × 670 + 500) / (1 + 1) = 1170 / 2 = **₹585**
+
+**Row 4 (Blue, ₹900):** Earlier Blue = Row 2 (₹800). enc = (1 × 670 + 800) / (1 + 1) = 1470 / 2 = **₹735**
+
+**Row 5 (Red, ₹550):** Earlier Red = Row 1 (₹500), Row 3 (₹600). enc = (1 × 670 + 500 + 600) / (1 + 2) = 1770 / 3 = **₹590**
+
+Notice: Row 3's own price (₹600) never appears in Row 3's encoding. Row 5's encoding uses only Rows 1 and 3. **Zero leakage.**
 
 ---
 
-## 18. From-Scratch Implementation
+<!-- [NUMERICAL] -->
+## 13. Complete Worked Example — One Boosting Round
+
+Continuing from §12, now we add a numeric feature `weight_kg`:
+
+| Row | weight_kg | colour (enc) | price (y) |
+|-----|-----------|--------------|-----------|
+| 1 | 1 | 670 | 500 |
+| 2 | 2 | 670 | 800 |
+| 3 | 1.5 | 585 | 600 |
+| 4 | 2.5 | 735 | 900 |
+| 5 | 1.2 | 590 | 550 |
+
+**Round 1:** Base prediction = prior = ₹670 for all rows.
+
+Residuals (gradient for L2 loss = y − ŷ):
+```
+r = [500-670, 800-670, 600-670, 900-670, 550-670]
+  = [-170, 130, -70, 230, -120]
+```
+
+Try split: `weight_kg ≤ 1.5` → Left = {Row 1, 3, 5}, Right = {Row 2, 4}.
+
+Left increment = mean([-170, -70, -120]) = -360/3 = **-120**
+Right increment = mean([130, 230]) = 360/2 = **+180**
+
+With learning rate η = 0.3:
+- Left rows: 670 + 0.3 × (-120) = 670 − 36 = **634**
+- Right rows: 670 + 0.3 × (180) = 670 + 54 = **724**
+
+**After Round 1:** predictions = [634, 724, 634, 724, 634].
+
+Errors: |500−634| + |800−724| + |600−634| + |900−724| + |550−634| = 134 + 76 + 34 + 176 + 84 = **504**
+
+**With ordered boosting** (the key CatBoost twist): when computing the increment for Row 3, we would use only gradients from Rows 1 and 2 (earlier in the permutation), not Row 3's own gradient. This eliminates the circular dependency that causes prediction shift.
+
+Round 2 would then use the new residuals and repeat. Each round chips away at the error.
+
+**VERIFIED** — ordered TS from §12 hand-checked; leaf increments arithmetic confirmed.
+
+---
+
+<!-- [CODE] -->
+## 14. From-Scratch Implementation
+
+### Version 1 — Ordered TS + Symmetric Stump
 
 ```python
 import numpy as np
 
-class SimpleCatBoostRegressor:
-    def __init__(self, iterations=10, lr=0.3, depth=1,
-                 prior_smoothing=1.0):
+class CatBoostFromScratch:
+    """Minimal CatBoost: ordered TS encoding + symmetric stump boosting."""
+
+    def __init__(self, iterations=20, lr=0.3, depth=1, prior_smoothing=1.0):
         self.iterations = iterations
         self.lr = lr
         self.depth = depth
         self.a = prior_smoothing
         self.trees = []
-        self.encoders = {}
+        self.prior = None
 
-    def _ordered_ts(self, cat, y, prior):
-        # encode each sample using only earlier samples (in index order)
-        enc = np.zeros(len(y))
-        prior = float(prior)
-        # per-category running sums (dict): sum_y -> count
+    def _ordered_ts(self, cat_col, y):
+        """Encode each category using only earlier samples (leakage-free)."""
+        n = len(y)
+        enc = np.zeros(n)
         sums, counts = {}, {}
-        for i in range(len(y)):
-            c = cat[i]
-            s = sums.get(c, 0.0); n = counts.get(c, 0)
-            enc[i] = (prior * self.a + s) / (self.a + n)
-            sums[c] = s + y[i]; counts[c] = n + 1
+        for i in range(n):
+            c = cat_col[i]
+            s = sums.get(c, 0.0)
+            cnt = counts.get(c, 0)
+            enc[i] = (self.prior * self.a + s) / (self.a + cnt)
+            sums[c] = s + y[i]
+            counts[c] = cnt + 1
         return enc
 
-    def fit(self, X, y, cat_features=None):
-        X = np.asarray(X, float).copy()
-        y = np.asarray(y, float)
-        prior = y.mean()
-        if cat_features is not None:
-            Xn = np.hstack([X, np.zeros((len(y), 1))])
-            Xn[:, -1] = self._ordered_ts(cat_features, y, prior)
-            X = Xn
-        pred = np.full(len(y), prior)
+    def fit(self, X, y, cat_indices=None):
+        """
+        X: ndarray (n, m) — numeric features
+        y: ndarray (n,)   — target
+        cat_indices: list of column indices to treat as categorical
+        """
+        X = X.astype(float).copy()
+        y = y.astype(float)
+        self.prior = y.mean()
+
+        # Replace categorical columns with ordered TS
+        if cat_indices:
+            for ci in cat_indices:
+                X[:, ci] = self._ordered_ts(X[:, ci].astype(str), y)
+
+        pred = np.full(len(y), self.prior)
+
         for _ in range(self.iterations):
-            r = y - pred
-            # depth-1 symmetric stump: pick best single split
-            best = (-np.inf, None, None)
-            for c in range(X.shape[1]):
-                for thr in np.unique(X[:, c])[1:]:
-                    left = X[:, c] <= thr
+            residuals = y - pred
+            best_gain, best_col, best_thr = -np.inf, None, None
+
+            for col in range(X.shape[1]):
+                for thr in np.unique(X[:, col])[1:]:
+                    left = X[:, col] <= thr
                     if left.sum() == 0 or (~left).sum() == 0:
                         continue
-                    inc_l = r[left].mean(); inc_r = r[~left].mean()
-                    gain = -(np.mean((r[left]-inc_l)**2)
-                             + np.mean((r[~left]-inc_r)**2))
-                    if gain > best[0]:
-                        best = (gain, c, thr)
-            gain, c, thr = best
-            if c is None:
-                inc_l = inc_r = r.mean()
-                tree = {'col': None, 'thr': None, 'l': inc_l, 'r': inc_r}
+                    inc_l = residuals[left].mean()
+                    inc_r = residuals[~left].mean()
+                    gain = -(
+                        np.mean((residuals[left] - inc_l) ** 2)
+                        + np.mean((residuals[~left] - inc_r) ** 2)
+                    )
+                    if gain > best_gain:
+                        best_gain, best_col, best_thr = gain, col, thr
+
+            if best_col is None:
+                inc = residuals.mean()
+                tree = {"col": None, "thr": None, "left": inc, "right": inc}
             else:
-                left = X[:, c] <= thr
-                tree = {'col': c, 'thr': thr,
-                        'l': r[left].mean(), 'r': r[~left].mean()}
+                left = X[:, best_col] <= best_thr
+                tree = {
+                    "col": best_col,
+                    "thr": best_thr,
+                    "left": residuals[left].mean(),
+                    "right": residuals[~left].mean(),
+                }
+
             self.trees.append(tree)
-            pred += self.lr * self._predict_tree(X, tree)
-        self.base = prior
+            pred += self.lr * self._apply_tree(X, tree)
+
         return self
 
-    def _predict_tree(self, X, t):
-        if t['col'] is None:
-            return np.full(len(X), t['l'])
-        return np.where(X[:, t['col']] <= t['thr'], t['l'], t['r'])
+    def _apply_tree(self, X, tree):
+        if tree["col"] is None:
+            return np.full(len(X), tree["left"])
+        return np.where(X[:, tree["col"]] <= tree["thr"], tree["left"], tree["right"])
 
-    def predict(self, X, cat_features=None):
-        X = np.asarray(X, float).copy()
-        if cat_features is not None:
-            prior = self.base
-            X = np.hstack([X, self._ordered_ts(cat_features,
-                           np.zeros(len(X)), prior)[:, None]])
-        pred = np.full(len(X), self.base)
-        for t in self.trees:
-            pred += self.lr * self._predict_tree(X, t)
+    def predict(self, X, cat_indices=None):
+        X = X.astype(float).copy()
+        if cat_indices:
+            for ci in cat_indices:
+                X[:, ci] = self._ordered_ts(X[:, ci].astype(str), np.zeros(len(X)))
+        pred = np.full(len(X), self.prior)
+        for tree in self.trees:
+            pred += self.lr * self._apply_tree(X, tree)
         return pred
+
+
+# --- Demo ---
+rng = np.random.RandomState(42)
+n = 200
+colour = rng.choice(["Red", "Blue", "Green"], n)
+weight = rng.rand(n) * 3 + 0.5
+y = np.where(colour == "Red", 500, np.where(colour == "Blue", 800, 650)) + weight * 100 + rng.randn(n) * 50
+
+X = np.column_stack([weight, np.array(colour, dtype=float)])
+model = CatBoostFromScratch(iterations=30, lr=0.3)
+model.fit(X, y, cat_indices=[1])
+preds = model.predict(X, cat_indices=[1])
+rmse = np.sqrt(np.mean((y - preds) ** 2))
+print(f"RMSE (from scratch): {rmse:.1f}")
 ```
 
----
+### Version 2 — Multi-Permutation Ordered Boosting (Conceptual)
 
-## 19. Code Explanation
+```python
+import numpy as np
 
-```text
-Line:  _ordered_ts
-   What: encode category using only earlier samples + prior
-   Why: leakage-free categorical handling
-   Math: (a·prior + Σ_{j<i} yⱼ)/(a + count)
+class OrderedBoostingCatBoost:
+    """
+    Demonstrates the ordered boosting concept:
+    For each permutation, maintain a separate model that only uses
+    earlier samples for leaf estimation.
+    """
 
-Line:  for left/right: inc = mean residual
-   What: leaf increments
-   Why: additive boosting step
-   Math: mean of gradient in leaf
+    def __init__(self, n_permutations=3, iterations=10, lr=0.3):
+        self.P = n_permutations
+        self.T = iterations
+        self.lr = lr
+        self.permutations = []
+        self.models = []  # one model per permutation
 
-Line:  pred += lr * _predict_tree
-   What: shrinkage additive update
-   Why: robust step size
-   Math: ŷ̂ += η·f
+    def fit(self, X, y):
+        n = len(y)
+        self.prior = y.mean()
 
-Line:  symmetric stump (single split reused)
-   What: oblivious tree simplification
-   Why: stability/simplicity
-   Math: shared split at each level
+        # Generate permutations
+        for p in range(self.P):
+            perm = np.random.permutation(n)
+            self.permutations.append(perm)
+
+            # For this permutation, maintain prediction array
+            # ordered_est[p, i] uses only gradients from perm[:position_of_i]
+            model_preds = np.full(n, self.prior)
+
+            for t in range(self.T):
+                # Build gradient order: process samples in permutation order
+                # When building the tree, leaf value for sample i uses only
+                # gradients from samples earlier in this permutation
+                grad = -(y - model_preds)  # L2 gradient
+
+                # Simplified: fit a stump using only the gradients of the
+                # samples in the first half of the permutation (concept demo)
+                half = n // 2
+                train_idx = perm[:half]
+
+                # Find best split using only training subset gradients
+                best_gain, best_col, best_thr = -np.inf, None, None
+                for col in range(X.shape[1]):
+                    vals = np.unique(X[train_idx, col])
+                    for thr in vals[1:]:
+                        mask = X[:, col] <= thr
+                        left_t = mask[train_idx]
+                        right_t = ~left_t
+                        if left_t.sum() == 0 or right_t.sum() == 0:
+                            continue
+                        inc_l = grad[train_idx][left_t].mean()
+                        inc_r = grad[train_idx][right_t].mean()
+                        gain = -(
+                            np.mean((grad[train_idx][left_t] - inc_l) ** 2)
+                            + np.mean((grad[train_idx][right_t] - inc_r) ** 2)
+                        )
+                        if gain > best_gain:
+                            best_gain, best_col, best_thr = gain, col, thr
+
+                if best_col is not None:
+                    left_mask = X[:, best_col] <= best_thr
+                    inc_l = grad[train_idx][left_mask[train_idx]].mean()
+                    inc_r = grad[train_idx][~left_mask[train_idx]].mean()
+                    update = np.where(left_mask, inc_l, inc_r)
+                    model_preds += self.lr * update
+
+            self.models.append(model_preds)
+
+    def predict(self, X):
+        # Average predictions across all permutation-models
+        avg = np.mean(self.models, axis=0)
+        return avg
 ```
 
-> **Note:** This simplified version shows ordered TS + additive symmetric-ish stumps. Full CatBoost uses multi-permutation ordered boosting and native oblivious trees — the official library is the accuracy reference.
-
----
-
-## 20. Library Implementation
+### Version 3 — Library CatBoost (Production)
 
 ```python
 import numpy as np
 import pandas as pd
+from catboost import CatBoostRegressor, Pool
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
-from catboost import CatBoostRegressor, Pool
 
+# --- Synthetic e-commerce product data ---
 rng = np.random.RandomState(0)
-n = 1500
+n = 2000
 df = pd.DataFrame({
-    'x1': rng.rand(n)*10,
-    'cat': rng.choice(['red','green','blue','yellow'], n),
-    'cat2': rng.choice(['A','B','C'], n),
+    "weight_kg": rng.rand(n) * 5 + 0.1,
+    "brand": rng.choice(["Samsung", "Apple", "OnePlus", "Xiaomi", "Realme"], n),
+    "colour": rng.choice(["Black", "White", "Blue", "Red", "Gold"], n),
+    "seller_type": rng.choice(["Official", "Reseller", "Refurbished"], n),
+    "city": rng.choice(["Mumbai", "Delhi", "Chennai", "Kolkata", "Bangalore"], n),
 })
-y = 2*df['x1'] + (df['cat']=='blue')*5 + rng.randn(n)*0.5
 
-tr, te = train_test_split(df, test_size=0.25, random_state=42)
-y_tr, y_te = y[tr.index], y[te.index]
+# True relationship (hidden)
+brand_premium = {"Apple": 30000, "Samsung": 15000, "OnePlus": 12000, "Xiaomi": 8000, "Realme": 6000}
+seller_disc = {"Official": 0, "Reseller": -500, "Refurbished": -2000}
+y = (
+    df["weight_kg"].values * 2000
+    + df["brand"].map(brand_premium).values
+    + df["seller_type"].map(seller_disc).values
+    + rng.randn(n) * 1000
+)
 
-cat_cols = ['cat', 'cat2']
+X_train, X_test, y_train, y_test = train_test_split(df, y, test_size=0.25, random_state=42)
+
+cat_cols = ["brand", "colour", "seller_type", "city"]
+
 model = CatBoostRegressor(
-    iterations=200, learning_rate=0.05, depth=6,
-    l2_leaf_reg=3.0, loss_function='RMSE',
-    cat_features=cat_cols, verbose=False, random_seed=42)
-model.fit(tr, y_tr, eval_set=(te, y_te), early_stopping_rounds=20)
+    iterations=500,
+    learning_rate=0.05,
+    depth=6,
+    l2_leaf_reg=3.0,
+    cat_features=cat_cols,
+    loss_function="RMSE",
+    verbose=100,
+    random_seed=42,
+)
+model.fit(X_train, y_train, eval_set=(X_test, y_test), early_stopping_rounds=50)
 
-y_pred = model.predict(te)
-print("R²:", r2_score(y_te, y_pred))
-print("RMSE:", np.sqrt(mean_squared_error(y_te, y_pred)))
-print("Feature importance:", model.feature_importances_)
-print("Best iter:", model.get_best_iteration())
+y_pred = model.predict(X_test)
+print(f"\nR²:    {r2_score(y_test, y_pred):.4f}")
+print(f"RMSE:  {np.sqrt(mean_squared_error(y_test, y_pred)):.1f}")
+print(f"Best iteration: {model.get_best_iteration()}")
+print(f"Feature importances: {dict(zip(df.columns, model.feature_importances_))}")
 ```
 
 ---
 
-## 21. Hyperparameters
+<!-- [EXPLAINER] -->
+## 15. Code Walkthrough
 
-| Hyperparameter | Meaning | Effect | Typical |
-|---|---|---|---|
-| iterations | Number of trees | More → bias ↓, overfit risk | 100–1000 |
-| learning_rate | Shrinkage | Lower → robust | 0.01–0.1 |
-| depth | Tree depth | Higher → complex interactions | 4–8 |
-| l2_leaf_reg | L2 on leaf weights | Higher → shrink weights | 1–10 |
-| cat_features | Mark categorical cols | Native handling | — |
-| border_count | Binning granularity | Split precision | 32–254 |
-| bagging_temperature | Randomness in sampling | Higher → more randomness | 0–1 |
-| random_strength | Split randomization | Adds variance/fairness | 1 |
-| subsample | Row sampling | Variance ↓ | 0.5–1.0 |
+### Version 1 — `_ordered_ts`
 
-**Good defaults:** CatBoost's Bayesian-initialized defaults often work well without heavy tuning — a notable advantage.
+```
+Line: _ordered_ts(self, cat_col, y)
+  What:  Walk through rows in order; for each row, compute the TS using
+         only earlier rows sharing the same category.
+  Why:   Leakage-free — the current row's own target never enters its encoding.
+  Math:  enc(i) = (a · prior + Σ_{j<i} yⱼ) / (a + count_{j<i})
+
+Line: self.prior = y.mean()
+  What:  Global mean used as the prior.
+  Why:   When no earlier rows exist for a category, the prior fills in.
+  Math:  prior = (1/n) Σ yᵢ
+
+Line: best_gain, best_col, best_thr  (split search loop)
+  What:  For each feature and threshold, compute the gain from splitting.
+  Why:   Symmetric tree requires ONE best split at each depth level.
+  Math:  gain = -[variance(left) + variance(right)]
+```
+
+### Version 3 — Library usage
+
+```
+Line: cat_features=cat_cols
+  What:  Tell CatBoost which columns are categorical.
+  Why:   Without this, CatBoost treats them as numeric (wrong).
+
+Line: eval_set=(X_test, y_test), early_stopping_rounds=50
+  What:  Monitor test loss; stop if no improvement for 50 rounds.
+  Why:   Prevents overfitting; paired with ordered boosting for double safety.
+
+Line: model.feature_importances_
+  What:  How much each feature contributed to splits.
+  Why:   Interpretability; verify that brand/seller carry weight.
+```
 
 ---
 
-## 22. Parameters vs Hyperparameters
+<!-- [HYPER] -->
+## 16. Hyperparameters That Matter
 
-### Parameters (learned)
-- Tree structures & leaf weights
-- Per-category ordered-TS encodings
-
-### Hyperparameters (chosen)
-- iterations, learning_rate, depth, l2_leaf_reg, cat_features, border_count, bagging_temperature, random_strength, subsample
-
----
-
-## 23. Assumptions
-
-| Assumption | What | Why | Check | If violated |
+| Hyperparameter | What it does | Increase → | Decrease → | Typical |
 |---|---|---|---|---|
-| Data can be encoded via TS | Model form | — | — | — |
-| Additivity | Sum of trees | Boosting model | — | Other model |
-| Enough data per leaf | Accurate leaves | Stable estimates | Leaf checks | Reduce depth, raise l2 |
-| Categoricals have signal | TS meaningful | Categorical value predictive | EDA | Treat as numeric/drop |
-| Not extreme imbalance/noise | Robustness | Ordered TS still averages | CV | More smoothing/prior, early stop |
+| `iterations` | Number of boosting rounds | Lower bias, higher overfit risk | Higher bias, less overfit | 500–2000 |
+| `learning_rate` | Step size per tree | Faster learning, less stable | Slower, more robust | 0.01–0.1 |
+| `depth` | Tree depth (symmetric) | More complex interactions | Simpler, more regularised | 4–8 |
+| `l2_leaf_reg` | L2 penalty on leaf weights | More shrinkage, less overfit | Less regularisation | 1–10 |
+| `border_count` | Number of split thresholds tried | Finer splits, more compute | Coarser, faster | 32–254 |
+| `bagging_temperature` | Randomness in row sampling | More diversity, less overfit | Deterministic sampling | 0–1 |
+| `random_strength` | Noise added to split gains | More exploration, less overfit | Greedy splitting | 0–10 |
+| `cat_features` | Columns to encode via ordered TS | — | — | list of indices |
 
-CatBoost is assumption-light; its biggest assumption is that target-statistic encoding captures categorical signal, which for most real categoricals is reasonable.
-
----
-
-## 24. Data Requirements
-
-- **Type:** numeric + categorical mixed — the specialty.
-- **Missing:** CatBoost handles NaN/categorical NaN well; often no imputation needed.
-- **Outliers:** moderately robust; consider robust loss.
-- **Scaling:** unnecessary (trees).
-- **Dataset size:** works small→large; good for wide categorical tables.
-- **Cardinality:** handles high-cardinality categoricals well (better than one-hot).
+**Good news:** CatBoost's Bayesian-initialized defaults often work well out of the box — less tuning than XGBoost or LightGBM.
 
 ---
 
-## 25. Feature Scaling
-
-**Unnecessary** for trees; CatBoost's ordered TS and symmetric splits are monotone/scale-invariant per feature. No feature scaling needed.
-
----
-
-## 26. Evaluation Metrics
-
-(Same regression family: RMSE, MAE, R², quantile, etc. CatBoost has many built-in metrics.)
-
-**Training vs evaluation:** with ordered boosting the train/test gap tends to be smaller than for XGBoost/LightGBM (that's a selling point). Use eval set + early stopping; still verify train vs test for overfitting signal.
-
----
-
-## 27. Advantages
-
-| Advantage | Why matters |
-|---|---|
-| Native categorical handling | No one-hot; leakage-free encoding |
-| Ordered boosting | Less prediction shift → better generalization |
-| Less overfitting | Out-of-fold estimates, regularization |
-| Good defaults | Bayesian init → less tuning |
-| Handles missing/high-cardinality | Robust to messy data |
-| Feature importance | Interpretability |
-| Symmetric trees | Stable, fast inference |
-| GPU / parallel | Speed |
-
----
-
-## 28. Disadvantages
-
-| Disadvantage | Consequence |
-|---|---|
-| Slower than LightGBM on large numeric data | Ordered TS/boosting overhead |
-| More memory (permutations) | Big data costlier |
-| Slower in some tuning | Many permutations for ordered boosting |
-| Less interpretable than single tree | Ensemble |
-| Niche unless categorical-heavy | LightGBM/XGBoost often preferred otherwise |
-
----
-
-## 29. When to Use
-
-✓ Categorical-heavy tabular data (many/high-cardinality categories).
-✓ Avoiding target leakage is critical.
-✓ Less tuning desired (good defaults).
-✓ Competition ensembles where diversity helps.
-✓ When you want robustness against prediction shift/overfit.
-
----
-
-## 30. When NOT to Use
-
-✗ Mostly numeric huge datasets (LightGBM faster).
-✗ Images/text/audio (deep learning).
-✗ Extreme latency/memory constraints (LightGBM).
-✗ Fully interpretable single decision tree needed.
-✗ Trivial numeric-only problems (XGBoost/LightGBM equally fine).
-
----
-
-## 31. Real-World Applications
-
-| Application | Input | Algorithm | Output |
-|---|---|---|---|
-| House price from categorical-heavy features | neighborhood, style | CatBoost | Price |
-| Customer churn value | categorical segments | CatBoost | Value/score |
-| Credit risk | categorical + numeric | CatBoost | Risk score |
-| Ad/click value | categorical user/context | CatBoost | Score |
-| Sales with categorical drivers | region, category | CatBoost | Demand |
-
----
-
-## 32. Failure Cases
-
-- **Mostly numeric huge data:** slower than LightGBM → use LightGBM.
-- **Extreme cardinality with little data per category:** ordered TS with prior helps, but tiny counts → need heavier smoothing; watch over-regularization.
-- **Memory-limited big data:** many permutations cost memory → reduce or use LightGBM.
-- **Very deep symmetric trees on small data:** overfit → reduce depth, raise l2.
-- **If categories are actually ordinal noise:** TS meaningless → treat as numeric or drop.
-
----
-
-## 33. Overfitting and Underfitting
-
-- **Underfitting:** too few iterations, high l2, shallow depth.
-- **Overfitting:** too many iterations/depth, low l2_leaf_reg, no early stop.
-- **Balance:** CatBoost's ordered boosting inherently reduces the shift/overfit more than XGBoost/LightGBM; still tune depth, iterations, l2, and use early stopping. The rounding/prior on TS also regularizes categoricals.
-
----
-
-## 34. Bias-Variance Perspective
-
-- Boosting is **bias-reducing**.
-- CatBoost adds variance control via symmetric trees, l2_leaf_reg, ordered estimates (which cut the systematic bias/shift), and prior-smoothing of target stats.
-- Ordered boosting specifically removes a **systematic prediction bias** (shift) that plagues other boosters — a form of bias correction beyond just variance control.
-
----
-
-## 35. Comparison With Similar Algorithms
-
-| Algorithm | Main Idea | Strength | Weakness | Best Use |
-|---|---|---|---|---|
-| CatBoost | Ordered boosting + ordered TS | Best categorical, robust | Slower | Categorical-heavy |
-| XGBoost | Level-wise Newton + reg | Robust, well-regularized | Slower on big/categorical | Default/production |
-| LightGBM | Histogram + leaf-wise | Fastest on big numeric | Overfit-prone | Large numeric |
-| Gradient Boosting | Basic residual fit | Simple | Slow, weak | Small/prototype |
-
----
-
-## 36. Algorithm Selection Guide
+<!-- [COMPARE] -->
+## 17. How It Compares to Siblings
 
 ```text
-Tabular?
-├── Categorical-heavy → CATBOOST
-├── Big numeric, speed → LIGHTGBM
-├── Default robust → XGBOOST
-└── Need interpretation → SINGLE TREE / LINEAR
+                    Leakage      Prediction     Tree         Speed on       Default
+                    control      shift control  structure    big numeric    quality
+─────────────────────────────────────────────────────────────────────────────────────
+Gradient Boosting   None         None           Unbalanced   Medium         Low
+AdaBoost            Reweighting  None           Unbalanced   Medium         Medium
+XGBoost             Regularise   None           Level-wise   Medium         High
+LightGBM            Regularise   None           Leaf-wise    Very fast      High
+CATBOOST            Ordered TS   Ordered boost  Symmetric    Medium         Very high
+```
+
+**The CatBoost edge:** when your data is full of categorical columns (product categories, user segments, city codes), CatBoost's ordered TS avoids leakage that other methods are vulnerable to (unless you carefully implement your own leakage-free target encoding). Its symmetric trees also make inference very fast — a depth-6 oblivious tree has exactly 64 leaves and a fixed 6-comparison path.
+
+---
+
+<!-- [BREAK] -->
+## 18. Break the Model — Experiment
+
+**Experiment 1: Demonstrate leakage**
+
+Take the data from §12. Replace ordered TS with naïve target encoding (use the row's own mean):
+
+```
+Naïve enc for Row 3 (Red, ₹600):
+  mean of ALL Red rows = (500 + 600 + 550) / 3 = ₹550
+  → Row 3's own price (₹600) IS included in its encoding
+```
+
+Now remove Row 3 from the dataset and re-encode: mean of remaining Red = (500 + 550) / 2 = ₹525. The encoding shifted by ₹25. That shift IS the leakage signal. In ordered TS, removing Row 3 doesn't change its encoding at all (because Row 3's own target was never used).
+
+**Experiment 2: Prediction shift amplification**
+
+Train two identical GBMs for 500 rounds on the same data:
+- Model A: standard residual boosting (all samples used for each leaf)
+- Model B: ordered boosting (leaf for sample *i* uses only samples before *i*)
+
+Plot train vs test RMSE after each round. Model A's train-test gap widens noticeably after round 100. Model B's gap stays narrow. That gap IS prediction shift.
+
+**Try it yourself:** increase `iterations` to 2000 on both. Model A may even start getting worse on test while improving on train (overfitting amplified by shift). Model B degrades more gracefully.
+
+---
+
+<!-- [WORKED] -->
+## 19. Full Numerical Walkthrough — Ordered TS by Hand
+
+**Dataset:** 6 products with categorical `brand` and numeric `price`.
+
+| Row | brand | price |
+|-----|-------|-------|
+| 1 | A | ₹100 |
+| 2 | B | ₹200 |
+| 3 | A | ₹150 |
+| 4 | C | ₹300 |
+| 5 | B | ₹250 |
+| 6 | A | ₹180 |
+
+Permutation order = row order. Prior = mean = (100+200+150+300+250+180)/6 = 1180/6 ≈ ₹196.67. Smoothing `a` = 1.
+
+| Row | brand | Earlier same-brand rows | enc = (a·prior + Σy_earlier) / (a + count) |
+|-----|-------|------------------------|---------------------------------------------|
+| 1 | A | none | (196.67 + 0) / 1 = **₹196.67** |
+| 2 | B | none | **₹196.67** |
+| 3 | A | Row 1 (₹100) | (196.67 + 100) / 2 = **₹148.33** |
+| 4 | C | none | **₹196.67** |
+| 5 | B | Row 2 (₹200) | (196.67 + 200) / 2 = **₹198.33** |
+| 6 | A | Row 1 (₹100), Row 3 (₹150) | (196.67 + 250) / 3 = **₹148.89** |
+
+**Verification:** Row 6's encoding uses ₹100 and ₹150 (Rows 1 and 3) but NOT its own ₹180. ✓ No leakage.
+
+**Effect of smoothing:** if brand C had appeared only in Row 4, without smoothing (a=0), the formula breaks (0/0). The prior fills this gap, giving ₹196.67 — the global average. As more C rows appear, the prior influence fades and the category's true signal emerges.
+
+---
+
+<!-- [SCENARIOS] -->
+## 20. When to Use / When NOT to Use
+
+### ✓ Use CatBoost when:
+- Your data has **many categorical features** (especially high-cardinality)
+- You want **robust defaults** without extensive tuning
+- **Leakage prevention** is critical (finance, healthcare)
+- You want **fast inference** (symmetric trees are hardware-friendly)
+- You're building **competition ensembles** (diversity with XGBoost/LightGBM)
+
+### ✗ Avoid CatBoost when:
+- Data is **purely numeric and very large** (LightGBM is faster)
+- You need **images / text / audio** (use deep learning)
+- **Extreme memory constraints** (ordered TS permutations cost memory)
+- You want **maximum interpretability** (use a single tree or linear model)
+- **Tiny datasets** (<100 rows) — ordered TS has too few "earlier" samples
+
+---
+
+<!-- [GATE] -->
+## 21. GATE / Exam Perspective
+
+**Key formulas to remember:**
+
+```text
+Ordered TS:    enc(i) = (a·prior + Σ_{j<i in σ} [cⱼ=cᵢ]·yⱼ) / (a + |{j<i : cⱼ=cᵢ}|)
+
+Additive model: ŷ̂ = f₀ + Σ η·fₜ(x)
+
+Prediction shift: leaf gradient at i depends on model trained using i → bias accumulates
+
+Symmetric tree: depth d → exactly 2^d leaves, each defined by d same-split decisions
+```
+
+**Core concepts:** ordered target statistics, prediction shift, ordered boosting, symmetric/oblivious trees, prior smoothing.
+
+> **Representative pattern question (NOT a past GATE PYQ):**
+> "A dataset has a categorical column `city` with 500 unique values. You want to use gradient boosting. Explain why naïve target encoding is dangerous, and describe two mechanisms CatBoost uses to mitigate it."
+>
+> **Answer sketch:** (1) Naïve target encoding includes the sample's own target in its category's mean → target leakage → overfitting. (2) CatBoost uses **ordered TS** — encode each sample using only earlier samples in a permutation (no self-information). (3) CatBoost uses **ordered boosting** — leaf estimates use only earlier-sample gradients, eliminating prediction shift (the circular dependency between current model and gradient estimation).
+
+**Common traps:**
+- Assuming all boosters handle categoricals the same way (they don't)
+- Thinking target encoding is safe by default (it leaks unless done carefully)
+- Forgetting prediction shift exists (it's subtle but real)
+- Assuming CatBoost is always the fastest (LightGBM wins on large numeric data)
+
+---
+
+<!-- [DECISIONS] -->
+## 22. Practical Decision Framework
+
+```text
+Your data has categorical columns?
+├── YES, many/high-cardinality
+│   ├── Need fast training → CatBoost (good defaults, minimal tuning)
+│   ├── Need fast inference → CatBoost (symmetric trees)
+│   └── Competition ensemble → CatBoost + XGBoost + LightGBM (diversity)
+├── YES, few/low-cardinality
+│   ├── Data is small → XGBoost with one-hot
+│   └── Data is large → LightGBM with label encoding
+└── NO, all numeric
+    ├── Large dataset → LightGBM (fastest)
+    ├── Medium dataset → XGBoost (robust)
+    └── Small dataset → Any (or simple model)
 ```
 
 ---
 
-## 37. Common Mistakes
+<!-- [CHECK] -->
+## 23. Sanity Checks
 
-```text
-❌ One-hot encoding features CatBoost handles natively
-Fix: pass cat_features, mark categorical columns.
-
-❌ Forgetting cat_features parameter
-Fix: specify them; otherwise CatBoost treats them as numeric.
-
-❌ Fixed group/leakage structure not considered
-Fix: use pool with group_id for grouped data.
-
-❌ Too many iterations without early stopping
-Fix: eval set + early_stopping_rounds.
-
-❌ Deep symmetric trees on small data
-Fix: reduce depth, raise l2_leaf_reg.
-
-❌ Using CatBoost on huge numeric-only data expecting LightGBM speed
-Fix: use LightGBM there.
-```
+- [ ] Pass `cat_features` parameter — otherwise CatBoost treats categories as numeric (silently wrong)
+- [ ] Verify train-test RMSE gap — ordered boosting should make it smaller than XGBoost/LightGBM on the same data
+- [ ] Check `model.get_best_iteration()` — if it hits `iterations`, increase the limit or reduce `learning_rate`
+- [ ] Inspect `feature_importances_` — categorical columns should appear if they carry signal
+- [ ] Compare with XGBoost/LightGBM on the same data — CatBoost should win on categorical-heavy, lose on pure-numeric large data
 
 ---
 
-## 38. Interview Questions
-
-### Beginner
-**Q1. What is CatBoost?**
-A: A gradient-boosting library that natively handles categorical features and reduces prediction shift via ordered boosting.
-
-**Q2. Why is it great with categoricals?**
-A: It uses ordered target statistics (leakage-free) instead of one-hot/target encoding.
-
-**Q3. What are symmetric (oblivious) trees?**
-A: Trees where the same split is used across all leaves at each depth → simple, stable, fast.
-
-### Intermediate
-**Q4. What is prediction shift?**
-A: The model's residual/gradient estimates become biased vs true distribution because leaves are trained on the same data they predict → generalization drifts over rounds.
-
-**Q5. How does ordered boosting fix shift?**
-A: Leaf estimates for sample i use only earlier (permutation) samples' gradients → out-of-fold-style, unbiased per permutation.
-
-**Q6. Why is naive target encoding leaky?**
-A: A sample's own target is included in its category's statistics → sees the answer → overfits train, fails test.
-
-### Advanced
-**Q7. Explain ordered target statistics.**
-A: Encoding sample i's category averages targets of *earlier* samples in a permutation (plus prior), excluding i itself.
-
-**Q8. Compare CatBoost vs LightGBM categorical handling.**
-A: LightGBM sorts categories by mean target (a form of target statistics on training data); CatBoost uses ordered/permutation-based TS to avoid leakage and shift.
-
-**Q9. Why might CatBoost be slower yet more accurate?**
-A: It maintains per-permutation ordered estimates and symmetric splits → more compute, but less shift/overfit → better generalization.
-
-**Q10. When would you choose CatBoost over XGBoost?**
-A: Categorical-heavy data, when leakage/overfit is a concern, or you want good defaults with less tuning.
-
----
-
-## 39. GATE / Exam Perspective
-
-**Key formulas:**
-```text
-Ordered TS: enc = (a·prior + Σ_{j<i}[cⱼ=cᵢ]·yⱼ) / (a + Σ_{j<i}[cⱼ=cᵢ])
-Additive boosting: ŷ̂ = Σ η·fₜ(x)
-Leaf estimate (ordered): uses only earlier gradients
-```
-
-**Concepts:** prediction shift, ordered boosting, ordered target statistics (leakage avoidance), symmetric trees, categorical encoding.
-
-> **Representative pattern question (NOT a past GATE PYQ):** "Why does naive target encoding overfit, and how does CatBoost avoid it?" Answer: naive target encoding uses the sample's own target (leakage); CatBoost's ordered TS uses only earlier samples in a permutation, plus priors, staying leakage-free.
-
-**Traps:**
-- Assuming all boosters handle categoricals identically.
-- Thinking target encoding is always safe (it leaks).
-- Forgetting prediction shift concept.
-- Assuming CatBoost is always fastest (it's not).
-
----
-
-## 40. Coding Practice
-
-**L1:** Implement ordered target statistics.
-**L2:** Explain/verify leakage-free encoding by hand.
-**L3:** Fit a symmetric stump.
-**L4:** Simple CatBoost loop (as §18, validate vs library).
-**L5:** Library usage with cat_features, early stopping.
-**L6:** Tune depth, iterations, l2, border_count via CV.
-**L7:** Case study — categorical-heavy dataset; CatBoost vs XGBoost vs LightGBM (with encoding): compare RMSE, overfit gap (train-test), runtime; report feature importance.
-
----
-
-## 41. Practical ML Workflow
-
-```text
-Problem → tabular (possibly categorical-heavy)
-   ↓
-EDA → identify categorical cols, cardinality, missing
-   ↓
-Clean → pass categoricals as cat_features; handle missing
-   ↓
-Split → train/val/test
-   ↓
-No scaling (trees)
-   ↓
-Baseline → simple model
-   ↓
-Train → CatBoostRegressor(cat_features=...)
-   ↓
-Tune → depth, iterations, l2, border_count via CV
-   ↓
-Early stop → eval set
-   ↓
-Evaluate → RMSE/R² + train-test gap (smaller = good)
-   ↓
-Compare → XGBoost/LightGBM
-   ↓
-Deploy → best
-   ↓
-Monitor → drift
-```
-
----
-
-## 42. Complexity
-
-| Aspect | Complexity | Notes |
-|---|---|---|
-| Ordered TS encoding | O(n) per permutation | P permutations |
-| Ordered boosting | O(rounds · n · permutations) | more than naive GB |
-| Tree building (symmetric) | O(leaves · border_count) | shared splits |
-| Prediction | O(depth · rounds) | per sample |
-| Memory | O(n · permutations) | higher than LightGBM |
-
----
-
-## 43. Advanced Concepts
-
-- **Prediction shift** — formal definition (biased leaf estimates leading to accumulated shift).
-- **Ordered boosting algorithm** — per-permutation model copies.
-- **Ordered TS — Greedy TS vs ordered TS** comparison.
-- **Symmetric/oblivious trees** and their variance/fast inference benefits.
-- **Bayesian hyperparameter defaults** (CatBoost estimates good priors).
-- **GPU training, distributed training.**
-- **`calc_feature_statistics`, `get_leaf_values`, prediction analysis tools.**
-- **Multi-regression, ranking objectives.**
-
----
-
-## 44. Connections to Other Algorithms
+<!-- [CHEAT] -->
+## 24. Cheat Sheet
 
 ```text
 CatBoost
-   ├── Gradient Boosting / XGBoost / LightGBM (additive family)
-   ├── target encoding / target statistics (its categorical basis)
-   ├── regularization → l2_leaf_reg (like ridge/λ)
-   └── cross-validation / out-of-fold idea → ordered boosting's cousin
+──────────────────────────────────────────────────
+WHAT:     Gradient boosting with leakage-free categorical handling
+WHEN:     Categorical-heavy tabular data, robust defaults needed
+CORE IDEA: Ordered TS (no leakage) + Ordered boosting (no shift) + Symmetric trees
+
+FORMULA:  enc(i) = (a·prior + Σ_{j<i} yⱼ) / (a + count_{j<i})
+          ŷ̂ = f₀ + Σ η·fₜ(x)
+
+PYTHON:   from catboost import CatBoostRegressor
+          model = CatBoostRegressor(cat_features=[...], iterations=500)
+          model.fit(X_train, y_train, eval_set=(X_test, y_test),
+                    early_stopping_rounds=50)
+
+PROS:     Handles categoricals natively, fast inference, good defaults
+CONS:     Slower training than LightGBM on pure-numeric, more memory
+AVOID:    Pure numeric huge data → LightGBM; images/text → deep learning
+
+VARIANT:  Classification → CatBoostClassifier (B-classification folder)
 ```
 
 ---
 
-## 45. If You Remember Only 5 Things
-
-1. CatBoost is a boosting library **purpose-built for categorical features**.
-2. It encodes categories with **ordered target statistics** — leakage-free (no self-info).
-3. It reduces **prediction shift** via **ordered boosting** (out-of-fold leaf estimates).
-4. It grows **symmetric (oblivious) trees** — simple, stable, fast.
-5. Pick it for categorical-heavy data or when you want robust defaults; LightGBM is faster for big numeric-only data.
-
----
-
-## 46. Cheat Sheet
+<!-- [MISTAKES] -->
+## 25. Common Mistakes
 
 ```text
-Algorithm   : CatBoost (Categorical Boosting)
-Category    : Supervised, Regression (also classification), boosting
-Goal        : Robust boosted trees with native, leakage-free categorical handling
-Input       : X numeric + categorical; y
-Output      : ŷ = Σ η·fₜ(x)
-Core Formula: ordered TS enc; additive loss+reg; ordered leaf estimates
-Optimization: ordered boosting, symmetric trees, priors, l2, shrinkage, early stop
-Parameters  : tree structures + leaf weights + category encodings
-Hyperparams : iterations, learning_rate, depth, l2_leaf_reg, cat_features, border_count, bagging_temperature, random_strength, subsample
-Loss        : many (RMSE default)
-Assumptions : TS captures categorical signal; additive model
-Advantages  : best categorical handling, less shift/overfit, good defaults, GPU
-Disadvantages: slower than LightGBM on big numeric; more memory
-Use When    : categorical-heavy, robust generalization, less tuning
-Avoid When  : huge numeric-only (use LightGBM), images/text
-Related     : XGBoost, LightGBM, GB, target encoding
-Key Exam    : ordered TS (leakage), prediction shift, symmetric trees
-Key Interv  : why not target-encode, ordered boosting, vs LightGBM categoricals
+❌ Forgetting to pass cat_features
+   → CatBoost silently treats categories as numeric. Results look okay but are wrong.
+   FIX: Always pass cat_features=[list of column names or indices].
+
+❌ One-hot encoding before feeding to CatBoost
+   → Defeats the purpose; you lose ordered TS, increase dimensionality.
+   FIX: Pass raw categorical columns; let CatBoost handle them.
+
+❌ Not using eval_set / early_stopping
+   → Risk of overfitting despite ordered boosting.
+   FIX: Always hold out a validation set and use early_stopping_rounds.
+
+❌ Using CatBoost on a 10-million-row purely-numeric dataset
+   → LightGBM would be 3-5x faster with similar accuracy.
+   FIX: Benchmark both; prefer LightGBM for speed on numeric-only data.
+
+❌ Expecting CatBoost to be interpretable like a single tree
+   → It's an ensemble of hundreds of trees.
+   FIX: Use feature_importances_ and SHAP for interpretation.
 ```
 
 ---
 
-## 47. Final Mental Model
+<!-- [DEEPDIVE] -->
+## 26. Deep Dive — The Math of Prediction Shift
+
+In standard gradient boosting, at round *t*, the model prediction is ŷₜ(xᵢ). The gradient (residual) is:
+
+```
+gₜ(xᵢ) = -∂L(yᵢ, ŷₜ(xᵢ)) / ∂ŷₜ(xᵢ)
+```
+
+The tree fₜ is fit to these gradients. But ŷₜ(xᵢ) was computed using earlier trees that were *also* fit to gradients from the same rows. This creates a circular dependency:
+
+```
+f₁ depends on g₁ (which uses ŷ₀ = constant — OK, no shift yet)
+f₂ depends on g₂ (which uses ŷ₁ = η·f₁ — f₁ was fit to ALL rows' g₁)
+f₃ depends on g₃ (which uses ŷ₂ — all earlier trees trained on all rows)
+...
+```
+
+Each fₜ's gradient gₜ is biased because the model used to compute gₜ was trained using the same rows' gradients. This bias is **prediction shift** — the gradient distribution at training time differs from what you'd see at test time.
+
+**CatBoost's fix:** For permutation σ, maintain model copies. When computing the leaf value for sample *i* in permutation σ, use only gradients from samples *j* that appear before *i* in σ. Since those earlier samples were trained using even earlier samples, the circular dependency is broken — each leaf estimate is essentially "out-of-fold."
+
+The final prediction averages over P permutations, smoothing out any residual bias.
+
+**Intuition:** Imagine a teacher grading homework. If the teacher uses a student's own homework to decide how to grade that same student, bias creeps in. CatBoost's ordered boosting is like the teacher grading each student using only the answer keys from students who submitted *earlier*.
+
+---
+
+<!-- [CHEAT] -->
+## 27. Mathematical Formulation
+
+### Objective
+
+```
+min Σ L(yᵢ, ŷᵢ) + Σ Ω(fₜ)
+```
+
+where Ω(fₜ) = l2_leaf_reg · Σ (leaf_weight)² (L2 regularisation on leaf values).
+
+### Ordered Target Statistic
+
+```
+enc(xᵢ, σ) = (a · μ + Σ_{k=1}^{i-1} [x_σ(k) = x_σ(i)] · y_σ(k))
+              ────────────────────────────────────────────────────────
+                   a + |{k < i : x_σ(k) = x_σ(i)}|
+```
+
+Averaged over P permutations for stability.
+
+### Symmetric Tree Split
+
+At each depth level, find ONE (feature, threshold) that maximises:
+
+```
+gain = Σ_leaves [ (N_L · μ_L² + N_R · μ_R²) ]
+```
+
+where N_L, N_R are left/right counts and μ_L, μ_R are mean gradients in each child. The same split is applied to ALL leaves at that depth.
+
+### Prediction
+
+```
+ŷ = μ + Σ_{t=1}^{T} η · fₜ(x)
+```
+
+where fₜ is a symmetric tree and μ = prior = mean(y).
+
+---
+
+<!-- [GATE] -->
+## 28. GATE Quick-Revision Card
 
 ```text
-Encode categories leakage-free (ordered TS, permutations + prior)
-   ↓
-Boost with ordered leaves (each gradient uses earlier samples)
-   ↓
-grow symmetric (oblivious) trees
-   ↓
-shrink & add: ŷ̂ += η·tree
-   ↓
-less prediction shift → robust generalization
-   ↓
-especially strong with categorical-heavy data
+CatBoost = Ordered TS + Ordered Boosting + Symmetric Trees
+
+Ordered TS:  enc(i) = (a·prior + Σ_{j<i} yⱼ) / (a + count)
+             → No leakage (own target excluded)
+
+Ordered Boosting: leaf(i) uses only gradients from j < i in permutation
+                  → No prediction shift
+
+Symmetric Tree: same split at every depth level
+                → 2^d leaves, d comparisons, fast inference
+
+Prior smoothing: prevents extreme values for rare categories
+                  → stabilises TS when count is low
+
+Prediction Shift: circular dependency between model and gradients
+                  → CatBoost breaks it with ordered estimation
+
+Compare:
+  XGBoost:   level-wise, regularise, no ordered anything
+  LightGBM:  leaf-wise, histogram, fast on numeric
+  CatBoost:  symmetric, ordered, best on categoricals
 ```
 
 ---
 
-## 48. Knowledge Check
+<!-- [CASES] -->
+## 29. Case Studies
 
-### Recall (5)
-1. What does "ordered" in CatBoost refer to?
-2. What is prediction shift?
-3. What are symmetric/oblivious trees?
-4. Why native categorical handling?
-5. Name main hyperparameters.
+### Case 1 — Flipkart Product Pricing (Regression)
 
-### Understanding (5)
-6. Why is naive target encoding leaky?
-7. How does ordered TS avoid leakage?
-8. How does ordered boosting reduce shift?
-9. Why symmetric trees help generalization?
-10. Why good defaults matter.
+**Problem:** Predict listed price for 50M products. Features: brand (4000 values), category (500), colour (50), seller_type (3), city (800), weight, rating.
 
-### Application (5)
-11. Compute ordered TS by hand (§15).
-12. Use cat_features in the library.
-13. Set up early stopping.
-14. Tune depth/iterations/l2.
-15. Choose CatBoost vs LightGBM for a dataset.
+**Why CatBoost:** 5 categorical columns with high cardinality. One-hot → 4500+ columns, sparse, slow. Label encoding → ordinal assumption wrong. Target encoding → leakage. CatBoost's ordered TS handles all of this natively.
 
-### Mathematical (5)
-16. Write the ordered TS formula.
-17. Explain prior + smoothing.
-18. Explain the shift source mathematically.
-19. Derive additive leaf estimate logic.
-20. Analyze complexity of ordered boosting.
+**Result:** CatBoost typically outperforms XGBoost (with manual target encoding) by 3-8% RMSE on such data, with less preprocessing.
 
-### Interview (5)
-21. "Why is CatBoost good with categoricals?"
-22. "What is prediction shift?"
-23. "Ordered TS vs greedy TS?"
-24. "CatBoost vs LightGBM handling of categoricals?"
-25. "When choose CatBoost?"
+### Case 2 — Credit Risk Scoring (Classification counterpart)
 
-### Problem Solving (5)
-26. Categorical-heavy, need accuracy — pick? 
-27. Huge numeric-only — pick?
-28. Overfitting with categories — fix (higher smoothing/l2)?
-29. High-cardinality category with tiny counts — mitigate (reduce a / heavier prior)?
-30. Need both speed and categoricals — how to balance?
+**Problem:** Predict loan default probability. Features: income, employment_type (5 values), city_tier (4), education (4), loan_type (10).
 
-## Answers (explained)
-1. Ordered target statistics & ordered boosting (permutation-based).
-2. Biased leaf/gradient estimates causing model drift from true distribution.
-3. Trees where the same split is used across all leaves at each depth.
-4. Leakage-free, no one-hot explosion.
-5. iterations, learning_rate, depth, l2_leaf_reg, cat_features, etc.
-6–30: see §8–14, §23–33. For (26): CatBoost. For (27): LightGBM. For (29): need heavier smoothing/prior since counts tiny. For (30): use CatBoost with modest permutations or LightGBM with careful categorical handling, test both.
+**Why CatBoost:** Categorical-heavy, leakage prevention critical (financial data). Ordered boosting adds a second safety layer against the gradual overfitting that plagues standard GBM on financial time-series.
+
+### Case 3 — When NOT to use CatBoost
+
+**Problem:** Predict house prices from 200 numeric features (square footage, rooms, age, GPS coordinates, etc.) on 2M rows.
+
+**Why LightGBM instead:** Purely numeric, large dataset. LightGBM's histogram binning and leaf-wise growth are 3-5x faster. CatBoost's ordered TS overhead adds no value here (no categoricals to encode).
 
 ---
 
-## 49. Final Learning Checklist
+<!-- [VERIFY] -->
+## 30. Verification Checklist
 
-- [ ] I can define CatBoost and its purpose
-- [ ] I understand ordered target statistics
-- [ ] I understand leakage in target encoding
-- [ ] I understand prediction shift
-- [ ] I understand ordered boosting
-- [ ] I know what symmetric/oblivious trees are
-- [ ] I can compute ordered TS by hand
-- [ ] I can use cat_features in the library
-- [ ] I can set up early stopping
-- [ ] I can tune hyperparameters
-- [ ] I can compare with XGBoost/LightGBM
-- [ ] I know when to use/avoid
-- [ ] I understand its overfitting behavior
-- [ ] I can implement a simplified version
-- [ ] I understand bias-variance + shift correction
-- [ ] I understand its complexity
-- [ ] I can apply it in a workflow
-- [ ] I understand feature importance
-- [ ] I know its speed tradeoffs
-- [ ] I understand its role in the boosting family
+Before deploying a CatBoost model, verify:
+
+- [ ] **No leakage:** if you replaced ordered TS with naïve target encoding, did test RMSE get worse? (It should — confirming ordered TS helps.)
+- [ ] **No shift:** plot train vs test loss per iteration. The gap should be smaller than equivalent XGBoost/LightGBM on the same data.
+- [ ] **cat_features passed:** run `model.get_feature_importance()` — if categorical columns appear, they were treated correctly.
+- [ ] **Early stopping worked:** `model.get_best_iteration()` < `iterations`. If not, increase iterations or decrease learning_rate.
+- [ ] **Symmetric tree depth:** depth 6 gives 64 leaves — check that this is sufficient for your data's complexity.
 
 ---
 
-## 50. Quality Control Note
+<!-- [PATTERN] -->
+## 31. Representative Pattern Question
 
-**Self-review:**
-- **Accuracy:** Ordered TS, additive leaf estimates, and worked example verified (hand-computed ordered target statistics and increments).
-- **Beginner-friendliness:** Category-encoding analogy, shift explanation, ASCII trees, short paragraphs, tables.
-- **Math depth:** Ordered TS formula, leakage rationale, prediction-shift derivation outline, complexity.
-- **Practical depth:** From-scratch ordered-TS loop, library usage with cat_features, tuning, workflow, comparison, categorical handling.
-- **Exam depth:** Ordered TS / prediction shift / symmetric trees concepts, non-PYQ representative questions.
-- **Structure:** All 50 sections in order.
+> **Question:** You have a dataset with 30 features, 15 of which are categorical (some with 1000+ unique values). Your colleague one-hot encodes all categoricals and trains XGBoost. The model overfits badly (train R²=0.99, test R²=0.65). What are the three likely causes, and how does CatBoost address each?
 
-**Verified:** Section 15 worked example hand-verified. From-scratch section simplified (multi-permutation ordered boosting noted); official library is the accuracy reference.
+**Answer sketch:**
+
+1. **Target leakage from naïve target encoding** (if they used it) — CatBoost uses ordered TS with permutation-based exclusion, so no sample sees its own target.
+2. **Dimensionality explosion from one-hot** (5000+ sparse columns) — CatBoost handles categories natively, no one-hot needed.
+3. **Prediction shift** (standard GBM trains on biased gradients) — CatBoost's ordered boosting eliminates this.
+
+The test-train gap of 0.34 would likely shrink to 0.05–0.10 with CatBoost on this data.
+
+---
+
+<!-- [COMPARISON] -->
+## 32. Boosting Family Comparison
+
+| Property | GBM | AdaBoost | XGBoost | LightGBM | CatBoost |
+|---|---|---|---|---|---|
+| Core idea | Residual fitting | Reweight misclassified | 2nd-order optimisation | Leaf-wise histogram | Ordered TS + ordered boosting |
+| Categorical handling | Manual | Manual | Manual/sorted | Sorted by target | **Native ordered TS** |
+| Prediction shift | Yes | Yes | Yes | Yes | **No** (ordered boosting) |
+| Tree structure | Unbalanced | Unbalanced | Level-wise | Leaf-wise | **Symmetric (oblivious)** |
+| Speed (numeric, large) | Slow | Slow | Medium | **Very fast** | Medium |
+| Speed (categorical) | Slow | Slow | Medium | Medium | **Fast** (native) |
+| Default quality | Low | Medium | High | High | **Very high** |
+| Overfitting control | Weak | Medium | Strong (L1/L2) | Medium | **Strong** (ordered + L2) |
+| Inference speed | Slow | Slow | Medium | Medium | **Very fast** (symmetric) |
+
+---
+
+<!-- [PRACTICE] -->
+## 33. Mastery Test
+
+**Conceptual (8 questions):**
+
+1. What is ordered target statistics, and how does it prevent leakage?
+2. What is prediction shift, and why does it occur in standard GBM?
+3. How does ordered boosting break the circular dependency causing shift?
+4. What is a symmetric (oblivious) tree? How many leaves does a depth-5 symmetric tree have?
+5. What role does the prior play in ordered TS? When is it most important?
+6. Why might CatBoost have a smaller train-test gap than XGBoost on categorical data?
+7. Explain why one-hot encoding high-cardinality categoricals is problematic for GBM.
+8. When would you choose LightGBM over CatBoost?
+
+**Numerical (2 questions):**
+
+9. Given: `prior=100, a=1, category "Gold" has earlier rows with targets [80, 120, 90]`. Compute the ordered TS for a new "Gold" row.
+
+10. A symmetric depth-3 tree is trained. At depth 1, the best split is `x₃ ≤ 5`. At depth 2, the best split (applied to BOTH children) is `x₁ ≤ 2`. At depth 3, the best split is `x₅ ≤ 7`. How many leaves does this tree have, and what is the prediction path for the sample x = [3, 4, 6, 1, 8]?
+
+**Answers:**
+- Q9: enc = (1×100 + 80+120+90) / (1+3) = 390/4 = **97.5**
+- Q10: 2³ = **8 leaves**. Path: x₃=6>5 → right; x₁=3>2 → right; x₅=8>7 → right → right-right-right leaf.
+
+---
+
+<!-- [NEXT] -->
+## 34. What Next?
+
+You have now completed the boosting family:
+- 13. Gradient Boosting → the foundation
+- 14. AdaBoost → reweighting intuition
+- 15. XGBoost → regularised, 2nd-order, production-grade
+- 16. LightGBM → histogram speed, leaf-wise growth
+- 17. CatBoost → leakage-free categoricals, ordered boosting
+
+**Natural next steps:**
+- **Stacking** — combine XGBoost + LightGBM + CatBoost into a meta-learner (often the winning move in competitions)
+- **Random Forest** (B-classification folder) — bagging alternative, no boosting shift, simpler
+- **Model selection & ensembling** — when to use which, how to blend
+
+CatBoost's classification counterpart is in the **B-classification** folder (17-catboost.md).
